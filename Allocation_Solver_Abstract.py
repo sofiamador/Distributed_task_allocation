@@ -54,7 +54,6 @@ class Allocation_Solver_Distributed_v2(Allocation_Solver_Distributed):
         agents_algorithm = self.create_agents_algorithm()
         self.create_graphs()
         self.match_agent_mission_responsibility()
-
         malier = Mailer(delay_function, agents_algorithm)
 
     def match_agent_mission_responsibility(self):
@@ -65,12 +64,12 @@ mailer_counter = 0
 
 
 class Mailer(threading.Thread):
-    def __init__(self, delay_function, agents_algorithm):
+    def __init__(self, f_delay, agents_algorithm):
         threading.Thread.__init__()
         global mailer_counter
         mailer_counter = mailer_counter + 1
         self.id_ = mailer_counter
-        self.delay_function = delay_function
+        self.delay_function = f_delay
         self.protocol.set_seed()
 
         for aa in agents_algorithm:
@@ -102,19 +101,19 @@ class Agent_Algorithm(threading.Thread):
     set_receive_flag_to_false
     --> after computation occurs set the flag back to false
 
-
     """
     def __init__(self, simulation_entity, is_with_timestamp=False):
         threading.Thread.__init__()
         self.is_with_timestamp = is_with_timestamp
+        self.timestamp_counter = 0
         self.neighbors_ids = []
         self.simulation_entity = simulation_entity
         self.atomic_counter = 0
         self.NCLO = 0
-        self.timestamp_counter = 0
-        self.cond = threading.Condition(threading.RLock())
         self.idle_time = 0
         self.is_idle = True
+        self.cond = threading.Condition(threading.RLock())
+
 
     def set_cond(self, cond_input):
         self.cond = cond_input
@@ -124,7 +123,7 @@ class Agent_Algorithm(threading.Thread):
 
     # ---------------------- receive_msgs ----------------------
 
-    def receive_msgs(self, msgs):
+    def receive_msgs(self, msgs: []):
         for msg in msgs:
             if self.is_with_timestamp:
                 current_timestamp_from_context = self.get_current_timestamp_from_context(msg)
@@ -215,7 +214,6 @@ class Agent_Algorithm(threading.Thread):
             self.set_idle_to_false()
             if msgs is None:
                 break
-            self.handle_msgs()
             self.receive_msgs(msgs)
             self.reaction_to_msgs()
 
