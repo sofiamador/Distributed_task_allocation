@@ -69,11 +69,12 @@ class Mailer(threading.Thread):
         global mailer_counter
         mailer_counter = mailer_counter + 1
         self.id_ = mailer_counter
-        self.delay_function = f_delay
-        self.protocol.set_seed()
+        self.delay_function = f_delay(self.id_)
+        self.msg_counter = 0
+        self.msg_box = []
 
         for aa in agents_algorithm:
-            aa.start()
+            aa.initialize_algorithm()
 
 
 class Agent_Algorithm(threading.Thread):
@@ -112,8 +113,11 @@ class Agent_Algorithm(threading.Thread):
         self.NCLO = 0
         self.idle_time = 0
         self.is_idle = True
-        self.cond = threading.Condition(threading.RLock())
+        self.cond = None # update in solver
+        self.inbox = None # update in solver
 
+    def set_cond(self, inbox_input):
+        self.inbox = inbox_input
 
     def set_cond(self, cond_input):
         self.cond = cond_input
@@ -138,6 +142,7 @@ class Agent_Algorithm(threading.Thread):
 
     def set_receive_flag_to_true_given_msg(self, msg):
         raise NotImplementedError
+
     def get_current_timestamp_from_context(self, msg):
         """
         :param msg: use it to extract the current timestamp from the receiver
@@ -191,8 +196,8 @@ class Agent_Algorithm(threading.Thread):
 
     def compute(self):
         """
-	    After the context was updated by messages received, computation takes place
-	    using the new information and preparation on context to be sent takes place
+       After the context was updated by messages received, computation takes place
+       using the new information and preparation on context to be sent takes place
         """
         raise NotImplementedError
 
@@ -236,9 +241,6 @@ class Agent_Algorithm(threading.Thread):
     def initialize_algorithm(self):
         raise NotImplementedError
 
-
-
-
 class Msg:
     def __init__(self, sender, receiver, information, msg_time, timestamp=0):
         self.sender = sender
@@ -246,3 +248,32 @@ class Msg:
         self.information = information
         self.msg_time = msg_time
         self.timestamp = timestamp
+
+class UnboundedBuffer():
+    def __init__(self):
+        self.buffer = []
+        self.cond = threading.Condition(threading.RLock())
+
+    def insert(self,list_of_msgs):
+        with self.cond:
+            self.buffer.append(list_of_msgs)
+
+    def extract(self):
+        with self.cond:
+            while len(self.buffer) == 0:
+                self.cond.wait()
+
+        ans = []
+
+        for msg in self.buffer:
+            if msg is None:
+                return None
+            else:
+                ans.append(msg)
+
+        self.buffer = []
+        return  ans
+
+    def is_buffer_empty(self):
+        return len(self.buffer) == 0
+
