@@ -70,4 +70,3 @@ class Simulation:
                  mission_generator, f_calculate_distance=calculate_distance):
         self.name = name
         self.agent_list = agents_list
-
