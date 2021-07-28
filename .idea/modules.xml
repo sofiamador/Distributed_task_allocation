@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../Distributed_task_allocation/.idea/Distributed_task_allocation.iml" filepath="$PROJECT_DIR$/../Distributed_task_allocation/.idea/Distributed_task_allocation.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Distributed_task_allocation.iml" filepath="$PROJECT_DIR$/.idea/Distributed_task_allocation.iml" />
     </modules>
   </component>
 </project>
