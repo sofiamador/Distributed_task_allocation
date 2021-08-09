@@ -13,7 +13,7 @@ class Allocation_Solver():
     def solve(self, missions_simulation, agents_simulation, mailer=None) -> {}:
         self.missions_simulation = missions_simulation
         self.agents_simulation = agents_simulation
-        self.mailer = mailer
+        self.mailer = Mailer()
         self.allocate()
 
     def allocate(self):
@@ -37,7 +37,7 @@ class Allocation_Solver_Distributed(Allocation_Solver):
         self.mailer.update_fields()
 
     def create_graphs(self):
-        pass  # pass
+        raise NotImplementedError
 
     def create_agents_algorithm(self):
         raise NotImplementedError
@@ -54,11 +54,11 @@ class Mailer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
 
+        self.id_ = 0
         self.msg_box = []
 
         # function that returns dict=  {key: str of fields name,function of calculated fields}
         self.f_global_measurements = None
-
         # function that returns None for msg loss, or a number for NCLO delay
         self.f_communication_disturbance = None
 
@@ -79,8 +79,6 @@ class Mailer(threading.Thread):
 
         self.measurements = {}
 
-
-
     def update_fields(self, agents_algorithm, f_termination_condition, f_global_measurements,
                       f_communication_disturbance=default_communication_disturbance):
         """
@@ -99,13 +97,24 @@ class Mailer(threading.Thread):
         self.msg_box = []
         mailer_counter = mailer_counter + 1
         self.id_ = mailer_counter
-        self.f_global_measurements = f_global_measurements
         self.f_communication_disturbance = f_communication_disturbance
         self.agents_outboxes = {}  # TODO update in allocate
         self.inbox = None  # TODO update in solver
         self.agents_algorithm = agents_algorithm
         self.time_mailer = 0
         self.f_termination_condition = f_termination_condition
+        self.f_global_measurements = f_global_measurements
+        self.measurements = {}
+
+        for key in f_global_measurements.keys():
+            self.measurements[key] = {}
+            self.measurements[key + "_single"] = {}
+
+       # for key in f_agent_measurements.keys():
+        #    self.measurements[key + "_avg"] = {}
+         #   self.measurements[key + "_min"] = {}
+          #  self.measurements[key + "_max"] = {}
+           # self.measurements[key + "_single"] = {}
 
         for aa in agents_algorithm:
             aa.initialize_algorithm()
@@ -123,7 +132,7 @@ class Mailer(threading.Thread):
         iteration includes:
         -  extract msgs from inbox: where the mailer waits for msgs to be sent
         -  place messages in mailers message box with a withdrawn delay
-        -  get all the messages that have delivery times smaller in comparision to the the mailers clock
+        -  get all the messages that have delivery times smaller in comperision to the the mailers clock
         - deliver messages to the algorithm agents through their unbounded buffer
 
         the run continue to iterate, and creates measurements at each iteration until the given termination condition is met
@@ -138,9 +147,18 @@ class Mailer(threading.Thread):
             self.mailer_iteration(with_update_clock_for_empty_msg_to_send=False)
         self.kill_agents()
 
-
     def create_measurements(self):
-        #TODO
+        for key, value in self.f_global_measurements.items():
+            dict_of_the_measure_up_to_now = self.measurements[key]
+            measure = value(self.agents_algorithm)
+            dict_of_the_measure_up_to_now[self.time_mailer] = measure
+
+            single_agent = self.agents_algorithm[0]
+            temp_list = []
+            temp_list.append(single_agent)
+            measure = value(temp_list)
+            dict_of_the_measure_up_to_now = self.measurements[key+"_single"]
+            dict_of_the_measure_up_to_now[self.time_mailer] = measure
 
 
     def kill_agents(self):
