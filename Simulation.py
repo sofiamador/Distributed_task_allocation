@@ -6,7 +6,6 @@ class Status(enum.Enum):
     ON_MISSION = 1
     TO_MISSION = 2
 
-print("hello world")
 class Entity():
     def __init__(self, id_, location, name, type_):
         self.id_ = id_

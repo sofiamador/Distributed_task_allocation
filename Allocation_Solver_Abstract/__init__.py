@@ -1,10 +1,10 @@
 import threading
 from enum import Enum
-
+import Simulation
 
 # TODO - AGENT ALGORITHM,
 
-class Allocation_Solver():
+class AllocationSolver():
     def __init__(self):
         self.missions_simulation = None
         self.agents_simulation = None
@@ -13,7 +13,7 @@ class Allocation_Solver():
     def solve(self, missions_simulation, agents_simulation, mailer=None) -> {}:
         self.missions_simulation = missions_simulation
         self.agents_simulation = agents_simulation
-        self.mailer = Mailer()
+        self.mailer = mailer
         self.allocate()
 
     def allocate(self):
@@ -24,9 +24,10 @@ class Allocation_Solver():
         raise NotImplementedError
 
 
-class Allocation_Solver_Distributed(Allocation_Solver):
-    def __init__(self):
-        Allocation_Solver.__init__()
+class AllocationSolverDistributed(AllocationSolver):
+    def __init__(self, missions_simulation, agents_simulation, mailer=None):
+        print(1)
+        AllocationSolver.__init__(missions_simulation, agents_simulation, mailer)
 
     def allocate(self):
         """
@@ -35,6 +36,7 @@ class Allocation_Solver_Distributed(Allocation_Solver):
         self.agents_algorithm = self.create_agents_algorithm()
         self.create_graphs()
         self.mailer.update_fields()
+        self.mailer.start()
 
     def create_graphs(self):
         raise NotImplementedError
@@ -42,6 +44,47 @@ class Allocation_Solver_Distributed(Allocation_Solver):
     def create_agents_algorithm(self):
         raise NotImplementedError
 
+
+
+class UnboundedBuffer():
+    def __init__(self):
+        self.buffer = []
+        self.cond = threading.Condition(threading.RLock())
+
+    def insert(self, list_of_msgs):
+        with self.cond:
+            self.buffer.append(list_of_msgs)
+
+    def extract(self):
+        with self.cond:
+            while len(self.buffer) == 0:
+                self.cond.wait()
+
+        ans = []
+
+        for msg in self.buffer:
+            if msg is None:
+                return None
+            else:
+                ans.append(msg)
+
+        self.buffer = []
+        return ans
+
+    def is_buffer_empty(self):
+        return len(self.buffer) == 0
+
+
+class Msg:
+    def __init__(self, sender, receiver, information, msg_time, timestamp=0):
+        self.sender = sender
+        self.receiver = receiver
+        self.information = information
+        self.msg_time = msg_time
+        self.timestamp = timestamp
+
+    def set_time_of_msg(self, delay):
+        self.msg_time = self.msg_time + delay
 
 mailer_counter = 0
 
@@ -472,42 +515,5 @@ class Agent_Algorithm(threading.Thread):
         raise NotImplementedError
 
 
-class Msg:
-    def __init__(self, sender, receiver, information, msg_time, timestamp=0):
-        self.sender = sender
-        self.receiver = receiver
-        self.information = information
-        self.msg_time = msg_time
-        self.timestamp = timestamp
-
-    def set_time_of_msg(self, delay):
-        self.msg_time = self.msg_time + delay
 
 
-class UnboundedBuffer():
-    def __init__(self):
-        self.buffer = []
-        self.cond = threading.Condition(threading.RLock())
-
-    def insert(self, list_of_msgs):
-        with self.cond:
-            self.buffer.append(list_of_msgs)
-
-    def extract(self):
-        with self.cond:
-            while len(self.buffer) == 0:
-                self.cond.wait()
-
-        ans = []
-
-        for msg in self.buffer:
-            if msg is None:
-                return None
-            else:
-                ans.append(msg)
-
-        self.buffer = []
-        return ans
-
-    def is_buffer_empty(self):
-        return len(self.buffer) == 0
