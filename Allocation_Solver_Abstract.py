@@ -26,7 +26,7 @@ class AllocationSolver():
 
 class AllocationSolverDistributed(AllocationSolver):
     def __init__(self, missions_simulation, agents_simulation, mailer=None):
-        print(1)
+
         AllocationSolver.__init__(missions_simulation, agents_simulation, mailer)
 
     def allocate(self):
