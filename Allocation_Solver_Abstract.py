@@ -12,49 +12,97 @@ class AllocationSolver():
 
     def __init__(self):
         self.missions_simulation = None
-
         self.agents_simulation = None
 
-        self.mailer = None
-
-    def solve(self, missions_simulation, agents_simulation, mailer=None) -> {}:
+    def solve(self, missions_simulation, agents_simulation) -> {}:
         self.missions_simulation = missions_simulation
-
         self.agents_simulation = agents_simulation
-
-        self.mailer = mailer
-
         self.allocate()
 
     def allocate(self):
         """
         Use missions and agents to allocate an agent to mission
-
         :returns dictionary with key = agent and value = mission
         """
-
         raise NotImplementedError
 
 
 class AllocationSolverDistributed(AllocationSolver):
 
-    def __init__(self, missions_simulation, agents_simulation, mailer=None):
-        AllocationSolver.__init__(missions_simulation, agents_simulation, mailer)
+    def __init__(self,mailer=None, f_termination_condition=None,f_global_measurements=None,
+                 f_communication_disturbance = default_communication_disturbance):
+        """
 
+        :param mailer: entity that controls
+        :param f_termination_condition: function received by the user that determines when the mailer should stop (can recieve algorithm agents to determine
+        :param f_global_measurements: function that returns dictionary=  {key: str of fields name,function of calculated fields}
+        :param f_communication_disturbance: function that returns None for msg loss, or a number for NCLO delay
+
+        """
+        """ 
+        """
+
+        AllocationSolver.__init__()
+        self.agents_algorithm = []
+        self.mailer = None
+        self.imply_mailer(mailer = mailer,f_termination_condition=f_termination_condition,f_global_measurements=f_global_measurements,
+                 f_communication_disturbance = f_communication_disturbance)
+
+
+
+    def imply_mailer(self,mailer,f_termination_condition,f_global_measurements, f_communication_disturbance ):
+        """
+        if mailer is received in constructor then use it,
+        otherwise use f_termination_condition,f_global_measurements, f_communication_disturbance  to create Mailer
+        :param mailer:
+        :param f_termination_condition:
+        :param f_global_measurements:
+        :param f_communication_disturbance:
+        :return:
+        """
+        if mailer is None:
+            if f_termination_conditionis is not None and f_global_measurements is not None:
+                self.mailer = Mailer(f_termination_condition, f_global_measurements, f_communication_disturbance)
+            else:
+                raise Exception(
+                    "Cannot create mailer instance without: dictionary of measurments with function and a termination condition")
+        else:
+            self.mailer = mailer
     def allocate(self):
         """
         distributed version step recommendation using mailer
         """
-
         self.agents_algorithm = self.create_agents_algorithm()
-
+        self.set_msg_boxes()
+        self.mailer.reset(self.agents_algorithm)
         self.create_graphs()
-
-        self.mailer.update_fields()
-
         self.mailer.start()
 
+    def set_msg_boxes(self):
+        """
+        set the message boxes so they will point to the same object
+        mailer's inbox is the outbox of all agents
+        agent's outbox is one of the inboxes of the mailers
+        """
+
+        mailer_inbox = UnboundedBuffer()
+        self.mailer.set_inbox(mailer_inbox)
+        for aa in self.agents_algorithm:
+            aa.set_outbox(mailer_inbox)
+            agent_inbox= UnboundedBuffer()
+            self.mailer.add_out_box(aa.id_, agent_inbox)
+            aa.set_inbox(agent_inbox)
+
+
+
     def create_graphs(self):
+        """
+        in agent algorithm set_cond(self, cond_input):,add_neighbor_id(self, neighbor_id: str):
+        :return:
+        """
+
+        #agents_outboxes = {}  # TODO update in allocate
+        #inbox = None  # TODO update in solver
         raise NotImplementedError
 
     def create_agents_algorithm(self):
@@ -118,123 +166,62 @@ class Msg:
     def set_time_of_msg(self, delay):
         self.msg_time = self.msg_time + delay
 
-
 mailer_counter = 0
-
 
 def default_communication_disturbance(msg):
     return 0
 
-
 class Mailer(threading.Thread):
 
-    def __init__(self):
-
+    def __init__(self,f_termination_condition,f_global_measurements, f_communication_disturbance = default_communication_disturbance):
         threading.Thread.__init__(self)
 
-        self.id_ = 0
 
+        self.id_ = 0
         self.msg_box = []
 
         # function that returns dict=  {key: str of fields name,function of calculated fields}
-
-        self.f_global_measurements = None
-
+        self.f_global_measurements = f_global_measurements
         # function that returns None for msg loss, or a number for NCLO delay
-
-        self.f_communication_disturbance = None
+        self.f_communication_disturbance = f_communication_disturbance
 
         # function received by the user that determines when the mailer should stop iterating and kill threads
-
-        self.f_termination_condition = None
+        self.f_termination_condition = f_termination_condition
 
         # TODO update in solver, key = agent, value = buffer  also points as an inbox for the agent
-
         self.agents_outboxes = {}
 
         # TODO update in solver, buffer also points as out box for all agents
-
         self.inbox = None
 
-        # the algorithm agent created by the user
-
+        # the algorithm agent created by the user will be updated in reset method
         self.agents_algorithm = []
 
         # mailer's clock
-
         self.time_mailer = 0
 
         self.measurements = {}
 
-    def update_fields(self, agents_algorithm, f_termination_condition, f_global_measurements,
-
-                      f_communication_disturbance=default_communication_disturbance):
-
-        """
-
-        :param agents_algorithm: the algorithm agent created by the user
-
-        :param f_termination_condition: function received by the user that determines when the mailer should stop
-
-                iterating and kills threads, input: list of algorithm agents, output: boolean (is run over)
-
-        :param f_global_measurements:  function that returns dict=  {key: str of fields name,function of calculated fields},
-
-        each function receieves list of algorithm agents
-
-        :param f_communication_disturbance: function that returns None for msg loss, or a number for NCLO delay
-
-
-
-        initiates all agents, their actions before the run
-
-        :return:
-
-        """
-
+    def reset(self, agents_algorithm):
         global mailer_counter
-
         self.msg_box = []
-
         mailer_counter = mailer_counter + 1
-
         self.id_ = mailer_counter
-
-        self.f_communication_disturbance = f_communication_disturbance
-
         self.agents_outboxes = {}  # TODO update in allocate
-
         self.inbox = None  # TODO update in solver
-
         self.agents_algorithm = agents_algorithm
-
         self.time_mailer = 0
-
-        self.f_termination_condition = f_termination_condition
-
-        self.f_global_measurements = f_global_measurements
-
         self.measurements = {}
 
-        for key in f_global_measurements.keys():
+        for key in self.f_global_measurements.keys():
             self.measurements[key] = {}
 
             self.measurements[key + "_single"] = {}
 
-        # for key in f_agent_measurements.keys():
-
-        #    self.measurements[key + "_avg"] = {}
-
-        #   self.measurements[key + "_min"] = {}
-
-        #  self.measurements[key + "_max"] = {}
-
-        # self.measurements[key + "_single"] = {}
-
         for aa in agents_algorithm:
             aa.initialize_algorithm()
 
-    def add_out_box(self, key: Simulation.Entity, value: UnboundedBuffer):
+    def add_out_box(self, key:str, value: UnboundedBuffer):
 
         self.agents_outboxes[key] = value
 
@@ -392,7 +379,7 @@ class Mailer(threading.Thread):
 
                 self.msg_box.append(msg)
 
-    def update_clock_upon_msg_recieved(self, msg: Msg):
+    def update_clock_upon_msg_received(self, msg: Msg):
 
         """
 
@@ -411,7 +398,7 @@ class Mailer(threading.Thread):
         if self.time_mailer <= msg_time:
             self.time_mailer = msg_time
 
-    def agents_recieve_msgs(self, msgs_to_send):
+    def agents_receive_msgs(self, msgs_to_send):
 
         """
 
