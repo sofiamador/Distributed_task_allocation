@@ -1,14 +1,78 @@
-import Allocation_Solver_Abstract
+from Allocation_Solver_Abstract import AllocationSolverDistributed
+from Allocation_Solver_Abstract import AgentAlgorithm
 
-class AllocationSolverDistributedFisher(Allocation_Solver_Abstract.AllocationSolverDistributed):
+
+def calculate_distance(entity1: Entity, entity2: Entity):
+    """
+    Calculates the distance between two entities. Each entity must have a location property.
+    :param entity1:first entity
+    :param entity2:second entity
+    :return: Euclidean distance between two entities
+    :rtype: float
+    """
+    distance = 0
+    n = min(len(entity1.location, len(entity2.location)))
+    for i in range(n):
+        distance += (entity1.location[i] - entity2.location[i]) ** 2
+    return distance ** 0.5
+
+
+class FisherPlayerPhaseI(AgentAlgorithm):
+    def __init__(self, agent_simulator):
+        AgentAlgorithm.__init(self, agent_simulator)
+
+
+class FisherMissionPhaseI(AgentAlgorithm):
+    def __init__(self, events_simulator):
+        AgentAlgorithm.__init(self, events_simulator)
+
+
+class AllocationSolverDistributedFisher(AllocationSolverDistributed):
     def __init__(self, mailer=None):
-        Allocation_Solver_Abstract.AllocationSolverDistributed.__init__(missions_simulation, agents_simulation, mailer)
+        AllocationSolverDistributed.__init__(self, mailer)
+        self.algorithm_players = []
+        self.algorithm_events = []
 
-    def solve(self, missions_simulation, agents_simulation, mailer=None) -> {}:
-        self.missions_simulation = missions_simulation
-        self.agents_simulation = agents_simulation
-        self.mailer = mailer
-        self.allocate()
+    def create_graphs(self):
+        self.connect_agents()
+        dict_event_player_responsibility = self.distribute_agents_responsibilities_on_agents()
 
+    def distribute_agents_responsibilities_on_agents(self):
+        ans = {}
+        for e in self.events_simulation:
+            agent_min_distance_to_event = self.get_agent_min_distance_to_event(event=e)
+            algorithm_players_at_min_distance = get_algorithm_players_at_min_distance(agent_min_distance_to_event=agent_min_distance_to_event, event=e)
 
-a = AllocationSolverDistributedFisher([], [], [])
+        return ans
+
+    def get_agent_min_distance_to_event(self,agent_min_distance_to_event,event ):
+        for ap in self.algorithm_players:
+            if calculate_distance(event, ap.simulation_entity)
+
+    def get_agent_min_distance_to_event(self, event):
+        list_of_distances = []
+        for pa in self.algorithm_players:
+            list_of_distances = list_of_distances + calculate_distance(event, pa.simulation_entity)
+        return min(list_of_distances)
+
+    def connect_agents(self):
+        for e in self.events_simulation:
+            list_of_agents_that_can_be_allocated = e.neighbours
+            for ap in self.algorithm_players:
+                agent_simulation = ap.simulation_entity
+                if agent_simulation in list_of_agents_that_can_be_allocated:
+                    e.add_neighbour_id(agent_simulation.id_)
+                    ap.add_neighbour_id(e.id_)
+                    ap.add_to_event_domain(e)
+
+    def create_agents_algorithm(self):
+        ans = []
+        for agent_sim in self.agents_simulation:
+            agent_algo = FisherPlayerPhaseI(agent_sim)
+            ans.append(agent_algo)
+            self.algorithm_players.append(agent_algo)
+
+        for events_sim in self.events_simulation:
+            event_algo = FisherMissionPhaseI(events_sim)
+            ans.append(event_algo)
+            self.algorithm_events.append(event_algo)

@@ -249,6 +249,7 @@ def is_agent_can_be_allocated_to_event(event: EventSimple, agent: AgentSimple):
 class Simulation:
     def __init__(self, name, agents_list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
                  events_generator, f_calculate_distance=calculate_distance):
+
         self.name = name
         self.agent_list = agents_list
         self.solver = solver

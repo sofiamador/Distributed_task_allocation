@@ -6,16 +6,17 @@ import Simulation
 
 
 # TODO - AGENT ALGORITHM,
+def default_communication_disturbance(msg):
+    return 0
 
 
 class AllocationSolver():
-
     def __init__(self):
-        self.missions_simulation = None
+        self.events_simulation = None
         self.agents_simulation = None
 
-    def solve(self, missions_simulation, agents_simulation) -> {}:
-        self.missions_simulation = missions_simulation
+    def solve(self, events_simulation, agents_simulation) -> {}:
+        self.events_simulation = events_simulation
         self.agents_simulation = agents_simulation
         self.allocate()
 
@@ -29,8 +30,8 @@ class AllocationSolver():
 
 class AllocationSolverDistributed(AllocationSolver):
 
-    def __init__(self,mailer=None, f_termination_condition=None,f_global_measurements=None,
-                 f_communication_disturbance = default_communication_disturbance):
+    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+                 f_communication_disturbance=default_communication_disturbance):
         """
 
         :param mailer: entity that controls
@@ -42,15 +43,14 @@ class AllocationSolverDistributed(AllocationSolver):
         """ 
         """
 
-        AllocationSolver.__init__()
+        AllocationSolver.__init__(self)
         self.agents_algorithm = []
         self.mailer = None
-        self.imply_mailer(mailer = mailer,f_termination_condition=f_termination_condition,f_global_measurements=f_global_measurements,
-                 f_communication_disturbance = f_communication_disturbance)
+        self.imply_mailer(mailer=mailer, f_termination_condition=f_termination_condition,
+                          f_global_measurements=f_global_measurements,
+                          f_communication_disturbance=f_communication_disturbance)
 
-
-
-    def imply_mailer(self,mailer,f_termination_condition,f_global_measurements, f_communication_disturbance ):
+    def imply_mailer(self, mailer, f_termination_condition, f_global_measurements, f_communication_disturbance):
         """
         if mailer is received in constructor then use it,
         otherwise use f_termination_condition,f_global_measurements, f_communication_disturbance  to create Mailer
@@ -68,6 +68,7 @@ class AllocationSolverDistributed(AllocationSolver):
                     "Cannot create mailer instance without: dictionary of measurments with function and a termination condition")
         else:
             self.mailer = mailer
+
     def allocate(self):
         """
         distributed version step recommendation using mailer
@@ -89,11 +90,9 @@ class AllocationSolverDistributed(AllocationSolver):
         self.mailer.set_inbox(mailer_inbox)
         for aa in self.agents_algorithm:
             aa.set_outbox(mailer_inbox)
-            agent_inbox= UnboundedBuffer()
+            agent_inbox = UnboundedBuffer()
             self.mailer.add_out_box(aa.id_, agent_inbox)
             aa.set_inbox(agent_inbox)
-
-
 
     def create_graphs(self):
         """
@@ -101,11 +100,14 @@ class AllocationSolverDistributed(AllocationSolver):
         :return:
         """
 
-        #agents_outboxes = {}  # TODO update in allocate
-        #inbox = None  # TODO update in solver
+        # agents_outboxes = {}  # TODO update in allocate
+        # inbox = None  # TODO update in solver
         raise NotImplementedError
 
     def create_agents_algorithm(self):
+        """
+        :return: list of algorithm agents
+        """
         raise NotImplementedError
 
 
@@ -166,16 +168,36 @@ class Msg:
     def set_time_of_msg(self, delay):
         self.msg_time = self.msg_time + delay
 
+
 mailer_counter = 0
 
-def default_communication_disturbance(msg):
-    return 0
+
+class ClockObject():
+    def __init__(self):
+        self.clock = 0.0
+        self.lock = threading.RLock()
+        self.idle_time = 0.0
+
+    def change_clock_if_required(self, time_of_received_msg: float):
+        with self.lock:
+            if clock <= time_of_received_msg:
+                self.idle_time = self.idle_time + (time_of_received_msg - self.clock)
+                self.clock = time_of_received_msg
+
+    def increment_clock(self, atomic_counter: int):
+        with self.lock:
+            self.clock = self.clock + atomic_counter
+
+    def get_clock(self):
+        with self.lock:
+            return self.clock
+
 
 class Mailer(threading.Thread):
 
-    def __init__(self,f_termination_condition,f_global_measurements, f_communication_disturbance = default_communication_disturbance):
+    def __init__(self, f_termination_condition, f_global_measurements,
+                 f_communication_disturbance=default_communication_disturbance):
         threading.Thread.__init__(self)
-
 
         self.id_ = 0
         self.msg_box = []
@@ -198,7 +220,7 @@ class Mailer(threading.Thread):
         self.agents_algorithm = []
 
         # mailer's clock
-        self.time_mailer = 0
+        self.time_mailer = ClockObject()
 
         self.measurements = {}
 
@@ -210,7 +232,7 @@ class Mailer(threading.Thread):
         self.agents_outboxes = {}  # TODO update in allocate
         self.inbox = None  # TODO update in solver
         self.agents_algorithm = agents_algorithm
-        self.time_mailer = 0
+        self.time_mailer = ClockObject()
         self.measurements = {}
 
         for key in self.f_global_measurements.keys():
@@ -221,7 +243,7 @@ class Mailer(threading.Thread):
         for aa in agents_algorithm:
             aa.initialize_algorithm()
 
-    def add_out_box(self, key:str, value: UnboundedBuffer):
+    def add_out_box(self, key: str, value: UnboundedBuffer):
 
         self.agents_outboxes[key] = value
 
@@ -269,13 +291,14 @@ class Mailer(threading.Thread):
         self.kill_agents()
 
     def create_measurements(self):
+        current_clock = self.time_mailer.get_clock()  # TODO check if immutable
 
         for key, value in self.f_global_measurements.items():
             dict_of_the_measure_up_to_now = self.measurements[key]
 
             measure = value(self.agents_algorithm)
 
-            dict_of_the_measure_up_to_now[self.time_mailer] = measure
+            dict_of_the_measure_up_to_now[current_clock] = measure
 
             single_agent = self.agents_algorithm[0]
 
@@ -287,7 +310,7 @@ class Mailer(threading.Thread):
 
             dict_of_the_measure_up_to_now = self.measurements[key + "_single"]
 
-            dict_of_the_measure_up_to_now[self.time_mailer] = measure
+            dict_of_the_measure_up_to_now[current_clock] = measure
 
     def kill_agents(self):
 
@@ -337,19 +360,14 @@ class Mailer(threading.Thread):
         msgs_to_send = []
 
         new_msg_box_list = []
+        current_clock = self.time_mailer.get_clock()  # TODO check if immutable
 
         for msg in self.msg_box:
-
-            if msg.msg_time <= self.time_mailer:
-
+            if msg.msg_time <= current_clock:
                 msgs_to_send.append(msg)
-
             else:
-
                 new_msg_box_list.append(msg)
-
         self.msg_box = new_msg_box_list
-
         return msgs_to_send
 
     def place_msgs_from_inbox_in_msgs_box(self, msgs_from_inbox):
@@ -395,8 +413,11 @@ class Mailer(threading.Thread):
 
         msg_time = msg.msg_time
 
-        if self.time_mailer <= msg_time:
-            self.time_mailer = msg_time
+        self.time_mailer.change_clock_if_required(msg_time)
+        #current_clock = self.time_mailer.get_clock()  # TODO check if immutable
+        #if current_clock <= msg_time:
+        #    increment_by = msg_time-current_clock
+        #    self.time_mailer.increment_clock_by(input_=increment_by)
 
     def agents_receive_msgs(self, msgs_to_send):
 
@@ -463,9 +484,12 @@ class Mailer(threading.Thread):
         msg_with_min_time = min(self.msg_box, key=Mailer.msg_with_min_time)
 
         msg_time = msg_with_min_time.msg_time
+        self.time_mailer.change_clock_if_required(msg_time)
+        #current_clock = self.time_mailer.get_clock()  # TODO check if immutable
+        #if msg_time > current_clock:
+        #    increment_by = msg_time-current_clock
+        #    self.time_mailer.increment_clock_by(input_=increment_by)
 
-        if msg_time > self.time_mailer:
-            self.time_mailer = msg_time
 
     def are_all_agents_idle(self):
 
@@ -477,65 +501,35 @@ class Mailer(threading.Thread):
         return True
 
 
-class Agent_Algorithm(threading.Thread):
+class AgentAlgorithm(threading.Thread):
     """
-
     list of abstract methods:
-
-
-
     initialize_algorithm
-
     --> how does the agent begins algorithm prior to the start() of the thread
 
-
-
     set_receive_flag_to_true_given_msg(msgs):
-
     --> given msgs received is agent going to compute in this iteration
 
-
-
     get_is_going_to_compute_flag()
-
     --> return the flag which determins if computation is going to occur
 
-
-
     update_message_in_context(msg)
-
     --> save msgs in agents context
 
-
-
     compute
-
     -->  use updated context to compute agents statues and
 
-
-
     get_list_of_msgs
-
     -->  create and return list of msgs
 
-
-
     get_list_of_msgs
-
     --> returns list of msgs that needs to be sent
 
-
-
     set_receive_flag_to_false
-
     --> after computation occurs set the flag back to false
 
-
-
     measurements_per_agent
-
     --> returns dict with key: str of measure, value: the calculated measure
-
     """
 
     def __init__(self, simulation_entity, is_with_timestamp=False):
@@ -543,42 +537,33 @@ class Agent_Algorithm(threading.Thread):
         threading.Thread.__init__()
 
         self.is_with_timestamp = is_with_timestamp
-
         self.timestamp_counter = 0
-
         self.neighbors_ids = []
-
+        self.events_domain = []
         self.simulation_entity = simulation_entity
-
         self.atomic_counter = 0
-
-        self.NCLO = 0
-
+        self.NCLO = ClockObject()
         self.idle_time = 0
-
         self.is_idle = True
-
-        self.cond = None  # TODO update in solver
-
-        self.inbox = None  # TODO update in solver
-
-        self.outbox = None  # TODO update in solver
+        self.cond = threading.Condition(threading.RLock())  # TODO update in solver
+        self.inbox = None  # DONE TODO update in solver
+        self.outbox = None
 
     def set_inbox(self, inbox_input: UnboundedBuffer):
 
         self.inbox = inbox_input
 
     def set_outbox(self, outbox_input: UnboundedBuffer):
-
         self.outbox = outbox_input
 
-    def set_cond(self, cond_input):
+    def set_clock_object(self, clock_object_input):
+        self.NCLO = clock_object_input
 
-        self.cond = cond_input
-
-    def add_neighbor_id(self, neighbor_id: str):
-
+    def add_neighbour_id(self, neighbor_id: str):
         self.neighbors_ids.append(neighbor_id)
+
+    def add_to_event_domain(self, event_input):
+        self.events_domain.append(event_input)
 
     def measurements_per_agent(self):
 
@@ -652,29 +637,19 @@ class Agent_Algorithm(threading.Thread):
     def update_agent_time(self, msgs):
 
         """
-
-
-
         :param msgs: list of msgs received simultaneously
-
-
-
         """
-
         max_time = self.get_max_time_of_msgs(msgs)
-        with self.cond:
-            if self.NCLO <= max_time:
-                self.idle_time = self.idle_time + (max_time - self.NCLO)
-                self.NCLO = max_time
+        self.NCLO.change_clock_if_required(max_time)
+
+        #if self.NCLO <= max_time:
+        #    self.idle_time = self.idle_time + (max_time - self.NCLO)
+        #    self.NCLO = max_time
 
     def get_max_time_of_msgs(self, msgs):
-
         max_time = 0
-
         for msg in msgs:
-
             time_msg = msg.msg_time
-
             if time_msg > max_time:
                 max_time = time_msg
 
@@ -686,38 +661,24 @@ class Agent_Algorithm(threading.Thread):
 
         with self.cond:
             self.atomic_counter = 0
-
             if self.get_is_going_to_compute_flag() is True:
                 self.compute()  # atomic counter must change
-
                 self.timestamp_counter = self.timestamp_counter + 1
-
-                self.NCLO = self.NCLO + self.atomic_counter
-
+                self.NCLO.increment_clock(atomic_counter=self.atomic_counter)
                 self.send_msgs()
-
                 self.set_receive_flag_to_false()
 
     def get_is_going_to_compute_flag(self):
-
         """
-
         :return: the flag which determines if computation is going to occur
-
         """
-
         raise NotImplementedError
 
     def compute(self):
-
         """
-
        After the context was updated by messages received, computation takes place
-
        using the new information and preparation on context to be sent takes place
-
         """
-
         raise NotImplementedError
 
     def send_msgs(self):
@@ -727,29 +688,16 @@ class Agent_Algorithm(threading.Thread):
         self.outbox.insert(msgs)
 
     def get_list_of_msgs(self):
-
         """
-
-         raise NotImplementedError
-
         create and return list of msgs
-
         """
-
         raise NotImplementedError
 
     def set_receive_flag_to_false(self):
-
         """
-
-        raise NotImplementedError
-
         after computation occurs set the flag back to false
-
         :return:
-
         """
-
         raise NotImplementedError
 
     def run(self) -> None:
