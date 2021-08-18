@@ -1,4 +1,5 @@
-import enum
+import enum, numpy
+import random
 
 
 class Status(enum.Enum):
@@ -15,7 +16,7 @@ class Entity:
     Class that represents a basic entity in the simulation
     """
 
-    def __init__(self, id_: str, location: list, name, type_: int):
+    def __init__(self, id_, location, name, type_):
         """
         :param id_: The id of the entity
         :type  id_: str
@@ -223,10 +224,10 @@ class EventSimple(Entity):
         :return: utility
         :rtype: float
         """
-        sum_ = 0
+        self.sum_ = 0
         for m in self.missions:
-            sum_ += m.mission_utility
-        return sum_
+            self.sum_ += m.mission_utility
+        return self.sum_
 
     def create_neighbours_list(self, agents_list, f_is_agent_can_be_allocated_to_mission):
         """
@@ -246,10 +247,46 @@ def is_agent_can_be_allocated_to_event(event: EventSimple, agent: AgentSimple):
             return True
 
 
+class MapSimple:
+    """
+    Class that represents the map for the simulation. The events and the agents must be located using generate_location
+    method. The simple map is in the shape of rectangle (with width and length parameters).
+    """
+
+    def __init__(self, number_of_centers=3, seed=1, length=9.0, width=9.0):
+        """
+        :param number_of_centers: number of centers in the map. Each center represents a possible base for the agent.
+        :type: int
+        :param seed: seed for random object
+        :type: int
+        :param length: The length of the map
+        :type: float
+        :param width: The length of the map
+        :type: float
+        """
+        self.length = length
+        self.width = width
+        self.rand = random.Random(seed)
+        self.centers_location = []
+        for _ in number_of_centers:
+            self.centers_location.append(self.geneate_location())
+
+    def generate_location(self):
+        """
+        :return: random location on the map
+        :rtype: list of float
+        """
+        x1 = self.rand.random()
+        x2 = self.rand.random()
+        return [self.width * x1, self.length * x2]
+
+    def get_center_location(self):
+        return self.rand.choice(self.centers_location)
+
+
 class Simulation:
     def __init__(self, name, agents_list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
-                 events_generator, f_calculate_distance=calculate_distance):
-
+                 events_generator, first_event, f_calculate_distance=calculate_distance):
         self.name = name
         self.agent_list = agents_list
         self.solver = solver
@@ -258,9 +295,10 @@ class Simulation:
         self.events_generator = events_generator
         self.f_calculate_distance = calculate_distance
         self.event_list = []
+        self.diary = []
+
+    def run_simulation(self):
+        pass
 
     def solve(self):
-        self.solver.tasl_allocation(self.agent_list, self.event_list)
-
-
-
+        self.solver.solve(self.agent_list, self.event_list)
