@@ -34,42 +34,6 @@ class AllocationSolverDistributedFisher(AllocationSolverDistributed):
         self.algorithm_events = []
 
     def create_graphs(self):
-        self.connect_agents()
-        dict_event_player_responsibility = self.distribute_agents_responsibilities_on_agents()
-
-    def distribute_agents_responsibilities_on_agents(self):
-        ans = {}
-        for e in self.events_simulation:
-            agent_min_distance_to_event = self.get_agent_min_distance_to_event(event=e)
-            algorithm_players_at_min_distance = self.get_algorithm_players_at_min_distance(agent_min_distance_to_event=agent_min_distance_to_event, event=e)
-            single_player_with_smallest_responsibilities= self.get_single_player_with_smallest_responsibilities(ans, algorithm_players_at_min_distance)
-        return ans
-
-    def get_single_player_with_smallest_responsibilities(self,dict_of_respons , algorithm_players):
-       selected_ap = None
-       min_reprs = 0
-       flag = False
-
-       for ap in algorithm_players:
-           if not flag:
-               flag = True
-               selected_ap = ap
-                see
-
-    def get_algorithm_players_at_min_distance(self,agent_min_distance_to_event,event ):
-        ans = []
-        for ap in self.algorithm_players:
-            if calculate_distance(event, ap.simulation_entity) == agent_min_distance_to_event:
-                ans.append(ap)
-        return  ans
-
-    def get_agent_min_distance_to_event(self, event):
-        list_of_distances = []
-        for pa in self.algorithm_players:
-            list_of_distances = list_of_distances + calculate_distance(event, pa.simulation_entity)
-        return min(list_of_distances)
-
-    def connect_agents(self):
         for e in self.events_simulation:
             list_of_agents_that_can_be_allocated = e.neighbours
             for ap in self.algorithm_players:
@@ -78,6 +42,41 @@ class AllocationSolverDistributedFisher(AllocationSolverDistributed):
                     e.add_neighbour_id(agent_simulation.id_)
                     ap.add_neighbour_id(e.id_)
                     ap.add_to_event_domain(e)
+        #dict_event_player_responsibility = self.distribute_agents_responsibilities_on_agents()
+
+    # def distribute_agents_responsibilities_on_agents(self):
+    #     ans = {}
+    #     for e in self.events_simulation:
+    #         agent_min_distance_to_event = self.get_agent_min_distance_to_event(event=e)
+    #         algorithm_players_at_min_distance = self.get_algorithm_players_at_min_distance(agent_min_distance_to_event=agent_min_distance_to_event, event=e)
+    #         single_player_with_smallest_responsibilities= self.get_single_player_with_smallest_responsibilities(ans, algorithm_players_at_min_distance)
+    #     return ans
+
+    # def get_single_player_with_smallest_responsibilities(self,dict_of_respons , algorithm_players):
+    #    selected_ap = None
+    #    min_reprs = 0
+    #    flag = False
+    #
+    #    for ap in algorithm_players:
+    #        if not flag:
+    #            flag = True
+    #            selected_ap = ap
+    #             see
+    #
+    # def get_algorithm_players_at_min_distance(self,agent_min_distance_to_event,event ):
+    #     ans = []
+    #     for ap in self.algorithm_players:
+    #         if calculate_distance(event, ap.simulation_entity) == agent_min_distance_to_event:
+    #             ans.append(ap)
+    #     return  ans
+    #
+    # def get_agent_min_distance_to_event(self, event):
+    #     list_of_distances = []
+    #     for pa in self.algorithm_players:
+    #         list_of_distances = list_of_distances + calculate_distance(event, pa.simulation_entity)
+    #     return min(list_of_distances)
+
+
 
     def create_agents_algorithm(self):
         ans = []
