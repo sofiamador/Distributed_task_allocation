@@ -1,4 +1,4 @@
-import enum, numpy
+import enum
 import random
 
 
@@ -53,7 +53,7 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     :rtype: float
     """
     distance = 0
-    n = min(len(entity1.location, len(entity2.location)))
+    n = min(len(entity1.location), len(entity2.location))
     for i in range(n):
         distance += (entity1.location[i] - entity2.location[i]) ** 2
 
@@ -101,7 +101,7 @@ class AgentSimple(Entity):
     """
 
     def __init__(self, id_, location, speed, name=None, type_=1, status=Status.IDLE,
-                 abilities={AbilitySimple("basic", 1)}):
+                 abilities=None):
         """
         :param id_: The id of the agent
         :type  id_: str
@@ -116,6 +116,8 @@ class AgentSimple(Entity):
         :type  abilities: set of AbilitySimple
         """
         Entity.__init__(id_, location, name, type_)
+        if abilities is None:
+            abilities = {AbilitySimple("basic", 1)}
         self.speed = speed
         if name is None:
             self.name = id
@@ -269,7 +271,7 @@ class MapSimple:
         self.rand = random.Random(seed)
         self.centers_location = []
         for _ in number_of_centers:
-            self.centers_location.append(self.geneate_location())
+            self.centers_location.append(self.generate_location())
 
     def generate_location(self):
         """
@@ -282,6 +284,108 @@ class MapSimple:
 
     def get_center_location(self):
         return self.rand.choice(self.centers_location)
+
+
+class SimulationEvent():
+    """
+    Class that represents an event in the simulation log.
+    """
+
+    def __init__(self, time, agent=None, event=None, mission=None):
+        """
+        :param time:the time of the event
+        :type: float
+        :param agent: The relevant agent for this simulation event. Can be None(depends on extension).
+        :type: AgentSimple
+        :param event: The relevant event(task) to this simulation event. Can be None(depends on extension).
+        :type: EventSimple
+        :param mission: The relevant mission (of event) for this simulation event. Can be None(depends on extension).
+        :type: MissionSimple
+        """
+        self.time = time
+        self.agent = agent
+        self.mission = mission
+
+    def __hash__(self):
+        return hash(self.time)
+
+    def __cmp__(self, other):
+        return self.time - other.time
+
+    def handle_event(self, simulation):
+        """
+        Handle with the event when it arrives in the simulation
+        :param simulation: the simulation where the the event appears
+        :type: Simulation
+        :return:
+        """
+        raise NotImplementedError
+
+
+class EventArrivalEvent(SimulationEvent):
+    """
+    Class that represent an simulation event of new Event(task) arrival.
+    """
+
+    def __init__(self, time, event):
+        """
+        :param time:the time of the event
+        :type: float
+        :param event: The new event that arrives to simulation.
+        :type: EventSimple
+        """
+        SimulationEvent.__init__(time=time, event=event)
+
+    def handle_event(self, simulation):
+        simulation.solve()
+        simulation.check_new_allocation()  # TODO can be a part of the solve method in simulation
+        simulation.generate_new_event()
+
+
+class AgentArriveToEMissionEvent(SimulationEvent):
+    """
+    Class that represent an event of agent's arrival to the mission.
+    """
+
+    def __init__(self, time, agent, event, mission):
+        """
+        :param time:the time of the event
+        :type: float
+        :param agent: The relevant agent that arrives to the given mission on the given event.
+        :type: AgentSimple
+        :param event: The relevant event(task) that contain the given mission
+        :type: EventSimple
+        :param mission: The mission that the agent arrives to.
+        :type: MissionSimple
+        """
+        SimulationEvent.__init__(time=time,event=event, mission=mission, agent=agent)
+
+    def handle_event(self, simulation):
+        simulation.create_agent_finiish_handle_mission_event()
+
+
+class AgentFinishHandleMissionEvent(SimulationEvent):
+    """
+    Class that represent an event of: agent finishes to handle  with the mission.
+    """
+
+    def __init__(self, time, agent, event, mission):
+        """
+        :param time:the time of the event
+        :type: float
+        :param agent: The relevant agent that arrives to the given mission on the given event.
+        :type: AgentSimple
+        :param event: The relevant event(task) that contain the given mission
+        :type: EventSimple
+        :param mission: The mission that the agent arrives to.
+        :type: MissionSimple
+        """
+        SimulationEvent.__init__(time=time,event=event, mission=mission, agent=agent)
+
+    def handle_event(self, simulation):
+        simulation.solve()
+        simulation.check_new_allocation()  # TODO can be a part of the solve method in simulation
+
 
 
 class Simulation:
@@ -302,3 +406,6 @@ class Simulation:
 
     def solve(self):
         self.solver.solve(self.agent_list, self.event_list)
+
+    def generate_new_event(self):
+        self.events_generator.get_event()
