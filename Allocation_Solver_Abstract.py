@@ -12,13 +12,13 @@ def default_communication_disturbance(msg):
 
 class AllocationSolver():
     def __init__(self):
-        self.events_simulation = None
-        self.agents_simulation = None
+        self.tasks_simulation = []
+        self.agents_simulation = []
 
-    def solve(self, events_simulation, agents_simulation) -> {}:
-        self.events_simulation = events_simulation
+    def solve(self, tasks_simulation = [], agents_simulation=[]) -> {}:
+        self.tasks_simulation = tasks_simulation
         self.agents_simulation = agents_simulation
-        self.allocate()
+        return self.allocate()
 
     def allocate(self):
         """
@@ -74,18 +74,43 @@ class AllocationSolverDistributed(AllocationSolver):
         distributed version step recommendation using mailer
         """
         self.agents_algorithm = self.create_agents_algorithm()
-        self.set_msg_boxes()
+        self.check_agent_algorithm_type(self.agents_algorithm[0])
+        self.connect_entities()
+        self.agents_initialize() # TODO
         self.mailer.reset(self.agents_algorithm)
-        self.create_graphs()
         self.mailer.start()
+        return self.mailer.get_allocation_dictionary()#TODO
 
-    def set_msg_boxes(self):
+    def create_agents_algorithm(self):
+        """
+        create agent algorithm with the specified implemented
+        methods according to the abstract agent class
+        :return: list of algorithm agents
+        """
+        raise NotImplementedError
+
+    def check_agent_algorithm_type(self,sample_agent):
+        return True
+
+    def agents_initialize(self):
+        """
+        determine which of the algorithm agents initializes its algorithmic process
+        :return:
+        """
+        raise NotImplementedError
+
+    def connect_entities(self):
         """
         set the message boxes so they will point to the same object
         mailer's inbox is the outbox of all agents
         agent's outbox is one of the inboxes of the mailers
         """
+        self.set_msg_boxes()
+        self.connect_neighbors()
+        self.update_task_player_information()
+        self.connect_entities_other()
 
+    def set_msg_boxes(self):
         mailer_inbox = UnboundedBuffer()
         self.mailer.set_inbox(mailer_inbox)
         for aa in self.agents_algorithm:
@@ -94,21 +119,34 @@ class AllocationSolverDistributed(AllocationSolver):
             self.mailer.add_out_box(aa.id_, agent_inbox)
             aa.set_inbox(agent_inbox)
 
-    def create_graphs(self):
+    def connect_neighbors(self):
         """
-        in agent algorithm set_cond(self, cond_input):,add_neighbor_id(self, neighbor_id: str):
+        agent algorithm hold dictionary with/without information regarding their neighbors.
+        update keys of dictionary with entities id
         :return:
         """
-
-        # agents_outboxes = {}  # TODO update in allocate
-        # inbox = None  # TODO update in solver
         raise NotImplementedError
 
-    def create_agents_algorithm(self):
+
+
+    def update_task_player_information(self):
         """
-        :return: list of algorithm agents
+        after dictionary with neighbors was created, update current of none-current
+        information regarding the neighbors
+        :return:
+        """
+        self.update_information_from_previous_allocation() #TODO
+        self.update_current_information_of_responsible_player_task() #TODO
+
+
+
+    def connect_entities_other(self):
+        """
+        do other connections for example conditions of threads representing the same entities
+        :return:
         """
         raise NotImplementedError
+
 
 
 class UnboundedBuffer():
@@ -237,11 +275,10 @@ class Mailer(threading.Thread):
 
         for key in self.f_global_measurements.keys():
             self.measurements[key] = {}
-
             self.measurements[key + "_single"] = {}
 
         for aa in agents_algorithm:
-            aa.initialize_algorithm()
+            aa.initiate_algorithm()
 
     def add_out_box(self, key: str, value: UnboundedBuffer):
 
@@ -534,23 +571,24 @@ class AgentAlgorithm(threading.Thread):
 
     def __init__(self, simulation_entity, is_with_timestamp=False):
 
-        threading.Thread.__init__()
-
-        self.is_with_timestamp = is_with_timestamp
-        self.timestamp_counter = 0
-        self.neighbors_ids = []
-        self.events_domain = []
-        self.simulation_entity = simulation_entity
-        self.atomic_counter = 0
-        self.NCLO = ClockObject()
+        threading.Thread.__init__(self)
+        self.neighbors_to_communicate_with = {}
+        self.is_with_timestamp = is_with_timestamp # is agent using timestamp when msgs are received
+        self.timestamp_counter = 0 # every msg sent the timestamp counter increases by one (see run method)
+        self.simulation_entity = simulation_entity # all the information regarding the simulation entity
+        self.atomic_counter = 0 # counter changes every computation
+        self.NCLO = ClockObject() # an instance of an object with
         self.idle_time = 0
         self.is_idle = True
         self.cond = threading.Condition(threading.RLock())  # TODO update in solver
         self.inbox = None  # DONE TODO update in solver
         self.outbox = None
+        self.sent_initial_information_flag = False
+
+    def add_neighbor_id(self,id_:str):
+        self.neighbors[id_] = None
 
     def set_inbox(self, inbox_input: UnboundedBuffer):
-
         self.inbox = inbox_input
 
     def set_outbox(self, outbox_input: UnboundedBuffer):
@@ -559,20 +597,21 @@ class AgentAlgorithm(threading.Thread):
     def set_clock_object(self, clock_object_input):
         self.NCLO = clock_object_input
 
-    def add_neighbour_id(self, neighbor_id: str):
-        self.neighbors_ids.append(neighbor_id)
 
-    def add_to_event_domain(self, event_input):
-        self.events_domain.append(event_input)
+
+    def initiate_algorithm(self):
+        """
+        before thread starts the action in this method will occur
+        :return:
+        """
+
+        raise NotImplementedError
 
     def measurements_per_agent(self):
 
         """
-
         NotImplementedError
-
         :return: dict with key: str of measure, value: the calculated measure
-
         """
 
         raise NotImplementedError
@@ -603,15 +642,10 @@ class AgentAlgorithm(threading.Thread):
     def set_receive_flag_to_true_given_msg(self, msg):
 
         """
-
         given msgs received is agent going to compute in this iteration?
-
         set the relevant computation flag
-
         :param msg:
-
         :return:
-
         """
 
         raise NotImplementedError
@@ -619,16 +653,18 @@ class AgentAlgorithm(threading.Thread):
     def get_current_timestamp_from_context(self, msg):
 
         """
-
         :param msg: use it to extract the current timestamp from the receiver
-
         :return: the timestamp from the msg
-
         """
 
         return -1
 
     def update_message_in_context(self, msg):
+
+        '''
+        :param msg: msg to update in agents memory
+        :return:
+        '''
 
         raise NotImplementedError
 
@@ -737,6 +773,4 @@ class AgentAlgorithm(threading.Thread):
 
             return self.is_idle
 
-    def initialize_algorithm(self):
-
-        raise NotImplementedError
+class AgentPlayerAlgorithm

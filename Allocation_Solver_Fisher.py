@@ -17,31 +17,206 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     return distance ** 0.5
 
 
+
+
+
+
 class FisherPlayerPhaseI(AgentAlgorithm):
     def __init__(self, agent_simulator):
         AgentAlgorithm.__init(self, agent_simulator)
 
+    def initiate_algorithm(self):
+        dict_tasks_responsible = simulation_entity.dict_tasks_responsible
+        fiter_msgs
 
-class FisherMissionPhaseI(AgentAlgorithm):
-    def __init__(self, events_simulator):
-        AgentAlgorithm.__init(self, events_simulator)
+        #TODO
+        """
+        before thread starts the action in this method will occur
+        :return:
+        """
+        raise NotImplementedError
+
+    def measurements_per_agent(self):
+        #TODO
+        """
+        NotImplementedError
+        :return: dict with key: str of measure, value: the calculated measure
+        """
+        raise NotImplementedError
+
+    def set_receive_flag_to_true_given_msg(self, msg):
+        # TODO
+        """
+        given msgs received is agent going to compute in this iteration?
+        set the relevant computation flag
+        :param msg:
+        :return:
+
+        """
+
+        raise NotImplementedError
+
+    def get_current_timestamp_from_context(self, msg):
+        # TODO
+        """
+
+        :param msg: use it to extract the current timestamp from the receiver
+        :return: the timestamp from the msg
+
+        """
+
+        return -1
+
+
+
+    def update_message_in_context(self, msg):
+        # TODO
+        '''
+        :param msg: msg to update in agents memory
+        :return:
+        '''
+
+        raise NotImplementedError
+
+    def get_is_going_to_compute_flag(self):
+        # TODO
+        """
+        :return: the flag which determines if computation is going to occur
+        """
+        raise NotImplementedError
+
+    def compute(self):
+        # TODO
+        """
+       After the context was updated by messages received, computation takes place
+       using the new information and preparation on context to be sent takes place
+        """
+        raise NotImplementedError
+
+    def get_list_of_msgs(self):
+        # TODO
+        """
+        create and return list of msgs
+        """
+        raise NotImplementedError
+
+    def set_receive_flag_to_false(self):
+        # TODO
+        """
+        after computation occurs set the flag back to false
+        :return:
+        """
+        raise NotImplementedError
+
+
+class FisherTaskPhaseI(AgentAlgorithm):
+    def __init__(self, tasks_simulator):
+        AgentAlgorithm.__init(self, tasks_simulator)
+
+    def measurements_per_agent(self):
+        # TODO
+
+        """
+        NotImplementedError
+        :return: dict with key: str of measure, value: the calculated measure
+        """
+
+        raise NotImplementedError
+
+    def set_receive_flag_to_true_given_msg(self, msg):
+        # TODO
+        """
+        given msgs received is agent going to compute in this iteration?
+        set the relevant computation flag
+        :param msg:
+        :return:
+
+        """
+
+        raise NotImplementedError
+
+    def get_current_timestamp_from_context(self, msg):
+        # TODO
+        """
+        :param msg: use it to extract the current timestamp from the receiver
+        :return: the timestamp from the msg
+
+        """
+
+        return -1
+
+    def update_message_in_context(self, msg):
+        # TODO
+        '''
+        :param msg: msg to update in agents memory
+        :return:
+        '''
+
+        raise NotImplementedError
+
+    def get_is_going_to_compute_flag(self):
+        # TODO
+        """
+        :return: the flag which determines if computation is going to occur
+        """
+        raise NotImplementedError
+
+    def compute(self):
+        # TODO
+        """
+       After the context was updated by messages received, computation takes place
+       using the new information and preparation on context to be sent takes place
+        """
+        raise NotImplementedError
+
+    def get_list_of_msgs(self):
+        # TODO
+        """
+        create and return list of msgs
+        """
+        raise NotImplementedError
+
+    def set_receive_flag_to_false(self):
+        # TODO
+        """
+        after computation occurs set the flag back to false
+        :return:
+        """
+        raise NotImplementedError
+
 
 
 class AllocationSolverDistributedFisher(AllocationSolverDistributed):
     def __init__(self, mailer=None):
         AllocationSolverDistributed.__init__(self, mailer)
-        self.algorithm_players = []
-        self.algorithm_events = []
+        
 
-    def create_graphs(self):
-        for e in self.events_simulation:
-            list_of_agents_that_can_be_allocated = e.neighbours
-            for ap in self.algorithm_players:
-                agent_simulation = ap.simulation_entity
-                if agent_simulation in list_of_agents_that_can_be_allocated:
-                    e.add_neighbour_id(agent_simulation.id_)
-                    ap.add_neighbour_id(e.id_)
-                    ap.add_to_event_domain(e)
+
+    def create_agents_algorithm(self):
+        ans = []
+        for agent_sim in self.agents_simulation:
+            agent_algo = FisherPlayerPhaseI(agent_sim)
+            ans.append(agent_algo)
+            self.algorithm_players.append(agent_algo)
+
+        for task_sim in self.tasks_simulation:
+            task_algo = FisherTaskPhaseI(task_sim)
+            ans.append(task_algo)
+            self.algorithm_tasks.append(task_algo)
+
+    def connect_task_agent_timeObject(self):
+        for agent_algo 
+
+
+    # def create_graphs(self):
+    #     for e in self.algorithm_tasks:
+    #         list_of_agents_that_can_be_allocated = e.neighbours
+    #         for ap in self.algorithm_players:
+    #             agent_simulation = ap.simulation_entity
+    #             if agent_simulation in list_of_agents_that_can_be_allocated:
+    #                 e.add_neighbour_id(agent_simulation.id_)
+    #                 ap.add_neighbour_id(e.id_)
+    #                 ap.add_to_event_domain(e)
         #dict_event_player_responsibility = self.distribute_agents_responsibilities_on_agents()
 
     # def distribute_agents_responsibilities_on_agents(self):
@@ -78,14 +253,3 @@ class AllocationSolverDistributedFisher(AllocationSolverDistributed):
 
 
 
-    def create_agents_algorithm(self):
-        ans = []
-        for agent_sim in self.agents_simulation:
-            agent_algo = FisherPlayerPhaseI(agent_sim)
-            ans.append(agent_algo)
-            self.algorithm_players.append(agent_algo)
-
-        for events_sim in self.events_simulation:
-            event_algo = FisherMissionPhaseI(events_sim)
-            ans.append(event_algo)
-            self.algorithm_events.append(event_algo)
