@@ -1,4 +1,4 @@
-from Simulation import MissionSimple, EventSimple, AbilitySimple
+from Simulation import MissionSimple, TaskSimple, AbilitySimple
 
 import math
 

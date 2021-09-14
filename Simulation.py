@@ -43,6 +43,12 @@ class Entity:
         """
         raise NotImplementedError
 
+    def __hash__(self):
+        return hash(self.id_)
+
+    def __eq__(self, other):
+        return self.id_ == other.id
+
 
 def calculate_distance(entity1: Entity, entity2: Entity):
     """
@@ -114,6 +120,10 @@ class AgentSimple(Entity):
         :type  status: Status
         :param abilities: abilities of the agent
         :type  abilities: set of AbilitySimple
+        :param current_task: The current task that was allocated to agent. If the the agent is idle this field will be None.
+        :type current_task: TaskSimple
+        :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
+        :type current_mission: MissionSimple
         """
         Entity.__init__(id_, location, name, type_)
         if abilities is None:
@@ -123,9 +133,10 @@ class AgentSimple(Entity):
             self.name = id
         self.status = status
         self.abilities = abilities
-
-        self.allocated_mission = None
+        self.current_task = None
+        self.current_mission = None
         self.last_time_updated = 0
+        self.tasks_responsible = []
 
     def update_status(self, new_status: Status, tnow: float) -> None:
         """
@@ -197,7 +208,7 @@ class MissionSimple:
         raise NotImplementedError
 
 
-class EventSimple(Entity):
+class TaskSimple(Entity):
     """
     Class that represents a simple event in the simulation
     """
@@ -243,11 +254,28 @@ class EventSimple(Entity):
                 self.neighbours.append(a)
 
 
-def is_agent_can_be_allocated_to_event(event: EventSimple, agent: AgentSimple):
-    for mission in event.missions:
+def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: AgentSimple):
+    """
+    Function that checks if the agent can be allocated to an task according to agent's abilities and required abilities
+    to the task.
+    :param task: The task that is checked.
+    :type task: TaskSimple
+    :param agent: The agent that is checked if it suitable for the task according to hos abilities.
+    :return:
+    """
+    for mission in task.missions:
         if mission.ability in agent.abilities:
             return True
 
+
+def find_responsible_agent(task,agents_list):
+    min_distance = 100000
+    chosen_agent = agents_list[0]
+    for agent in agents_list:
+        dis = calculate_distance(task,agent)
+        if min_distance > min:
+            min_distance = min
+            chosen_agent = agent
 
 class MapSimple:
     """
@@ -291,7 +319,7 @@ class SimulationEvent():
     Class that represents an event in the simulation log.
     """
 
-    def __init__(self, time, agent=None, event=None, mission=None):
+    def __init__(self, time, agent=None, task=None, mission=None):
         """
         :param time:the time of the event
         :type: float
@@ -327,16 +355,17 @@ class EventArrivalEvent(SimulationEvent):
     Class that represent an simulation event of new Event(task) arrival.
     """
 
-    def __init__(self, time, event):
+    def __init__(self, time, task):
         """
         :param time:the time of the event
         :type: float
         :param event: The new event that arrives to simulation.
         :type: EventSimple
         """
-        SimulationEvent.__init__(time=time, event=event)
+        SimulationEvent.__init__(time=time, event=task)
 
     def handle_event(self, simulation):
+        find_responsible_agent()
         simulation.solve()
         simulation.check_new_allocation()  # TODO can be a part of the solve method in simulation
         simulation.generate_new_event()
@@ -358,7 +387,7 @@ class AgentArriveToEMissionEvent(SimulationEvent):
         :param mission: The mission that the agent arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time,event=event, mission=mission, agent=agent)
+        SimulationEvent.__init__(time=time, event=event, mission=mission, agent=agent)
 
     def handle_event(self, simulation):
         simulation.create_agent_finiish_handle_mission_event()
@@ -380,12 +409,11 @@ class AgentFinishHandleMissionEvent(SimulationEvent):
         :param mission: The mission that the agent arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time,event=event, mission=mission, agent=agent)
+        SimulationEvent.__init__(time=time, event=event, mission=mission, agent=agent)
 
     def handle_event(self, simulation):
         simulation.solve()
         simulation.check_new_allocation()  # TODO can be a part of the solve method in simulation
-
 
 
 class Simulation:
