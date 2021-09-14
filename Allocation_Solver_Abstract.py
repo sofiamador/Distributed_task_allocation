@@ -10,144 +10,6 @@ def default_communication_disturbance(msg):
     return 0
 
 
-class AllocationSolver():
-    def __init__(self):
-        self.tasks_simulation = []
-        self.agents_simulation = []
-
-    def solve(self, tasks_simulation = [], agents_simulation=[]) -> {}:
-        self.tasks_simulation = tasks_simulation
-        self.agents_simulation = agents_simulation
-        return self.allocate()
-
-    def allocate(self):
-        """
-        Use missions and agents to allocate an agent to mission
-        :returns dictionary with key = agent and value = mission
-        """
-        raise NotImplementedError
-
-
-class AllocationSolverDistributed(AllocationSolver):
-
-    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
-                 f_communication_disturbance=default_communication_disturbance):
-        """
-
-        :param mailer: entity that controls
-        :param f_termination_condition: function received by the user that determines when the mailer should stop (can recieve algorithm agents to determine
-        :param f_global_measurements: function that returns dictionary=  {key: str of fields name,function of calculated fields}
-        :param f_communication_disturbance: function that returns None for msg loss, or a number for NCLO delay
-
-        """
-        """ 
-        """
-
-        AllocationSolver.__init__(self)
-        self.agents_algorithm = []
-        self.mailer = None
-        self.imply_mailer(mailer=mailer, f_termination_condition=f_termination_condition,
-                          f_global_measurements=f_global_measurements,
-                          f_communication_disturbance=f_communication_disturbance)
-
-    def imply_mailer(self, mailer, f_termination_condition, f_global_measurements, f_communication_disturbance):
-        """
-        if mailer is received in constructor then use it,
-        otherwise use f_termination_condition,f_global_measurements, f_communication_disturbance  to create Mailer
-        :param mailer:
-        :param f_termination_condition:
-        :param f_global_measurements:
-        :param f_communication_disturbance:
-        :return:
-        """
-        if mailer is None:
-            if f_termination_conditionis is not None and f_global_measurements is not None:
-                self.mailer = Mailer(f_termination_condition, f_global_measurements, f_communication_disturbance)
-            else:
-                raise Exception(
-                    "Cannot create mailer instance without: dictionary of measurments with function and a termination condition")
-        else:
-            self.mailer = mailer
-
-    def allocate(self):
-        """
-        distributed version step recommendation using mailer
-        """
-        self.agents_algorithm = self.create_agents_algorithm()
-        self.check_agent_algorithm_type(self.agents_algorithm[0])
-        self.connect_entities()
-        self.agents_initialize() # TODO
-        self.mailer.reset(self.agents_algorithm)
-        self.mailer.start()
-        return self.mailer.get_allocation_dictionary()#TODO
-
-    def create_agents_algorithm(self):
-        """
-        create agent algorithm with the specified implemented
-        methods according to the abstract agent class
-        :return: list of algorithm agents
-        """
-        raise NotImplementedError
-
-    def check_agent_algorithm_type(self,sample_agent):
-        return True
-
-    def agents_initialize(self):
-        """
-        determine which of the algorithm agents initializes its algorithmic process
-        :return:
-        """
-        raise NotImplementedError
-
-    def connect_entities(self):
-        """
-        set the message boxes so they will point to the same object
-        mailer's inbox is the outbox of all agents
-        agent's outbox is one of the inboxes of the mailers
-        """
-        self.set_msg_boxes()
-        self.connect_neighbors()
-        self.update_task_player_information()
-        self.connect_entities_other()
-
-    def set_msg_boxes(self):
-        mailer_inbox = UnboundedBuffer()
-        self.mailer.set_inbox(mailer_inbox)
-        for aa in self.agents_algorithm:
-            aa.set_outbox(mailer_inbox)
-            agent_inbox = UnboundedBuffer()
-            self.mailer.add_out_box(aa.id_, agent_inbox)
-            aa.set_inbox(agent_inbox)
-
-    def connect_neighbors(self):
-        """
-        agent algorithm hold dictionary with/without information regarding their neighbors.
-        update keys of dictionary with entities id
-        :return:
-        """
-        raise NotImplementedError
-
-
-
-    def update_task_player_information(self):
-        """
-        after dictionary with neighbors was created, update current of none-current
-        information regarding the neighbors
-        :return:
-        """
-        self.update_information_from_previous_allocation() #TODO
-        self.update_current_information_of_responsible_player_task() #TODO
-
-
-
-    def connect_entities_other(self):
-        """
-        do other connections for example conditions of threads representing the same entities
-        :return:
-        """
-        raise NotImplementedError
-
-
 
 class UnboundedBuffer():
 
@@ -205,6 +67,12 @@ class Msg:
 
     def set_time_of_msg(self, delay):
         self.msg_time = self.msg_time + delay
+
+
+class MsgTaskEntity(Msg):
+    def __init__(self, msg: Msg, task_entity):
+        Msg.__init__(self, msg.sender, msg.receiver, msg.information, msg.msg_time, msg.timestamp)
+        self.task_entity = task_entity
 
 
 mailer_counter = 0
@@ -451,8 +319,8 @@ class Mailer(threading.Thread):
         msg_time = msg.msg_time
 
         self.time_mailer.change_clock_if_required(msg_time)
-        #current_clock = self.time_mailer.get_clock()  # TODO check if immutable
-        #if current_clock <= msg_time:
+        # current_clock = self.time_mailer.get_clock()  # TODO check if immutable
+        # if current_clock <= msg_time:
         #    increment_by = msg_time-current_clock
         #    self.time_mailer.increment_clock_by(input_=increment_by)
 
@@ -522,11 +390,10 @@ class Mailer(threading.Thread):
 
         msg_time = msg_with_min_time.msg_time
         self.time_mailer.change_clock_if_required(msg_time)
-        #current_clock = self.time_mailer.get_clock()  # TODO check if immutable
-        #if msg_time > current_clock:
+        # current_clock = self.time_mailer.get_clock()  # TODO check if immutable
+        # if msg_time > current_clock:
         #    increment_by = msg_time-current_clock
         #    self.time_mailer.increment_clock_by(input_=increment_by)
-
 
     def are_all_agents_idle(self):
 
@@ -572,12 +439,12 @@ class AgentAlgorithm(threading.Thread):
     def __init__(self, simulation_entity, is_with_timestamp=False):
 
         threading.Thread.__init__(self)
-        self.neighbors_to_communicate_with = {}
-        self.is_with_timestamp = is_with_timestamp # is agent using timestamp when msgs are received
-        self.timestamp_counter = 0 # every msg sent the timestamp counter increases by one (see run method)
-        self.simulation_entity = simulation_entity # all the information regarding the simulation entity
-        self.atomic_counter = 0 # counter changes every computation
-        self.NCLO = ClockObject() # an instance of an object with
+        self.neighbors_ids_list = {}
+        self.is_with_timestamp = is_with_timestamp  # is agent using timestamp when msgs are received
+        self.timestamp_counter = 0  # every msg sent the timestamp counter increases by one (see run method)
+        self.simulation_entity = simulation_entity  # all the information regarding the simulation entity
+        self.atomic_counter = 0  # counter changes every computation
+        self.NCLO = ClockObject()  # an instance of an object with
         self.idle_time = 0
         self.is_idle = True
         self.cond = threading.Condition(threading.RLock())  # TODO update in solver
@@ -585,8 +452,14 @@ class AgentAlgorithm(threading.Thread):
         self.outbox = None
         self.sent_initial_information_flag = False
 
-    def add_neighbor_id(self,id_:str):
-        self.neighbors[id_] = None
+    def update_cond_for_responsible(self, condition_input:threading.Condition):
+        self.cond = condition_input
+
+    def add_neighbor_id(self, id_: str):
+        self.neighbors_ids_list.append(id_)
+
+    def add_task_entity(self, task_entity: Simulation.TaskSimple):
+        pass
 
     def set_inbox(self, inbox_input: UnboundedBuffer):
         self.inbox = inbox_input
@@ -596,8 +469,6 @@ class AgentAlgorithm(threading.Thread):
 
     def set_clock_object(self, clock_object_input):
         self.NCLO = clock_object_input
-
-
 
     def initiate_algorithm(self):
         """
@@ -628,13 +499,9 @@ class AgentAlgorithm(threading.Thread):
 
                 if msg.timestamp > current_timestamp_from_context:
                     self.update_message_in_context(msg)
-
                     self.set_receive_flag_to_true_given_msg(msg)
-
             else:
-
                 self.update_message_in_context(msg)
-
                 self.set_receive_flag_to_true_given_msg(msg)
 
         self.update_agent_time(msgs)
@@ -678,7 +545,7 @@ class AgentAlgorithm(threading.Thread):
         max_time = self.get_max_time_of_msgs(msgs)
         self.NCLO.change_clock_if_required(max_time)
 
-        #if self.NCLO <= max_time:
+        # if self.NCLO <= max_time:
         #    self.idle_time = self.idle_time + (max_time - self.NCLO)
         #    self.NCLO = max_time
 
@@ -718,9 +585,7 @@ class AgentAlgorithm(threading.Thread):
         raise NotImplementedError
 
     def send_msgs(self):
-
         msgs = self.get_list_of_msgs()
-
         self.outbox.insert(msgs)
 
     def get_list_of_msgs(self):
@@ -750,7 +615,6 @@ class AgentAlgorithm(threading.Thread):
                 break
 
             self.receive_msgs(msgs)
-
             self.reaction_to_msgs()
 
     def set_idle_to_true(self):
@@ -768,9 +632,203 @@ class AgentAlgorithm(threading.Thread):
     def get_is_idle(self):
 
         with self.cond:
-            while self.is_idle == False:
+            while not self.is_idle:
                 self.cond.wait()
-
             return self.is_idle
 
-class AgentPlayerAlgorithm
+
+class PlayerAlgorithm(AgentAlgorithm):
+    def __init__(self, simulation_entity, is_with_timestamp=False):
+        AgentAlgorithm.__init__(self, simulation_entity, is_with_timestamp=is_with_timestamp)
+        self.task_logs = []
+        self.additional_tasks_in_log = []
+
+    def add_task_entity(self, task_entity: Simulation.TaskSimple):
+        if task_entity.id_ not in self.neighbors_ids_list:
+            self.add_neighbor_id(task_entity.id_)
+        self.task_logs.append(task_entity)
+
+    def receive_msgs(self, msgs: []):
+        super().receive_msgs(msgs)
+        for msg in msgs:
+            if msg.task_entity not in task_logs:
+                self.task_logs.append(msg.task_entity)
+                self.additional_tasks_in_log.append(msg.task_entity)
+                self.add_neighbor_id(msg.task_entity.id_)
+
+    def send_msgs(self):
+        super().send_msgs()
+        self.additional_tasks_in_log = []
+
+
+class TaskAlgorithm(AgentAlgorithm):
+    def __init__(self, simulation_entity, is_with_timestamp=False):
+        AgentAlgorithm.__init__(self, simulation_entity, is_with_timestamp=is_with_timestamp)
+
+    def send_msgs(self):
+        msgs = self.get_list_of_msgs()
+        ans = []
+        for msg in msgs:
+            ans.append(MsgTaskEntity(msg, self.simulation_entity))
+        msgs = ans
+        self.outbox.insert(msgs)
+
+
+class AllocationSolver():
+    def __init__(self):
+        self.tasks_simulation = []
+        self.players_simulation = []
+
+    def solve(self, tasks_simulation=[], players_simulation=[]) -> {}:
+        self.tasks_simulation = tasks_simulation
+        self.players_simulation = players_simulation
+        return self.allocate()
+
+    def allocate(self):
+        """
+        Use missions and agents to allocate an agent to mission
+        :returns dictionary with key = agent and value = mission
+        """
+        raise NotImplementedError
+
+
+class AllocationSolverDistributed(AllocationSolver):
+
+    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+                 f_communication_disturbance=default_communication_disturbance):
+        """
+
+        :param mailer: entity that controls
+        :param f_termination_condition: function received by the user that determines when the mailer should stop (can recieve algorithm agents to determine
+        :param f_global_measurements: function that returns dictionary=  {key: str of fields name,function of calculated fields}
+        :param f_communication_disturbance: function that returns None for msg loss, or a number for NCLO delay
+
+        """
+        """ 
+        """
+
+        AllocationSolver.__init__(self)
+        self.agents_algorithm = []
+        self.mailer = None
+        self.imply_mailer(mailer=mailer, f_termination_condition=f_termination_condition,
+                          f_global_measurements=f_global_measurements,
+                          f_communication_disturbance=f_communication_disturbance)
+
+    def imply_mailer(self, mailer, f_termination_condition, f_global_measurements, f_communication_disturbance):
+        """
+        if mailer is received in constructor then use it,
+        otherwise use f_termination_condition,f_global_measurements, f_communication_disturbance  to create Mailer
+        :param mailer:
+        :param f_termination_condition:
+        :param f_global_measurements:
+        :param f_communication_disturbance:
+        :return:
+        """
+        if mailer is None:
+            if f_termination_conditionis is not None and f_global_measurements is not None:
+                self.mailer = Mailer(f_termination_condition, f_global_measurements, f_communication_disturbance)
+            else:
+                raise Exception(
+                    "Cannot create mailer instance without: dictionary of measurments with function and a termination condition")
+        else:
+            self.mailer = mailer
+
+    def allocate(self):
+        """
+        distributed version step recommendation using mailer
+        """
+        self.agents_algorithm = self.create_agents_algorithm()
+        self.connect_entities()
+        self.agents_initialize()  # TODO
+        self.mailer.reset(self.agents_algorithm)
+        self.mailer.start()
+        return self.mailer.get_allocation_dictionary()  # TODO
+
+    def create_agents_algorithm(self):
+        """
+        create agent algorithm with the specified implemented
+        methods according to the abstract agent class
+        :return: list of algorithm agents
+        """
+        raise NotImplementedError
+
+    def agents_initialize(self):
+        """
+        determine which of the algorithm agents initializes its algorithmic process
+        :return:
+        """
+        raise NotImplementedError
+
+    def connect_entities(self):
+        """
+        set the message boxes so they will point to the same object
+        mailer's inbox is the outbox of all agents
+        agent's outbox is one of the inboxes of the mailers
+        """
+        self.set_msg_boxes()
+        self.connect_neighbors()
+
+    def set_msg_boxes(self):
+        mailer_inbox = UnboundedBuffer()
+        self.mailer.set_inbox(mailer_inbox)
+        for aa in self.agents_algorithm:
+            aa.set_outbox(mailer_inbox)
+            agent_inbox = UnboundedBuffer()
+            self.mailer.add_out_box(aa.id_, agent_inbox)
+            aa.set_inbox(agent_inbox)
+
+    def connect_neighbors(self):
+        """
+        :return:
+        """
+        raise NotImplementedError
+
+
+class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
+    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+                 f_communication_disturbance=default_communication_disturbance):
+        AllocationSolverDistributed.__init__(mailer, f_termination_condition, f_global_measurements,
+                                             f_communication_disturbance)
+        self.tasks_algorithm = []
+        self.players_algorithm = []
+
+    def agents_initialize(self):
+        ans = []
+        for task in self.tasks_simulation:
+            t_task_algorithm = TaskAlgorithm(task)
+            self.tasks_algorithm.append(t_task_algorithm)
+            ans.append(t_task_algorithm)
+        for player in self.players_simulation:
+            t_player_algorithm = TaskAlgorithm(player)
+            self.tasks_algorithm.append(t_player_algorithm)
+            ans.append(t_player_algorithm)
+        return ans
+
+    @staticmethod
+    def connect_condition(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
+        cond = threading.Condition(threading.RLock())
+        player_algo.update_cond_for_responsible(cond)
+        task_algo.update_cond_for_responsible(cond)
+
+    @staticmethod
+    def update_player_log(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
+        player_algo.add_task_entity(task_algo.simulation_entity)
+
+    def connect_neighbors(self):
+        self.connect_responsible_player_and_agent(AllocationSolverTasksPlayersSemi.connect_condition)
+        self.connect_responsible_player_and_agent(AllocationSolverTasksPlayersSemi.update_player_log)
+        self.conntect_tasks_to_players()
+
+    def connect_responsible_player_and_agent(self, what_to_connect):
+        for player_sim in self.players_simulation:
+            player_algorithm = self.get_algorithm_agent_by_entity(player_sim)
+            tasks_of_player_simulation = player_sim.tasks_responsible
+            for task_sim in tasks_of_player_simulation:
+                task_algorithm = self.get_algorithm_agent_by_entity(task_sim)
+                what_to_connect(player_algorithm, task_algorithm)
+
+    def get_algorithm_agent_by_entity(self, entity_input: Simulation.Entity):
+        for agent_algo in self.agents_algorithm:
+            if agent_algo.simulation_entity == entity_input:
+                return agent_algo
+        raise Exception("algorithm agent does not exists")
