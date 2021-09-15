@@ -124,6 +124,8 @@ class AgentSimple(Entity):
         :type current_task: TaskSimple
         :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
         :type current_mission: MissionSimple
+        :param last_time_updated:
+
         """
         Entity.__init__(id_, location, name, type_)
         if abilities is None:
