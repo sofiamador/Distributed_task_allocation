@@ -1,5 +1,6 @@
-from Allocation_Solver_Abstract import AllocationSolverDistributed
-from Allocation_Solver_Abstract import AgentAlgorithm
+
+from Allocation_Solver_Abstract import PlayerAlgorithm
+from Simulation import Entity, TaskSimple
 
 
 def calculate_distance(entity1: Entity, entity2: Entity):
@@ -17,96 +18,57 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     return distance ** 0.5
 
 
-
-
-
-
-class FisherPlayerPhaseI(AgentAlgorithm):
+class FisherPlayer(PlayerAlgorithm):
     def __init__(self, agent_simulator):
-        AgentAlgorithm.__init(self, agent_simulator)
+        PlayerAlgorithm.__init__(self, agent_simulator)
+        r_i = {}
 
+    def add_task_entity_to_log(self, task_entity: TaskSimple):
+        super().add_task_entity_to_log(task_entity)
+        rij #STOPPED HERE NEED TO CALCULATE RIJ WHEN RECIEVE TASK ENTITY TO LOG
     def initiate_algorithm(self):
-        dict_tasks_responsible = simulation_entity.dict_tasks_responsible
-        fiter_msgs
-
         #TODO
-        """
-        before thread starts the action in this method will occur
-        :return:
-        """
-        raise NotImplementedError
+        pass
 
     def measurements_per_agent(self):
-        #TODO
-        """
-        NotImplementedError
-        :return: dict with key: str of measure, value: the calculated measure
-        """
-        raise NotImplementedError
+        # TODO
+        pass
 
     def set_receive_flag_to_true_given_msg(self, msg):
         # TODO
-        """
-        given msgs received is agent going to compute in this iteration?
-        set the relevant computation flag
-        :param msg:
-        :return:
-
-        """
-
-        raise NotImplementedError
+        pass
 
     def get_current_timestamp_from_context(self, msg):
         # TODO
-        """
-
-        :param msg: use it to extract the current timestamp from the receiver
-        :return: the timestamp from the msg
-
-        """
-
-        return -1
-
-
+        pass
 
     def update_message_in_context(self, msg):
         # TODO
-        '''
-        :param msg: msg to update in agents memory
-        :return:
-        '''
+        pass
 
-        raise NotImplementedError
+    def get_current_timestamp_from_context(self, msg):
+        # TODO
+        pass
+
+    def update_message_in_context(self, msg):
+        # TODO
+        pass
 
     def get_is_going_to_compute_flag(self):
         # TODO
-        """
-        :return: the flag which determines if computation is going to occur
-        """
-        raise NotImplementedError
+        pass
 
     def compute(self):
         # TODO
-        """
-       After the context was updated by messages received, computation takes place
-       using the new information and preparation on context to be sent takes place
-        """
-        raise NotImplementedError
+        pass
 
     def get_list_of_msgs(self):
         # TODO
-        """
-        create and return list of msgs
-        """
-        raise NotImplementedError
+        pass
 
     def set_receive_flag_to_false(self):
         # TODO
-        """
-        after computation occurs set the flag back to false
-        :return:
-        """
-        raise NotImplementedError
+        pass
 
 
 class FisherTaskPhaseI(AgentAlgorithm):
@@ -205,7 +167,7 @@ class AllocationSolverDistributedFisher(AllocationSolverDistributed):
             self.algorithm_tasks.append(task_algo)
 
     def connect_task_agent_timeObject(self):
-        for agent_algo 
+        for agent_algo
 
 
     # def create_graphs(self):
