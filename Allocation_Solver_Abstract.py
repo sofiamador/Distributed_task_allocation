@@ -1,4 +1,7 @@
+import abc
 import threading
+import copy
+from abc import ABC
 
 from enum import Enum
 
@@ -8,7 +11,6 @@ import Simulation
 # TODO - AGENT ALGORITHM,
 def default_communication_disturbance(msg):
     return 0
-
 
 
 class UnboundedBuffer():
@@ -54,19 +56,25 @@ class UnboundedBuffer():
 
 class Msg:
 
-    def __init__(self, sender, receiver, information, msg_time, timestamp=0):
+    def __init__(self, sender, receiver, information):
         self.sender = sender
 
         self.receiver = receiver
 
         self.information = information
 
-        self.msg_time = msg_time
+        self.msg_time = None
 
-        self.timestamp = timestamp
+        self.timestamp = None
 
     def set_time_of_msg(self, delay):
         self.msg_time = self.msg_time + delay
+
+    def add_current_NCLO(self, NCLO):
+        self.msg_time = NCLO
+
+    def add_timestamp(self, timestamp):
+        self.timestamp = timestamp
 
 
 class MsgTaskEntity(Msg):
@@ -400,7 +408,7 @@ class Mailer(threading.Thread):
         return True
 
 
-class AgentAlgorithm(threading.Thread):
+class AgentAlgorithm(threading.Thread, ABC):
     """
     list of abstract methods:
     initialize_algorithm
@@ -431,9 +439,10 @@ class AgentAlgorithm(threading.Thread):
     --> returns dict with key: str of measure, value: the calculated measure
     """
 
-    def __init__(self, simulation_entity, is_with_timestamp=False):
+    def __init__(self, simulation_entity, t_now, is_with_timestamp=False):
 
         threading.Thread.__init__(self)
+        self.t_now = t_now
         self.neighbours_ids_list = {}
         self.is_with_timestamp = is_with_timestamp  # is agent using timestamp when msgs are received
         self.timestamp_counter = 0  # every msg sent the timestamp counter increases by one (see run method)
@@ -445,9 +454,22 @@ class AgentAlgorithm(threading.Thread):
         self.cond = threading.Condition(threading.RLock())  # TODO update in solver
         self.inbox = None  # DONE TODO update in solver
         self.outbox = None
-        self.sent_initial_information_flag = False
 
-    def update_cond_for_responsible(self, condition_input:threading.Condition):
+    def reset_fields(self,t_now):
+        self.t_now = t_now
+        self.neighbours_ids_list = {}
+        self.timestamp_counter = 0  # every msg sent the timestamp counter increases by one (see run method)
+        self.atomic_counter = 0  # counter changes every computation
+        self.NCLO = ClockObject()  # an instance of an object with
+        self.idle_time = 0
+        self.is_idle = True
+        self.cond = threading.Condition(threading.RLock())
+        self.inbox = None  # DONE
+        self.outbox = None
+        self.reset_additional_fields()
+
+
+    def update_cond_for_responsible(self, condition_input: threading.Condition):
         self.cond = condition_input
 
     def add_neighbour_id(self, id_: str):
@@ -466,7 +488,7 @@ class AgentAlgorithm(threading.Thread):
     def set_clock_object_for_responsible(self, clock_object_input):
         self.NCLO = clock_object_input
 
-
+    @abc.abstractmethod
     def initiate_algorithm(self):
         """
         before thread starts the action in this method will occur
@@ -474,6 +496,7 @@ class AgentAlgorithm(threading.Thread):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def measurements_per_agent(self):
         """
         NotImplementedError
@@ -500,6 +523,7 @@ class AgentAlgorithm(threading.Thread):
 
         self.update_agent_time(msgs)
 
+    @abc.abstractmethod
     def set_receive_flag_to_true_given_msg(self, msg):
 
         """
@@ -511,6 +535,7 @@ class AgentAlgorithm(threading.Thread):
 
         raise NotImplementedError
 
+    @abc.abstractmethod
     def get_current_timestamp_from_context(self, msg):
 
         """
@@ -518,8 +543,9 @@ class AgentAlgorithm(threading.Thread):
         :return: the timestamp from the msg
         """
 
-        return -1
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def update_message_in_context(self, msg):
 
         '''
@@ -565,12 +591,14 @@ class AgentAlgorithm(threading.Thread):
                 self.send_msgs()
                 self.set_receive_flag_to_false()
 
+    @abc.abstractmethod
     def get_is_going_to_compute_flag(self):
         """
         :return: the flag which determines if computation is going to occur
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def compute(self):
         """
        After the context was updated by messages received, computation takes place
@@ -580,14 +608,19 @@ class AgentAlgorithm(threading.Thread):
 
     def send_msgs(self):
         msgs = self.get_list_of_msgs()
+        for msg in msgs:
+            msg.add_current_NCLO(self.NCLONCLO)
+            msg.add_timestamp(self.timestamp)
         self.outbox.insert(msgs)
 
+    @abc.abstractmethod
     def get_list_of_msgs_to_send(self):
         """
         create and return list of msgs to send
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def set_receive_flag_to_false(self):
         """
         after computation occurs set the flag back to false
@@ -624,16 +657,20 @@ class AgentAlgorithm(threading.Thread):
             self.is_idle = False
 
     def get_is_idle(self):
-
         with self.cond:
             while not self.is_idle:
                 self.cond.wait()
             return self.is_idle
 
+    @abc.abstractmethod
+    def reset_additional_fields(self):
+        raise NotImplementedError
 
 class PlayerAlgorithm(AgentAlgorithm):
-    def __init__(self, simulation_entity, is_with_timestamp=False):
-        AgentAlgorithm.__init__(self, simulation_entity, is_with_timestamp=is_with_timestamp)
+    def __init__(self, simulation_entity, t_now, is_with_timestamp=False):
+        AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
+                                is_with_timestamp=is_with_timestamp)
+
         self.task_logs = []
         self.additional_tasks_in_log = []
 
@@ -645,7 +682,7 @@ class PlayerAlgorithm(AgentAlgorithm):
     def receive_msgs(self, msgs: []):
         super().receive_msgs(msgs)
         for msg in msgs:
-            if msg.task_entity not in task_logs:
+            if msg.task_entity not in self.task_logs:
                 self.task_logs.append(msg.task_entity)
                 self.additional_tasks_in_log.append(msg.task_entity)
                 self.add_neighbour_id(msg.task_entity.id_)
@@ -656,30 +693,45 @@ class PlayerAlgorithm(AgentAlgorithm):
 
 
 class TaskAlgorithm(AgentAlgorithm):
-    def __init__(self, simulation_entity, is_with_timestamp=False):
-        AgentAlgorithm.__init__(self, simulation_entity, is_with_timestamp=is_with_timestamp)
+    def __init__(self, simulation_entity, t_now, is_with_timestamp=False):
+        AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
+                                is_with_timestamp=is_with_timestamp)
 
     def send_msgs(self):
         msgs = self.get_list_of_msgs()
         ans = []
         for msg in msgs:
-            ans.append(MsgTaskEntity(msg, self.simulation_entity))
+            ans.append(MsgTaskEntity(msg, copy.copy(self.simulation_entity)))
         msgs = ans
         self.outbox.insert(msgs)
 
 
-class AllocationSolver():
-    def __init__(self,t_now):
+class AllocationSolver(abc.ABC):
+    def __init__(self, tasks_simulation=[], players_simulation=[]):
         self.tasks_simulation = []
+        for task in tasks_simulation:
+            self.add_task_to_solver(task)
+
         self.players_simulation = []
+        for player in players_simulation:
+            self.add_task_to_solver(player)
+
         self.last_event = None
 
-    def solve(self, tasks_simulation=[], players_simulation=[],last_event=None) -> {}:
-        self.tasks_simulation = tasks_simulation
-        self.players_simulation = players_simulation
+    def solve(self, last_event=None) -> {}:
         self.last_event = last_event
         return self.allocate()
 
+    def add_player_to_solver(self, player: Simulation.AgentSimple):
+        self.players_simulation.append(player)
+        self.what_solver_does_when_player_is_added(player)
+
+    def add_task_to_solver(self, task: Simulation.TaskSimple):
+        self.tasks_simulation.append(task)
+        self.what_solver_does_when_task_is_added(task)
+
+
+    @abc.abstractmethod
     def allocate(self):
         """
         Use missions and agents to allocate an agent to mission
@@ -688,21 +740,26 @@ class AllocationSolver():
         raise NotImplementedError
 
 
+    @abc.abstractmethod
+    def what_solver_does_when_player_is_added(self, player):
+        raise NotImplementedError
+
+
+    @abc.abstractmethod
+    def what_solver_does_when_task_is_added(self, task):
+        raise NotImplementedError
+
+
 class AllocationSolverDistributed(AllocationSolver):
 
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
         """
-
         :param mailer: entity that simulates message delivery (given protocol) between agents
         :param f_termination_condition: function received by the user that determines when the mailer should stop
         :param f_global_measurements: function that returns dictionary=  {key: str of fields name,function of calculated fields
         :param f_communication_disturbance: function that returns None for msg loss, or a number for NCLO delay
-
         """
-        """ 
-        """
-
         AllocationSolver.__init__(self)
         self.agents_algorithm = []
         self.mailer = None
@@ -721,13 +778,22 @@ class AllocationSolverDistributed(AllocationSolver):
         :return: None
         """
         if mailer is None:
-            if f_termination_conditionis is not None and f_global_measurements is not None:
+            if f_termination_condition is not None and f_global_measurements is not None:
                 self.mailer = Mailer(f_termination_condition, f_global_measurements, f_communication_disturbance)
             else:
                 raise Exception(
                     "Cannot create mailer instance without: dictionary of measurments with function and a termination condition")
         else:
             self.mailer = mailer
+
+    def what_solver_does_when_player_is_added(self, player:Simulation.AgentSimple):
+        algorithm_player = self.create_algorithm_player(player)
+        self.agents_algorithm.append(algorithm_player)
+
+    @abc.abstractmethod
+    def create_algorithm_player(self,player:Simulation.AgentSimple):
+        raise NotImplementedError
+
 
     def allocate(self):
         """
@@ -742,7 +808,8 @@ class AllocationSolverDistributed(AllocationSolver):
         6. mailer.join(): need mailer to die before finish its allocation process
         :return the allocation at the end of the allocation
         """
-        self.agents_algorithm = self.create_agents_algorithm()
+        #self.agents_algorithm = self.create_agents_algorithm()
+        self.reset_algorithm_agents()
         self.connect_entities()
         self.agents_initialize()
         self.mailer.reset(self.agents_algorithm)
@@ -750,13 +817,9 @@ class AllocationSolverDistributed(AllocationSolver):
         self.mailer.join()
         return self.mailer.get_allocation_dictionary()  # TODO
 
-    def create_agents_algorithm(self):
-        """
-        create agent algorithm with the specified implemented
-        methods according to the abstract agent class
-        :return: list of algorithm agents
-        """
-        raise NotImplementedError
+    def reset_algorithm_agents(self):
+        for aa in self.agents_algorithm:
+            aa.reset_fields(self.last_event.time)
 
     def agents_initialize(self):
         """
@@ -806,21 +869,9 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         self.tasks_algorithm = []
         self.players_algorithm = []
 
-    def create_agents_algorithm(self):
-        """
-        create abstract task_algorithms and abstract player_algorithms list
-        :return: combined list of task and player algorithm
-        """
-        ans = []
-        for task in self.tasks_simulation:
-            t_task_algorithm = TaskAlgorithm(task)
-            self.tasks_algorithm.append(t_task_algorithm)
-            ans.append(t_task_algorithm)
-        for player in self.players_simulation:
-            t_player_algorithm = TaskAlgorithm(player)
-            self.tasks_algorithm.append(t_player_algorithm)
-            ans.append(t_player_algorithm)
-        return ans
+
+
+
 
     @staticmethod
     def connect_condition(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
@@ -917,4 +968,3 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
     def agents_initialize(self):
         for task_algo in self.tasks_algorithm:
             task_algo.initiate_algorithm()
-
