@@ -711,6 +711,7 @@ class AllocationSolver(abc.ABC):
         self.tasks_simulation = []
         for task in tasks_simulation:
             self.add_task_to_solver(task)
+            print("blah")
 
         self.players_simulation = []
         for player in players_simulation:

@@ -63,6 +63,8 @@ class FisherPlayerASY(PlayerAlgorithm):
 
     def measurements_per_agent(self):
         # TODO
+        print("blah")
+
         pass
 
     def reset_additional_fields(self):
