@@ -476,6 +476,10 @@ class AgentAlgorithm(threading.Thread, ABC):
         if self.id_ not in self.neighbours_ids_list:
             self.neighbours_ids_list.append(id_)
 
+    def remove_neighbour_id(self, id_: str):
+        if self.id_ in self.neighbours_ids_list:
+            self.neighbours_ids_list.remove(id_)
+
     def add_task_entity(self, task_entity: Simulation.TaskSimple):
         pass
 
@@ -671,25 +675,39 @@ class PlayerAlgorithm(AgentAlgorithm):
         AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
                                 is_with_timestamp=is_with_timestamp)
 
-        self.task_logs = []
+        self.tasks_log = []
         self.additional_tasks_in_log = []
 
     def add_task_entity_to_log(self, task_entity: Simulation.TaskSimple):
         if task_entity.id_ not in self.neighbours_ids_list:
             self.add_neighbour_id(task_entity.id_)
-        self.task_logs.append(task_entity)
+        self.tasks_log.append(task_entity)
+
+    def remove_task_from_log(self, task_entity: Simulation.TaskSimple):
+        if task_entity.id_ in self.neighbours_ids_list:
+            self.remove_neighbour_id(task_entity.id_)
+            for task_in_log in self.tasks_log:
+                if task_in_log.id_ == task_entity.id_:
+                    self.tasks_log.remove(task_in_log)
+                    break
 
     def receive_msgs(self, msgs: []):
         super().receive_msgs(msgs)
         for msg in msgs:
-            if msg.task_entity not in self.task_logs:
-                self.task_logs.append(msg.task_entity)
+            if msg.task_entity not in self.tasks_log:
+                self.tasks_log.append(msg.task_entity)
                 self.additional_tasks_in_log.append(msg.task_entity)
                 self.add_neighbour_id(msg.task_entity.id_)
 
     def send_msgs(self):
         super().send_msgs()
         self.additional_tasks_in_log = []
+
+    def update_log_with_task(self,task_input:Simulation.TaskSimple):
+        for task_in_log in self.tasks_log:
+            if task_input.id_ == task_in_log.id_:
+                self.tasks_log.remove(task_in_log)
+                self.tasks_log.append(copy.copy(task_input))
 
 
 class TaskAlgorithm(AgentAlgorithm):
@@ -727,10 +745,17 @@ class AllocationSolver(abc.ABC):
         self.players_simulation.append(player)
         self.what_solver_does_when_player_is_added(player)
 
+    def remove_player_from_solver(self, player: Simulation.AgentSimple):
+        self.players_simulation.remove(player)
+        self.what_solver_does_when_player_is_removed(player)
+
     def add_task_to_solver(self, task: Simulation.TaskSimple):
         self.tasks_simulation.append(task)
         self.what_solver_does_when_task_is_added(task)
 
+    def remove_task_from_solver(self, task: Simulation.TaskSimple):
+        self.tasks_simulation.remove(task)
+        self.what_solver_does_when_task_is_removed(task)
 
     @abc.abstractmethod
     def allocate(self):
@@ -742,12 +767,20 @@ class AllocationSolver(abc.ABC):
 
 
     @abc.abstractmethod
-    def what_solver_does_when_player_is_added(self, player):
+    def what_solver_does_when_player_is_added(self, player: Simulation.AgentSimple):
         raise NotImplementedError
 
 
     @abc.abstractmethod
-    def what_solver_does_when_task_is_added(self, task):
+    def what_solver_does_when_task_is_added(self, task: Simulation.TaskSimple):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def what_solver_does_when_player_is_removed(self, player: Simulation.AgentSimple):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def what_solver_does_when_task_is_removed(self, task: Simulation.TaskSimple):
         raise NotImplementedError
 
 
@@ -787,9 +820,26 @@ class AllocationSolverDistributed(AllocationSolver):
         else:
             self.mailer = mailer
 
+    def get_algorithm_agent_by_entity(self, entity_input: Simulation.Entity):
+        """
+        :param entity_input:
+        :return: the algorithm agent that contains the simulation entity
+        """
+        for agent_algo in self.agents_algorithm:
+            if agent_algo.simulation_entity == entity_input:
+                return agent_algo
+        raise Exception("algorithm agent does not exists")
+
     def what_solver_does_when_player_is_added(self, player:Simulation.AgentSimple):
         algorithm_player = self.create_algorithm_player(player)
         self.agents_algorithm.append(algorithm_player)
+
+
+    def what_solver_does_when_player_is_removed(self, player:Simulation.AgentSimple):
+        player_algo = self.get_algorithm_agent_by_entity(player)
+        self.agents_algorithm.remove(player_algo)
+
+
 
     @abc.abstractmethod
     def create_algorithm_player(self,player:Simulation.AgentSimple):
@@ -870,9 +920,10 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         self.tasks_algorithm = []
         self.players_algorithm = []
 
-
-
-
+    def what_solver_does_when_player_is_added(self, player: Simulation.AgentSimple):
+        algorithm_player = self.create_algorithm_player(player)
+        self.agents_algorithm.append(algorithm_player)
+        self.players_algorithm.append(algorithm_player)
 
     @staticmethod
     def connect_condition(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
@@ -909,26 +960,36 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         player_algo.set_clock_object_for_responsible(clock_obj)
         task_algo.set_clock_object_for_responsible(clock_obj)
 
-    def get_algorithm_agent_by_entity(self, entity_input: Simulation.Entity):
-        """
-        :param entity_input:
-        :return: the algorithm agent that contains the simulation entity
-        """
-        for agent_algo in self.agents_algorithm:
-            if agent_algo.simulation_entity == entity_input:
-                return agent_algo
-        raise Exception("algorithm agent does not exists")
+    def what_solver_does_when_task_is_added(self, task: Simulation.TaskSimple):
+        task_algorithm = self.create_algorithm_task(task)
+        self.agents_algorithm.append(task_algorithm)
+        self.tasks_algorithm.append(task_algorithm)
+        player_sim_responsible = task.player_responsible
+        player_algorithm = self.get_algorithm_agent_by_entity(player_sim_responsible)
 
-    def connect_responsible_player_and_agent(self, what_to_connect):
-        """
-        :param what_to_connect: function with the input of player and task, while using a method of one of the entities
-        """
-        for player_sim in self.players_simulation:
-            player_algorithm = self.get_algorithm_agent_by_entity(player_sim)
-            tasks_of_player_simulation = player_sim.tasks_responsible
-            for task_sim in tasks_of_player_simulation:
-                task_algorithm = self.get_algorithm_agent_by_entity(task_sim)
-                what_to_connect(player_algorithm, task_algorithm)
+        AllocationSolverTasksPlayersSemi.connect_condition(player_algorithm, task_algorithm)
+        AllocationSolverTasksPlayersSemi.update_player_log(player_algorithm, task_algorithm)
+        AllocationSolverTasksPlayersSemi.connect_clock_object(player_algorithm, task_algorithm)
+
+    def what_solver_does_when_player_is_removed(self, player: Simulation.AgentSimple):
+        player_algorithm = self.get_algorithm_agent_by_entity(player)
+        self.agents_algorithm.remove(player_algorithm)
+        self.players_algorithm.remove(player_algorithm)
+
+    def what_solver_does_when_task_is_removed(self, task: Simulation.TaskSimple):
+        task_algorithm = self.get_algorithm_agent_by_entity(task)
+        self.agents_algorithm.remove(task_algorithm)
+        self.tasks_algorithm.remove(task_algorithm)
+        self.remove_task_from_players_log(task)
+
+    def remove_task_from_players_log(self, task: Simulation.TaskSimple):
+        for player_algo in self.players_algorithm:
+            player_algo.remove_task_from_log(task)
+
+    @abc.abstractmethod
+    def create_algorithm_task(self, player: Simulation.TaskSimple):
+        raise NotImplementedError
+
 
     def update_log_of_players_current_task(self):
         """
@@ -939,9 +1000,14 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         for player_sim in self.players_simulation:
             player_algorithm = self.get_algorithm_agent_by_entity(player_sim)
             current_task = player_sim.current_task
-            if current_task is not None:
-                for task_sim in tasks_of_player_simulation:
-                    player_algorithm.add_task_entity_to_log(task_sim)
+            current_task_updated = self.get_updated_entity_copy_of_current_task(current_task)
+            player_algorithm.update_log_with_task(current_task_updated)
+
+    def get_updated_entity_copy_of_current_task(self, current_task:Simulation.TaskSimple):
+        for task_algo in self.tasks_algorithm:
+            if task_algo.simulation_entity.id_ == current_task.id_:
+                return task_algo.simulation_entity
+
 
     def connect_neighbors(self):
         """
@@ -950,14 +1016,9 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         connect_players_to_tasks: update the neighbours list at the task entites. The player entity is already updated
         :return:
         """
-        self.simulate_players_and_tasks_representation()
         self.update_log_of_players_current_task()
         self.connect_players_to_tasks()
 
-    def simulate_players_and_tasks_representation(self):
-        self.connect_responsible_player_and_agent(AllocationSolverTasksPlayersSemi.connect_condition)
-        self.connect_responsible_player_and_agent(AllocationSolverTasksPlayersSemi.update_player_log)
-        self.connect_responsible_player_and_agent(AllocationSolverTasksPlayersSemi.connect_clock_object)
 
     def connect_players_to_tasks(self):
         for task_sim in self.tasks_simulation:
@@ -969,3 +1030,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
     def agents_initialize(self):
         for task_algo in self.tasks_algorithm:
             task_algo.initiate_algorithm()
+
+
+
+
