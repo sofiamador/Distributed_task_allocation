@@ -21,7 +21,7 @@ class Utility:
     def get_linear_utility(self):
         return self.linear_utility
 
-    def get_utilility(self, ratio=1):
+    def get_utility(self, ratio=1):
         return (ratio * self.linear_utility) ** self.ro
 
 
@@ -44,10 +44,57 @@ class FisherPlayerASY(PlayerAlgorithm):
     def __init__(self, agent_simulator, t_now):
         PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now)
         self.r_i = {} # dict {key = task, value = dict{key= mission,value = utility}}
+        self.bids = {}
         self.x_i = {} # dict {key = task, value = dict{key= mission,value = allocation}}
         self.msgs = {} # dict {key = task_id, value = last msg}
         self.calculate_bids_flag = False
 
+    def reset_additional_fields(self):
+        self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
+        self.bids = {}
+        self.x_i = {}  # dict {key = task, value = dict{key= mission,value = allocation}}
+        self.msgs = {}  # dict {key = task_id, value = last msg}
+        self.calculate_bids_flag = False
+
+        self.set_initial_r_i()
+        self.set_initial_bids()
+        self.set_initial_x_i()
+        self.set_msgs()
+
+    def set_msgs(self):
+        for task_log in self.tasks_log:
+            self.msgs[task_log] = None
+
+    def set_initial_x_i(self):
+        for task_log in self.tasks_log:
+            self.x_i[task_log] = {}
+            for mission_log in task_log.missions:
+                self.x_i[task_log][mission_log] = None
+
+    def set_initial_r_i(self):
+        for task_log in self.tasks_log:
+            self.r_i[task_log] = {}
+            for mission_log in task_log.missions:
+                util = Utility(player_entity=self.simulation_entity,mission_entity=mission_log,task_entity=task_log,
+                               t_now=self.t_now)
+                self.r_i[task_log][mission_log] = util
+
+    def set_initial_bids(self):
+        sum_util_list = []
+        for task_log in self.tasks_log:
+            for mission_log in task_log.missions:
+                util = self.r_i[task_log][mission_log]
+                linear_util = util.get_utility()
+                sum_util_list.append(linear_util)
+
+        sum_util_number = sum(sum_util_list)
+
+        for task_log in self.tasks_log:
+            self.bids[task_log]={}
+            for mission_log in task_log.missions:
+                util = self.r_i[task_log][mission_log]
+                linear_util = util.get_utility()
+                self.bids[task_log][mission_log] = linear_util/sum_util_number
 
     def add_task_entity_to_log(self, task_entity: TaskSimple):
         super().add_task_entity_to_log(task_entity)
@@ -67,9 +114,7 @@ class FisherPlayerASY(PlayerAlgorithm):
 
         pass
 
-    def reset_additional_fields(self):
-        # TODO
-        pass
+
 
     def set_receive_flag_to_true_given_msg(self, msg):
         self.calculate_bids_flag = True
@@ -85,8 +130,9 @@ class FisherPlayerASY(PlayerAlgorithm):
         task_id = msg.sender
         self.msgs[task_id] = msg
         dict_missions_xi = msg.information
+        task_simulation = msg.task_entity
         for mission, x_ij in dict_missions_xi:
-            self.x_i[mission] = x_ij
+            self.x_i[task_simulation][mission] = x_ij
 
     def get_is_going_to_compute_flag(self):
         return self.calculate_bids_flag

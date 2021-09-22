@@ -8,7 +8,7 @@ from enum import Enum
 import Simulation
 
 
-# TODO - AGENT ALGORITHM,
+
 def default_communication_disturbance(msg):
     return 0
 
@@ -94,7 +94,7 @@ class ClockObject():
 
     def change_clock_if_required(self, time_of_received_msg: float):
         with self.lock:
-            if clock <= time_of_received_msg:
+            if self.clock <= time_of_received_msg:
                 self.idle_time = self.idle_time + (time_of_received_msg - self.clock)
                 self.clock = time_of_received_msg
 
@@ -152,6 +152,9 @@ class Mailer(threading.Thread):
         for key in self.f_global_measurements.keys():
             self.measurements[key] = {}
             self.measurements[key + "_single"] = {}
+
+        for aa in agents_algorithm:
+            aa.reset_fields()
 
     def add_out_box(self, key: str, value: UnboundedBuffer):
         self.agents_outboxes[key] = value
@@ -491,6 +494,9 @@ class AgentAlgorithm(threading.Thread, ABC):
 
     def set_clock_object_for_responsible(self, clock_object_input):
         self.NCLO = clock_object_input
+
+
+
 
     @abc.abstractmethod
     def initiate_algorithm(self):
