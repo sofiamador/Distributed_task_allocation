@@ -101,7 +101,7 @@ class AbilitySimple:
         return self.ability_name == other.ability_name
 
 
-class AgentSimple(Entity):
+class PlayerSimple(Entity):
     """
     Class that represents a basic agent in the simulation
     """
@@ -125,7 +125,6 @@ class AgentSimple(Entity):
         :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
         :type current_mission: MissionSimple
         :param last_time_updated:
-
         """
         Entity.__init__(id_, location, name, type_)
         if abilities is None:
@@ -226,12 +225,15 @@ class TaskSimple(Entity):
         :param missions: the missions of the
         :param type_: The type of the event
         :type type_: int
+        :param player_responsible, simulation will assign a responsible player to perform that algorithmic task
+        computation and message delivery
         """
         Entity.__init__(id_, location, name, type_)
         if name is None:
             self.name = id
         self.missions = missions
         self.type_ = type_
+        self.player_responsible = None
 
     def event_utility(self):
         """
@@ -256,7 +258,7 @@ class TaskSimple(Entity):
                 self.neighbours.append(a)
 
 
-def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: AgentSimple):
+def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: PlayerSimple):
     """
     Function that checks if the agent can be allocated to an task according to agent's abilities and required abilities
     to the task.

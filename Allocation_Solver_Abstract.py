@@ -741,11 +741,11 @@ class AllocationSolver(abc.ABC):
         self.last_event = last_event
         return self.allocate()
 
-    def add_player_to_solver(self, player: Simulation.AgentSimple):
+    def add_player_to_solver(self, player: Simulation.PlayerSimple):
         self.players_simulation.append(player)
         self.what_solver_does_when_player_is_added(player)
 
-    def remove_player_from_solver(self, player: Simulation.AgentSimple):
+    def remove_player_from_solver(self, player: Simulation.PlayerSimple):
         self.players_simulation.remove(player)
         self.what_solver_does_when_player_is_removed(player)
 
@@ -767,7 +767,7 @@ class AllocationSolver(abc.ABC):
 
 
     @abc.abstractmethod
-    def what_solver_does_when_player_is_added(self, player: Simulation.AgentSimple):
+    def what_solver_does_when_player_is_added(self, player: Simulation.PlayerSimple):
         raise NotImplementedError
 
 
@@ -776,7 +776,7 @@ class AllocationSolver(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def what_solver_does_when_player_is_removed(self, player: Simulation.AgentSimple):
+    def what_solver_does_when_player_is_removed(self, player: Simulation.PlayerSimple):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -830,19 +830,19 @@ class AllocationSolverDistributed(AllocationSolver):
                 return agent_algo
         raise Exception("algorithm agent does not exists")
 
-    def what_solver_does_when_player_is_added(self, player:Simulation.AgentSimple):
+    def what_solver_does_when_player_is_added(self, player:Simulation.PlayerSimple):
         algorithm_player = self.create_algorithm_player(player)
         self.agents_algorithm.append(algorithm_player)
 
 
-    def what_solver_does_when_player_is_removed(self, player:Simulation.AgentSimple):
+    def what_solver_does_when_player_is_removed(self, player:Simulation.PlayerSimple):
         player_algo = self.get_algorithm_agent_by_entity(player)
         self.agents_algorithm.remove(player_algo)
 
 
 
     @abc.abstractmethod
-    def create_algorithm_player(self,player:Simulation.AgentSimple):
+    def create_algorithm_player(self, player:Simulation.PlayerSimple):
         raise NotImplementedError
 
 
@@ -920,7 +920,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         self.tasks_algorithm = []
         self.players_algorithm = []
 
-    def what_solver_does_when_player_is_added(self, player: Simulation.AgentSimple):
+    def what_solver_does_when_player_is_added(self, player: Simulation.PlayerSimple):
         algorithm_player = self.create_algorithm_player(player)
         self.agents_algorithm.append(algorithm_player)
         self.players_algorithm.append(algorithm_player)
@@ -971,7 +971,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         AllocationSolverTasksPlayersSemi.update_player_log(player_algorithm, task_algorithm)
         AllocationSolverTasksPlayersSemi.connect_clock_object(player_algorithm, task_algorithm)
 
-    def what_solver_does_when_player_is_removed(self, player: Simulation.AgentSimple):
+    def what_solver_does_when_player_is_removed(self, player: Simulation.PlayerSimple):
         player_algorithm = self.get_algorithm_agent_by_entity(player)
         self.agents_algorithm.remove(player_algorithm)
         self.players_algorithm.remove(player_algorithm)
@@ -1018,7 +1018,6 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         """
         self.update_log_of_players_current_task()
         self.connect_players_to_tasks()
-
 
     def connect_players_to_tasks(self):
         for task_sim in self.tasks_simulation:
