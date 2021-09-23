@@ -56,7 +56,7 @@ class UnboundedBuffer():
 
 class Msg:
 
-    def __init__(self, sender, receiver, information):
+    def __init__(self, sender, receiver, information, is_with_perfect_communication):
         self.sender = sender
 
         self.receiver = receiver
@@ -66,6 +66,8 @@ class Msg:
         self.msg_time = None
 
         self.timestamp = None
+
+        self.is_with_perfect_communication =is_with_perfect_communication
 
     def set_time_of_msg(self, delay):
         self.msg_time = self.msg_time + delay
@@ -300,13 +302,12 @@ class Mailer(threading.Thread):
             self.update_clock_upon_msg_recieved(msg)
 
             communication_disturbance_output = self.f_communication_disturbance(msg)
+            if  not msg.is_with_perfect_communication:
+                if communication_disturbance_output is not None:
 
-            if communication_disturbance_output is not None:
-                delay = communication_disturbance_output
-
-                msg.set_time_of_msg(delay)
-
-                self.msg_box.append(msg)
+                    delay = communication_disturbance_output
+                    msg.set_time_of_msg(delay)
+            self.msg_box.append(msg)
 
     def update_clock_upon_msg_received(self, msg: Msg):
 
@@ -619,7 +620,7 @@ class AgentAlgorithm(threading.Thread, ABC):
     def send_msgs(self):
         msgs = self.get_list_of_msgs()
         for msg in msgs:
-            msg.add_current_NCLO(self.NCLONCLO)
+            msg.add_current_NCLO(self.NCLO.clock)
             msg.add_timestamp(self.timestamp)
         self.outbox.insert(msgs)
 
