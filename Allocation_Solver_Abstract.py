@@ -680,7 +680,6 @@ class PlayerAlgorithm(AgentAlgorithm):
     def __init__(self, simulation_entity, t_now, is_with_timestamp=False):
         AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
                                 is_with_timestamp=is_with_timestamp)
-
         self.tasks_log = []
         self.additional_tasks_in_log = []
 
@@ -700,10 +699,18 @@ class PlayerAlgorithm(AgentAlgorithm):
     def receive_msgs(self, msgs: []):
         super().receive_msgs(msgs)
         for msg in msgs:
-            if msg.task_entity not in self.tasks_log:
+            if msg.task_entity not in self.tasks_log :
                 self.tasks_log.append(msg.task_entity)
                 self.additional_tasks_in_log.append(msg.task_entity)
                 self.add_neighbour_id(msg.task_entity.id_)
+            else:
+                for task_in_log in self.tasks_log:
+                    if task_in_log.id_==msg.task_entity:
+                        if task_in_log.last_time_updated<msg.task_entity.last_time_updated:
+                            self.tasks_log.remove(task_in_log)
+                            self.tasks_log.append(msg.task_entity)
+                            print(msg.task_entity+"is updated, Allocation_Solver_Abstract")
+
 
     def send_msgs(self):
         super().send_msgs()
@@ -730,7 +737,7 @@ class TaskAlgorithm(AgentAlgorithm):
         self.outbox.insert(msgs)
 
 
-class AllocationSolver(abc.ABC):
+class AllocationSolver:
     def __init__(self, tasks_simulation=[], players_simulation=[]):
         self.tasks_simulation = []
         for task in tasks_simulation:
@@ -932,7 +939,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         self.players_algorithm.append(algorithm_player)
 
     @staticmethod
-    def connect_condition(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
+    def connect_condition(player_algo: Simulation.PlayerAlgorithm, task_algo: Simulation.TaskAlgorithm):
         """
         have the same condition for both input algorithms entity
        :param player_algo:
@@ -944,7 +951,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         task_algo.update_cond_for_responsible(cond)
 
     @staticmethod
-    def update_player_log(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
+    def update_player_log(player_algo: Simulation.PlayerAlgorithm, task_algo: Simulation.TaskAlgorithm):
         """
         add task to player's log because player is responsible for it, the players is aware of the task's information
         in the discussed scenario
@@ -955,7 +962,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         player_algo.add_task_entity_to_log(task_algo.simulation_entity)
 
     @staticmethod
-    def connect_clock_object(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
+    def connect_clock_object(player_algo: Simulation.PlayerAlgorithm, task_algo: Simulation.TaskAlgorithm):
         """
         have the same clock for both input algorithm entity
         :param player_algo:

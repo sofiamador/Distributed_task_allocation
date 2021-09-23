@@ -26,12 +26,16 @@ class Entity:
         :type name: str
         :param type_: The type of the entity
         :type type_: int
+        :param last_time_updated:
+
         """
         self.id_ = id_
         self.location = location
         self.name = name
         self.type_ = type_
         self.neighbours = []
+        self.last_time_updated = 0
+
 
     def create_neighbours_list(self, entities_list, f_are_neighbours):
         """
@@ -124,7 +128,6 @@ class PlayerSimple(Entity):
         :type current_task: TaskSimple
         :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
         :type current_mission: MissionSimple
-        :param last_time_updated:
         """
         Entity.__init__(id_, location, name, type_)
         if abilities is None:
@@ -136,7 +139,6 @@ class PlayerSimple(Entity):
         self.abilities = abilities
         self.current_task = None
         self.current_mission = None
-        self.last_time_updated = 0
         self.tasks_responsible = []
 
     def update_status(self, new_status: Status, tnow: float) -> None:

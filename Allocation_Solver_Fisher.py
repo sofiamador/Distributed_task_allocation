@@ -1,5 +1,6 @@
 from abc import ABC
 
+import Simulation
 from Allocation_Solver_Abstract import PlayerAlgorithm
 from Simulation import Entity, TaskSimple, future_utility
 
@@ -114,8 +115,6 @@ class FisherPlayerASY(PlayerAlgorithm):
 
         pass
 
-
-
     def set_receive_flag_to_true_given_msg(self, msg):
         self.calculate_bids_flag = True
 
@@ -127,12 +126,20 @@ class FisherPlayerASY(PlayerAlgorithm):
             return self.msgs[task_id].timestamp
 
     def update_message_in_context(self, msg):
+
+        self.is_task_entity_new_in_log(msg.task_entity)
         task_id = msg.sender
         self.msgs[task_id] = msg
         dict_missions_xi = msg.information
         task_simulation = msg.task_entity
         for mission, x_ij in dict_missions_xi:
             self.x_i[task_simulation][mission] = x_ij
+
+    def is_task_entity_new_in_log(self, task_entity:Simulation.TaskSimple):
+        is_in_log = False
+        is_updated = False
+        for task_in_log
+
 
     def get_is_going_to_compute_flag(self):
         return self.calculate_bids_flag
@@ -144,5 +151,7 @@ class FisherPlayerASY(PlayerAlgorithm):
     def get_list_of_msgs_to_send(self):
         # TODO
         pass
+
+
 
 
