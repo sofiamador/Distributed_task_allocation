@@ -1,8 +1,9 @@
+import math
 from abc import ABC
 
 import Allocation_Solver_Abstract
 import Simulation
-from Allocation_Solver_Abstract import PlayerAlgorithm
+from Allocation_Solver_Abstract import PlayerAlgorithm,TaskAlgorithm
 from Simulation import Entity, TaskSimple, future_utility
 from Allocation_Solver_Abstract import Msg,MsgTaskEntity
 
@@ -71,7 +72,6 @@ class FisherPlayerASY(PlayerAlgorithm):
         for task_log in self.tasks_log:
             self.set_single_task_in_x_i(task_log)
 
-
     def set_single_task_in_x_i(self, task_log):
         self.x_i[task_log] = {}
         for mission_log in task_log.missions:
@@ -81,14 +81,12 @@ class FisherPlayerASY(PlayerAlgorithm):
         for task_in_log in self.tasks_log:
             self.set_single_task_in_r_i(task_in_log)
 
-
     def set_single_task_in_r_i(self, task_in_log):
         self.r_i[task_in_log] = {}
         for mission_log in task_in_log.missions:
             util = Utility(player_entity=self.simulation_entity, mission_entity=mission_log, task_entity=task_in_log,
                            t_now=self.t_now)
             self.r_i[task_in_log][mission_log] = util
-
 
     def set_initial_bids(self):
         sum_util = self.get_sum_util()
@@ -110,7 +108,6 @@ class FisherPlayerASY(PlayerAlgorithm):
 
         return sum(sum_util_list)
 
-
     def add_task_entity_to_log(self, task_entity: TaskSimple):
         super().add_task_entity_to_log(task_entity)
         for mission_entity in task_entity.missions:
@@ -123,9 +120,7 @@ class FisherPlayerASY(PlayerAlgorithm):
     def initiate_algorithm(self):
         raise Exception("only tasks initiate the algorithm")
 
-
-
-    def set_receive_flag_to_true_given_msg(self, msg):
+    def set_receive_flag_to_true_given_msg_after_check(self, msg):
         self.calculate_bids_flag = True
 
     def get_current_timestamp_from_context(self, msg):
@@ -136,16 +131,13 @@ class FisherPlayerASY(PlayerAlgorithm):
             return self.msgs_from_tasks[task_id].timestamp
 
     def update_message_in_context(self, msg):
-
         task_in_log = self.is_task_entity_new_in_log(msg.task_entity)
         task_is_new_in_log = task_in_log is None
         task_information_is_updated = task_in_log.last_time_updated<msg.task_entity.last_time_updated
-        need_to_calc_bids_different = False
 
         if task_is_new_in_log or task_information_is_updated:
             self.set_single_task_in_x_i(task_in_log)
             self.set_single_task_in_r_i(task_in_log)
-            need_to_calc_bids_different = True
 
             task_id = msg.sender
             self.msgs_from_tasks[task_id] = msg
@@ -154,9 +146,7 @@ class FisherPlayerASY(PlayerAlgorithm):
             task_simulation = msg.task_entity
             for mission, x_ij in dict_missions_xi:
                 self.x_i[task_simulation][mission] = x_ij
-                if need_to_calc_bids_different:
-                    if x_ij is not None:
-                        raise Exception("The task was suppose to send None")
+
 
     def is_task_entity_new_in_log(self, task_entity:Simulation.TaskSimple):
         for task_in_log in self.tasks_log:
@@ -176,6 +166,7 @@ class FisherPlayerASY(PlayerAlgorithm):
                 else:
                     r_ij_times_x_ij = self.r_i[task][mission].get_utility(ratio=x_ij)
                     self.bids[task][mission] = (r_ij_times_x_ij/sum_of_bids)*w_not_none
+                atomic_counter = atomic_counter + 1
         self.check_bids()
 
 
@@ -203,10 +194,11 @@ class FisherPlayerASY(PlayerAlgorithm):
                     x_not_none+=1
                     r_ij = self.r_i[task][mission]
                     sum_of_bids_list.append(r_ij.get_utility(ratio=x_ij))
+                self.atomic_counter = self.atomic_counter + 1
+
                 x_counter+=1
 
         return sum(sum_of_bids_list),sum(sum_r_ijs_none_list),x_none/x_counter,x_not_none/x_counter
-
 
     def get_list_of_msgs_to_send(self):
         ans = []
@@ -216,23 +208,178 @@ class FisherPlayerASY(PlayerAlgorithm):
                 is_perfect_com = True
             ans.append(Msg( sender=self.simulation_entity.id_, receiver = task.id_, information=dict
                             ,is_with_perfect_communication = is_perfect_com))
-
-
+        return ans
 
     def measurements_per_agent(self):
         # TODO
-        print("blah")
+        print("need to complete measurements per agent in FisherPlayerASY")
         pass
 
+    def is_identical_context(self,msg:Msg):
+        sender = msg.sender
+        last_msg_from_sender = self.get_last_msg_of_sender(sender)
+        info_from_last_msg = last_msg_from_sender.information
+        for mission_id,x_ijk in msg.information:
+            if mission_id not in info_from_last_msg.keys():
+                return False
+            if info_from_last_msg[mission_id] != x_ijk:
+                return False
+        return True
+
+
+    def get_last_msg_of_sender(self,sender):
+        for task in self.msgs_from_tasks.keys():
+            if sender == task.id_:
+                return self.msgs_from_tasks[task]
+
+    def set_receive_flag_to_false(self):
+        self.calculate_bids_flag=False
+
+class FisherTaskASY(TaskAlgorithm):
+    def __init__(self, agent_simulator:TaskSimple, t_now):
+        TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now)
+        if not isinstance(agent_simulator,TaskSimple):
+            raise Exception("wrong type of simulation entity")
+
+        self.potential_players_ids_list = []
+        self.reset_potential_players_ids_list()
+
+        self.bids = {}
+        self.reset_bids()
+
+        self.x_jk = {}
+        self.reset_x_jk()
+
+        self.msgs_from_players = {}
+        self.reset_msgs_from_players()
+
+        self.calculate_xjk_flag = False
+
+        self.price_t_minus = 0
+        self.price_current = 0
+        self.price_delta = 0
+
+    def reset_additional_fields(self):
+        self.reset_potential_players_ids_list()
+        self.reset_bids()
+        self.reset_x_jk()
+        self.reset_msgs_from_players()
+        self.calculate_xjk_flag = False
+        self.price_t_minus = 0
+        self.price_current = 0
+        self.price_delta = 0
+
+    def reset_msgs_from_players(self):
+        self.msgs_from_players = {}
+        for player_id in self.potential_players_ids_list:
+            self.msgs_from_players[player_id] = None
+
+    def reset_x_jk(self):
+        self.x_jk = {}
+        for mission in self.simulation_entity.missions:
+            self.x_jk[mission] = {}
+            for n_id in self.potential_players_ids_list:
+                self.x_jk[mission][n_id] = None
+
+    def reset_bids(self):
+        self.bids = {}
+        for mission in self.simulation_entity.missions:
+            self.bids[mission] = {}
+            for n_id in self.potential_players_ids_list:
+                self.bids[mission][n_id] = None
+
+    def reset_potential_players_ids_list(self):
+        self.potential_players_ids_list = []
+        for neighbour in self.simulation_entity.neighbours:
+            self.potential_players_ids_list.append(neighbour)
+
+    def initiate_algorithm(self):
+        self.send_msgs() # will send messages with None to all relevent players
+
+    def set_receive_flag_to_true_given_msg_after_check(self, msg):
+        self.calculate_xjk_flag = True
+
+    def get_current_timestamp_from_context(self, msg):
+        player_id = msg.sender
+        if self.msgs_from_players[player_id] is None:
+            return 0
+        else:
+            return self.msgs_from_players[player_id].timestamp
+
+    def update_message_in_context(self, msg):
+        player_id = msg.sender
+        for mission,bid in msg.information:
+            self.bids[mission][player_id] = bid
+
+        self.msgs_from_players[player_id] = msg
+
+    def get_is_going_to_compute_flag(self):
+        return self.calculate_xjk_flag
+
+    def compute(self):
+
+        self.price_t_minus = self.price_current
+        self.price_current = self.calculate_price()
+        self.price_delta = math.fabs(self.price_t_minus-self.price_current)
+        for mission in self.simulation_entity.missions:
+            for player_id,bid in self.bids[mission].items():
+                self.atomic_counter = self.atomic_counter+1
+                if self.bids[mission][player_id] is not None:
+                    self.x_jk[mission][player_id] = self.bids[mission][player_id]/self.price_current
+                else:
+                    self.x_jk[mission][player_id] = 0
+
+    def calculate_price(self):
+        ans = 0
+        for mission in self.simulation_entity.missions:
+            for bid in self.bids[mission].values():
+                self.atomic_counter = self.atomic_counter+1
+                ans = ans +bid
+        return ans
+
+    def get_list_of_msgs_to_send(self):
+        ans = []
+        for n_id in self.potential_players_ids_list:
+            info = {}
+            flag = False
+            for mission in self.simulation_entity.missions:
+                x_ijk = self.x_jk[mission][n_id]
+                if x_ijk != 0:
+                    flag = True
+                info[mission] = x_ijk
+
+            if flag:
+                is_perfect_com = False
+                if self.simulation_entity.player_responsible.id_ == n_id:
+                    is_perfect_com = True
+                msg = Msg(sender=self.simulation_entity.id_,receiver = n_id, information = info,
+                          is_with_perfect_communication =is_perfect_com)
+                ans.append(msg)
+            return ans
 
 
 
+    def is_identical_context(self, msg: Msg):
+        sender = msg.sender
+        last_msg_from_sender = self.get_last_msg_of_sender(sender)
 
+        info_from_last_msg = last_msg_from_sender.information
 
+        for mission_id, x_ijk in msg.information:
+            if mission_id not in info_from_last_msg.keys():
+                return False
+            if info_from_last_msg[mission_id] != x_ijk:
+                return False
+        return True
 
+    def get_last_msg_of_sender(self, sender):
+        for task in self.msgs_from_tasks.keys():
+            if sender == task.id_:
+                return self.msgs_from_tasks[task]
 
+    def set_receive_flag_to_false(self):
+        self.calculate_xjk_flag=False
 
-
-
-
-
+    def measurements_per_agent(self):
+        # TODO
+        pass

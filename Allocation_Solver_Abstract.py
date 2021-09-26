@@ -5,8 +5,7 @@ from abc import ABC
 
 from enum import Enum
 
-import Simulation
-
+from Simulation import PlayerSimple,TaskSimple,Entity
 
 
 def default_communication_disturbance(msg):
@@ -107,7 +106,6 @@ class ClockObject():
     def get_clock(self):
         with self.lock:
             return self.clock
-
 
 class Mailer(threading.Thread):
 
@@ -298,17 +296,13 @@ class Mailer(threading.Thread):
         """
 
         for msg in msgs_from_inbox:
-
             self.update_clock_upon_msg_recieved(msg)
-
             communication_disturbance_output = self.f_communication_disturbance(msg)
             if  not msg.is_with_perfect_communication:
                 if communication_disturbance_output is not None:
-
                     delay = communication_disturbance_output
                     msg.set_time_of_msg(delay)
             self.msg_box.append(msg)
-
     def update_clock_upon_msg_received(self, msg: Msg):
 
         """
@@ -322,9 +316,7 @@ class Mailer(threading.Thread):
         :return:
 
         """
-
         msg_time = msg.msg_time
-
         self.time_mailer.change_clock_if_required(msg_time)
         # current_clock = self.time_mailer.get_clock()  # TODO check if immutable
         # if current_clock <= msg_time:
@@ -334,20 +326,13 @@ class Mailer(threading.Thread):
     def agents_receive_msgs(self, msgs_to_send):
 
         """
-
         :param msgs_to_send: msgs that their delivery time is smaller then the mailer's time
-
         insert msgs to relevant agent's inbox
-
         """
-
         msgs_dict_by_reciever_id = self.get_receivers_by_id(msgs_to_send)
-
         for node_id, msgs_list in msgs_dict_by_reciever_id.items():
             node_id_inbox = self.agents_outboxes[node_id]
-
             node_id_inbox.insert(msgs_list)
-
     def get_receivers_by_id(self, msgs_to_send):
 
         '''
@@ -411,7 +396,6 @@ class Mailer(threading.Thread):
 
         return True
 
-
 class AgentAlgorithm(threading.Thread, ABC):
     """
     list of abstract methods:
@@ -443,7 +427,7 @@ class AgentAlgorithm(threading.Thread, ABC):
     --> returns dict with key: str of measure, value: the calculated measure
     """
 
-    def __init__(self, simulation_entity, t_now, is_with_timestamp=False):
+    def __init__(self, simulation_entity:Entity, t_now, is_with_timestamp=False):
 
         threading.Thread.__init__(self)
         self.t_now = t_now
@@ -484,7 +468,7 @@ class AgentAlgorithm(threading.Thread, ABC):
         if self.id_ in self.neighbours_ids_list:
             self.neighbours_ids_list.remove(id_)
 
-    def add_task_entity(self, task_entity: Simulation.TaskSimple):
+    def add_task_entity(self, task_entity: TaskSimple):
         pass
 
     def set_inbox(self, inbox_input: UnboundedBuffer):
@@ -526,11 +510,11 @@ class AgentAlgorithm(threading.Thread, ABC):
                 current_timestamp_from_context = self.get_current_timestamp_from_context(msg)
 
                 if msg.timestamp > current_timestamp_from_context:
-                    self.update_message_in_context(msg)
                     self.set_receive_flag_to_true_given_msg(msg)
+                    self.update_message_in_context(msg)
             else:
-                self.update_message_in_context(msg)
                 self.set_receive_flag_to_true_given_msg(msg)
+                self.update_message_in_context(msg)
 
         self.update_agent_time(msgs)
 
@@ -677,25 +661,67 @@ class AgentAlgorithm(threading.Thread, ABC):
     def reset_additional_fields(self):
         raise NotImplementedError
 
-class PlayerAlgorithm(AgentAlgorithm):
-    def __init__(self, simulation_entity, t_now, is_with_timestamp=False):
+
+class AgentAlgorithmTaskPlayers(AgentAlgorithm):
+    def __init__(self, simulation_entity: Entity, t_now, is_with_timestamp=False):
         AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
                                 is_with_timestamp=is_with_timestamp)
+
+
+    def set_receive_flag_to_true_given_msg(self, msg):
+        sender_id = msg.sender
+        list_of_ids_under_responsibility = self.get_list_of_ids_under_responsibility()
+        if sender_id in list_of_ids_under_responsibility:
+            if self.is_identical_context(msg):
+                return
+        else:
+            self.set_receive_flag_to_true_given_msg_after_check()
+
+
+
+    @abc.abstractmethod
+    def is_identical_context(self, msg:Msg):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_message_in_context_after_check(self, msg:Msg):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_list_of_ids_under_responsibility(self):
+        raise NotImplementedError
+
+
+class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
+    def __init__(self, simulation_entity:PlayerSimple, t_now, is_with_timestamp=False):
+        AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
+                                is_with_timestamp=is_with_timestamp)
+        self.tasks_responsible_ids = []
+        for task_responsible in simulation_entity.tasks_responsible:
+            self.tasks_responsible_ids.append(task_responsible.id_)
         self.tasks_log = []
         self.additional_tasks_in_log = []
 
-    def add_task_entity_to_log(self, task_entity: Simulation.TaskSimple):
+    def get_list_of_ids_under_responsibility(self):
+        return self.tasks_responsible_ids
+
+
+    def add_task_entity_to_log(self, task_entity: TaskSimple):
         if task_entity.id_ not in self.neighbours_ids_list:
             self.add_neighbour_id(task_entity.id_)
         self.tasks_log.append(task_entity)
 
-    def remove_task_from_log(self, task_entity: Simulation.TaskSimple):
+    def remove_task_from_log(self, task_entity: TaskSimple):
         if task_entity.id_ in self.neighbours_ids_list:
             self.remove_neighbour_id(task_entity.id_)
             for task_in_log in self.tasks_log:
                 if task_in_log.id_ == task_entity.id_:
                     self.tasks_log.remove(task_in_log)
                     break
+
+
+
+
 
     def receive_msgs(self, msgs: []):
         super().receive_msgs(msgs)
@@ -723,11 +749,16 @@ class PlayerAlgorithm(AgentAlgorithm):
                 self.tasks_log.remove(task_in_log)
                 self.tasks_log.append(copy.copy(task_input))
 
-
-class TaskAlgorithm(AgentAlgorithm):
-    def __init__(self, simulation_entity, t_now, is_with_timestamp=False):
-        AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
+class TaskAlgorithm(AgentAlgorithmTaskPlayers):
+    def __init__(self, simulation_entity:TaskSimple, t_now, is_with_timestamp=False):
+        AgentAlgorithmTaskPlayers.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
                                 is_with_timestamp=is_with_timestamp)
+
+
+    def get_list_of_ids_under_responsibility(self):
+        ans = []
+        ans.append(self.simulation_entity.player_responsible.id_)
+        return self.ans
 
     def send_msgs(self):
         msgs = self.get_list_of_msgs()
@@ -736,7 +767,6 @@ class TaskAlgorithm(AgentAlgorithm):
             ans.append(MsgTaskEntity(msg, copy.copy(self.simulation_entity)))
         msgs = ans
         self.outbox.insert(msgs)
-
 
 class AllocationSolver:
     def __init__(self, tasks_simulation=[], players_simulation=[]):
@@ -755,19 +785,19 @@ class AllocationSolver:
         self.last_event = last_event
         return self.allocate()
 
-    def add_player_to_solver(self, player: Simulation.PlayerSimple):
+    def add_player_to_solver(self, player: PlayerSimple):
         self.players_simulation.append(player)
         self.what_solver_does_when_player_is_added(player)
 
-    def remove_player_from_solver(self, player: Simulation.PlayerSimple):
+    def remove_player_from_solver(self, player: PlayerSimple):
         self.players_simulation.remove(player)
         self.what_solver_does_when_player_is_removed(player)
 
-    def add_task_to_solver(self, task: Simulation.TaskSimple):
+    def add_task_to_solver(self, task: TaskSimple):
         self.tasks_simulation.append(task)
         self.what_solver_does_when_task_is_added(task)
 
-    def remove_task_from_solver(self, task: Simulation.TaskSimple):
+    def remove_task_from_solver(self, task: TaskSimple):
         self.tasks_simulation.remove(task)
         self.what_solver_does_when_task_is_removed(task)
 
@@ -781,22 +811,21 @@ class AllocationSolver:
 
 
     @abc.abstractmethod
-    def what_solver_does_when_player_is_added(self, player: Simulation.PlayerSimple):
+    def what_solver_does_when_player_is_added(self, player: PlayerSimple):
         raise NotImplementedError
 
 
     @abc.abstractmethod
-    def what_solver_does_when_task_is_added(self, task: Simulation.TaskSimple):
+    def what_solver_does_when_task_is_added(self, task:TaskSimple):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def what_solver_does_when_player_is_removed(self, player: Simulation.PlayerSimple):
+    def what_solver_does_when_player_is_removed(self, player:PlayerSimple):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def what_solver_does_when_task_is_removed(self, task: Simulation.TaskSimple):
+    def what_solver_does_when_task_is_removed(self, task:TaskSimple):
         raise NotImplementedError
-
 
 class AllocationSolverDistributed(AllocationSolver):
 
@@ -920,7 +949,6 @@ class AllocationSolverDistributed(AllocationSolver):
         create all connections between agents according to selected algorithm
         """
         raise NotImplementedError
-
 
 class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
     """
