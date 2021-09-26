@@ -719,10 +719,6 @@ class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
                     self.tasks_log.remove(task_in_log)
                     break
 
-
-
-
-
     def receive_msgs(self, msgs: []):
         super().receive_msgs(msgs)
         for msg in msgs:
@@ -743,7 +739,7 @@ class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
         super().send_msgs()
         self.additional_tasks_in_log = []
 
-    def update_log_with_task(self,task_input:Simulation.TaskSimple):
+    def update_log_with_task(self,task_input:TaskSimple):
         for task_in_log in self.tasks_log:
             if task_input.id_ == task_in_log.id_:
                 self.tasks_log.remove(task_in_log)
@@ -863,7 +859,7 @@ class AllocationSolverDistributed(AllocationSolver):
         else:
             self.mailer = mailer
 
-    def get_algorithm_agent_by_entity(self, entity_input: Simulation.Entity):
+    def get_algorithm_agent_by_entity(self, entity_input: Entity):
         """
         :param entity_input:
         :return: the algorithm agent that contains the simulation entity
@@ -873,19 +869,17 @@ class AllocationSolverDistributed(AllocationSolver):
                 return agent_algo
         raise Exception("algorithm agent does not exists")
 
-    def what_solver_does_when_player_is_added(self, player:Simulation.PlayerSimple):
+    def what_solver_does_when_player_is_added(self, player:PlayerSimple):
         algorithm_player = self.create_algorithm_player(player)
         self.agents_algorithm.append(algorithm_player)
 
 
-    def what_solver_does_when_player_is_removed(self, player:Simulation.PlayerSimple):
+    def what_solver_does_when_player_is_removed(self, player:PlayerSimple):
         player_algo = self.get_algorithm_agent_by_entity(player)
         self.agents_algorithm.remove(player_algo)
 
-
-
     @abc.abstractmethod
-    def create_algorithm_player(self, player:Simulation.PlayerSimple):
+    def create_algorithm_player(self, player:PlayerSimple):
         raise NotImplementedError
 
 
@@ -962,13 +956,13 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         self.tasks_algorithm = []
         self.players_algorithm = []
 
-    def what_solver_does_when_player_is_added(self, player: Simulation.PlayerSimple):
+    def what_solver_does_when_player_is_added(self, player: PlayerSimple):
         algorithm_player = self.create_algorithm_player(player)
         self.agents_algorithm.append(algorithm_player)
         self.players_algorithm.append(algorithm_player)
 
     @staticmethod
-    def connect_condition(player_algo: Simulation.PlayerAlgorithm, task_algo: Simulation.TaskAlgorithm):
+    def connect_condition(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
         """
         have the same condition for both input algorithms entity
        :param player_algo:
@@ -980,7 +974,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         task_algo.update_cond_for_responsible(cond)
 
     @staticmethod
-    def update_player_log(player_algo: Simulation.PlayerAlgorithm, task_algo: Simulation.TaskAlgorithm):
+    def update_player_log(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
         """
         add task to player's log because player is responsible for it, the players is aware of the task's information
         in the discussed scenario
@@ -991,7 +985,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         player_algo.add_task_entity_to_log(task_algo.simulation_entity)
 
     @staticmethod
-    def connect_clock_object(player_algo: Simulation.PlayerAlgorithm, task_algo: Simulation.TaskAlgorithm):
+    def connect_clock_object(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
         """
         have the same clock for both input algorithm entity
         :param player_algo:
@@ -1002,7 +996,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         player_algo.set_clock_object_for_responsible(clock_obj)
         task_algo.set_clock_object_for_responsible(clock_obj)
 
-    def what_solver_does_when_task_is_added(self, task: Simulation.TaskSimple):
+    def what_solver_does_when_task_is_added(self, task: TaskSimple):
         task_algorithm = self.create_algorithm_task(task)
         self.agents_algorithm.append(task_algorithm)
         self.tasks_algorithm.append(task_algorithm)
@@ -1013,23 +1007,23 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         AllocationSolverTasksPlayersSemi.update_player_log(player_algorithm, task_algorithm)
         AllocationSolverTasksPlayersSemi.connect_clock_object(player_algorithm, task_algorithm)
 
-    def what_solver_does_when_player_is_removed(self, player: Simulation.PlayerSimple):
+    def what_solver_does_when_player_is_removed(self, player: PlayerSimple):
         player_algorithm = self.get_algorithm_agent_by_entity(player)
         self.agents_algorithm.remove(player_algorithm)
         self.players_algorithm.remove(player_algorithm)
 
-    def what_solver_does_when_task_is_removed(self, task: Simulation.TaskSimple):
+    def what_solver_does_when_task_is_removed(self, task: TaskSimple):
         task_algorithm = self.get_algorithm_agent_by_entity(task)
         self.agents_algorithm.remove(task_algorithm)
         self.tasks_algorithm.remove(task_algorithm)
         self.remove_task_from_players_log(task)
 
-    def remove_task_from_players_log(self, task: Simulation.TaskSimple):
+    def remove_task_from_players_log(self, task: TaskSimple):
         for player_algo in self.players_algorithm:
             player_algo.remove_task_from_log(task)
 
     @abc.abstractmethod
-    def create_algorithm_task(self, player: Simulation.TaskSimple):
+    def create_algorithm_task(self, task: TaskSimple):
         raise NotImplementedError
 
 
@@ -1045,7 +1039,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
             current_task_updated = self.get_updated_entity_copy_of_current_task(current_task)
             player_algorithm.update_log_with_task(current_task_updated)
 
-    def get_updated_entity_copy_of_current_task(self, current_task:Simulation.TaskSimple):
+    def get_updated_entity_copy_of_current_task(self, current_task:TaskSimple):
         for task_algo in self.tasks_algorithm:
             if task_algo.simulation_entity.id_ == current_task.id_:
                 return task_algo.simulation_entity

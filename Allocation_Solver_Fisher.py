@@ -1,10 +1,11 @@
 import math
 from abc import ABC
 
-import Allocation_Solver_Abstract
-import Simulation
-from Allocation_Solver_Abstract import PlayerAlgorithm,TaskAlgorithm
-from Simulation import Entity, TaskSimple, future_utility
+i
+
+from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
+    default_communication_disturbance
+from Simulation import Entity, TaskSimple, future_utility, PlayerSimple
 from Allocation_Solver_Abstract import Msg,MsgTaskEntity
 
 
@@ -27,7 +28,6 @@ class Utility:
     def get_utility(self, ratio=1):
         return (ratio * self.linear_utility) ** self.ro
 
-
 def calculate_distance(entity1: Entity, entity2: Entity):
     """
     Calculates the distance between two entities. Each entity must have a location property.
@@ -41,7 +41,6 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     for i in range(n):
         distance += (entity1.location[i] - entity2.location[i]) ** 2
     return distance ** 0.5
-
 
 class FisherPlayerASY(PlayerAlgorithm):
     def __init__(self, agent_simulator, t_now):
@@ -148,7 +147,7 @@ class FisherPlayerASY(PlayerAlgorithm):
                 self.x_i[task_simulation][mission] = x_ij
 
 
-    def is_task_entity_new_in_log(self, task_entity:Simulation.TaskSimple):
+    def is_task_entity_new_in_log(self, task_entity:TaskSimple):
         for task_in_log in self.tasks_log:
             if task_in_log.id_==task_entity.id_:
                 return task_in_log
@@ -225,7 +224,6 @@ class FisherPlayerASY(PlayerAlgorithm):
             if info_from_last_msg[mission_id] != x_ijk:
                 return False
         return True
-
 
     def get_last_msg_of_sender(self,sender):
         for task in self.msgs_from_tasks.keys():
@@ -383,3 +381,15 @@ class FisherTaskASY(TaskAlgorithm):
     def measurements_per_agent(self):
         # TODO
         pass
+
+class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
+    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+                 f_communication_disturbance=default_communication_disturbance):
+        AllocationSolverTasksPlayersSemi.__init__(mailer, f_termination_condition, f_global_measurements,
+                                             f_communication_disturbance)
+
+    def create_algorithm_task(self, task: TaskSimple):
+        return FisherPlayerASY(agent_simulator=task,t_now = self.last_event.time)
+
+    def create_algorithm_player(self, player:PlayerSimple):
+        return FisherTaskASY(agent_simulator=player,t_now = self.last_event.time)
