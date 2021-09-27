@@ -782,21 +782,21 @@ class AllocationSolver:
         self.last_event = last_event
         return self.allocate()
 
+    @abc.abstractmethod
     def add_player_to_solver(self, player: PlayerSimple):
-        self.players_simulation.append(player)
-        self.what_solver_does_when_player_is_added(player)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def remove_player_from_solver(self, player: PlayerSimple):
-        self.players_simulation.remove(player)
-        self.what_solver_does_when_player_is_removed(player)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def add_task_to_solver(self, task: TaskSimple):
-        self.tasks_simulation.append(task)
-        self.what_solver_does_when_task_is_added(task)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def remove_task_from_solver(self, task: TaskSimple):
-        self.tasks_simulation.remove(task)
-        self.what_solver_does_when_task_is_removed(task)
+        raise NotImplementedError
 
     @abc.abstractmethod
     def allocate(self):
@@ -807,23 +807,25 @@ class AllocationSolver:
         raise NotImplementedError
 
 
-    @abc.abstractmethod
-    def what_solver_does_when_player_is_added(self, player: PlayerSimple):
-        raise NotImplementedError
+
+class AllocationSolverCentralized(AllocationSolver):
+    def __init__(self, tasks_simulation=[], players_simulation=[]):
+        AllocationSolver.__init__(self, tasks_simulation=[], players_simulation=[])
+
+    def add_player_to_solver(self, player: PlayerSimple):
+        player_copy = copy.copy(player)
+        self.players_simulation.append(player_copy)
+
+    def remove_player_from_solver(self, player: PlayerSimple):
+        #TODO
 
     @abc.abstractmethod
-    def what_solver_does_when_task_is_added(self, task:TaskSimple):
-        raise NotImplementedError
-
+    def add_task_to_solver(self, task: TaskSimple):
+        task_copy = copy.copy(task)
+        self.tasks_simulation.append(task_copy)
     @abc.abstractmethod
-    def what_solver_does_when_player_is_removed(self, player:PlayerSimple):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def what_solver_does_when_task_is_removed(self, task:TaskSimple):
-        raise NotImplementedError
-
-
+    def remove_task_from_solver(self, task: TaskSimple):
+        #TODO
 
 class AllocationSolverDistributed(AllocationSolver):
 
@@ -842,6 +844,37 @@ class AllocationSolverDistributed(AllocationSolver):
                           f_global_measurements=f_global_measurements,
                           f_communication_disturbance=f_communication_disturbance)
 
+    def add_player_to_solver(self, player: PlayerSimple):
+        self.players_simulation.append(player)
+        self.what_solver_does_when_player_is_added(player)
+
+    def remove_player_from_solver(self, player: PlayerSimple):
+        self.players_simulation.remove(player)
+        self.what_solver_does_when_player_is_removed(player)
+
+    def add_task_to_solver(self, task: TaskSimple):
+        self.tasks_simulation.append(task)
+        self.what_solver_does_when_task_is_added(task)
+
+    def remove_task_from_solver(self, task: TaskSimple):
+        self.tasks_simulation.remove(task)
+        self.what_solver_does_when_task_is_removed(task)
+
+    @abc.abstractmethod
+    def what_solver_does_when_player_is_added(self, player: PlayerSimple):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def what_solver_does_when_task_is_added(self, task: TaskSimple):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def what_solver_does_when_player_is_removed(self, player: PlayerSimple):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def what_solver_does_when_task_is_removed(self, task: TaskSimple):
+        raise NotImplementedError
     def imply_mailer(self, mailer, f_termination_condition, f_global_measurements, f_communication_disturbance):
         """
         if mailer is received in constructor then use it,
