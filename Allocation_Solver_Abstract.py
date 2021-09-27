@@ -765,12 +765,13 @@ class TaskAlgorithm(AgentAlgorithmTaskPlayers):
         self.outbox.insert(msgs)
 
 class AllocationSolver:
+    
     def __init__(self, tasks_simulation=[], players_simulation=[]):
         self.tasks_simulation = []
+        
         for task in tasks_simulation:
             self.add_task_to_solver(task)
-            print("blah")
-
+            
         self.players_simulation = []
         for player in players_simulation:
             self.add_task_to_solver(player)
@@ -810,7 +811,6 @@ class AllocationSolver:
     def what_solver_does_when_player_is_added(self, player: PlayerSimple):
         raise NotImplementedError
 
-
     @abc.abstractmethod
     def what_solver_does_when_task_is_added(self, task:TaskSimple):
         raise NotImplementedError
@@ -822,6 +822,8 @@ class AllocationSolver:
     @abc.abstractmethod
     def what_solver_does_when_task_is_removed(self, task:TaskSimple):
         raise NotImplementedError
+
+
 
 class AllocationSolverDistributed(AllocationSolver):
 
