@@ -1,7 +1,7 @@
 import math
 from abc import ABC
 
-i
+
 
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
     default_communication_disturbance

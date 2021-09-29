@@ -817,15 +817,36 @@ class AllocationSolverCentralized(AllocationSolver):
         self.players_simulation.append(player_copy)
 
     def remove_player_from_solver(self, player: PlayerSimple):
-        #TODO
+        player_id = player.id_
+        selected_player = None
+        for player_in in self.players_simulation:
+            if player_in.id_ == player_id:
+                selected_player = player_in
+                break
+        if selected_player is not None:
+            self.players_simulation.remove(selected_player)
 
-    @abc.abstractmethod
     def add_task_to_solver(self, task: TaskSimple):
         task_copy = copy.copy(task)
         self.tasks_simulation.append(task_copy)
-    @abc.abstractmethod
+
     def remove_task_from_solver(self, task: TaskSimple):
-        #TODO
+        task_id = task.id_
+        selected_task = None
+        for task_in in self.tasks_simulation:
+            if task_in.id_ == task_id:
+                selected_task = task_in
+                break
+        if selected_task is not None:
+            self.tasks_simulation.remove(selected_task)
+
+    def player_update_its_entity(self,player: PlayerSimple):
+        self.remove_player_from_solver(player)
+        self.add_player_to_solver(player)
+
+    def task_update_its_entity(self,task: TaskSimple):
+        self.remove_task_from_solver(task)
+        self.add_task_to_solver(task)
 
 class AllocationSolverDistributed(AllocationSolver):
 

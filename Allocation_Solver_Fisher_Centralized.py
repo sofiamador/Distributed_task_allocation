@@ -1,6 +1,7 @@
 import copy
 
-from Allocation_Solver_Abstract import AllocationSolver
+from Allocation_Solver_Abstract import AllocationSolverCentralized
+from Allocation_Solver_Fisher import Utility
 from Simulation import TaskSimple, PlayerSimple
 
 
@@ -136,14 +137,17 @@ class FisherCentralizedImplementation:
                     util.xij = 0
 
 
-class AllocationSolverFisherCentralized (AllocationSolver):
+class AllocationSolverFisherCentralized (AllocationSolverCentralized):
     def __init__(self, tasks_simulation=[], players_simulation=[]):
-        AllocationSolver.__init__(tasks_simulation,players_simulation)
-
+        AllocationSolverCentralized.__init__(tasks_simulation,players_simulation)
         self.dict_ptmu = {}
+        self.reset_dict()
 
     def allocate(self):
         self.reset_dict()
+        util_matrix = self.turn_ptmu_to_util_matrix()
+        FisherCentralizedImplementation(util_matrix)
+
 
     def reset_dict(self):
         for player in self.players_simulation:
@@ -151,23 +155,24 @@ class AllocationSolverFisherCentralized (AllocationSolver):
             for task in self.tasks_simulation:
                 self.dict_ptmu[task] = {}
                 for mission in task.missions:
-
-    def add_player_to_solver(self, player: PlayerSimple):
-        self.players_simulation.append(player)
-        self.what_solver_does_when_player_is_added(player)
-
-    def remove_player_from_solver(self, player: PlayerSimple):
-        self.players_simulation.remove(player)
-        self.what_solver_does_when_player_is_removed(player)
-
-    def add_task_to_solver(self, task: TaskSimple):
-        self.tasks_simulation.append(task)
-        self.what_solver_does_when_task_is_added(task)
-
-    def remove_task_from_solver(self, task: TaskSimple):
-        self.tasks_simulation.remove(task)
-        self.what_solver_does_when_task_is_removed(task)
+                    util = Utility(player_entity=player, mission_entity=mission, task_entity=task,
+                                   t_now=self.last_event.time)
+                    self.dict_ptmu[player][task][mission] = util
 
 
+    def turn_ptmu_to_util_matrix(self):
+        ans = []
+        i=0
+        for player, dict_task_dict in self.dict_ptmu.items():
+            j=0
+            missions_list = []
+            for task,dict_mission_util in dict_task_dict.items():
+                for mission,util in dict_mission_util:
+                    missions_list.append(self.dict_ptmu[player][task][mission])
+                    j=+1
+
+        ans.append(missions_list)
+        i+=1
+        return ans
 
 
