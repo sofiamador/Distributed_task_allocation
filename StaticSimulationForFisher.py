@@ -7,7 +7,7 @@ simulation_reps = 100
 def amount_of_task_respons(player):
     return len(player.tasks_responsible)
 
-def find_responsible_agent(task:TaskSimple,players):
+def find_responsible_player(task:TaskSimple,players):
     distances = []
     for player in players:
         distances.append(calculate_distance(task,player))
@@ -37,7 +37,7 @@ class TaskArrivalEventStatic(TaskArrivalEvent):
         self.solver = solver
 
     def handle_event(self, simulation):
-        find_responsible_agent(task = self.task,agents_list =self.players)
+        find_responsible_player(task = self.task,agents_list =self.players)
         self.solver.add_task_to_solver(self.task)
         simulation.solve()
 
@@ -74,7 +74,7 @@ class SimulationStatic():
         self.task_generator = TaskGenerator(map = self.map,seed = self.seed_number, abilities = abilities,
                                             max_amount_of_missions = max_amount_of_missions,mission_class = mission_class) #get_next_task
 
-        allocation_generator = Allocation_Static_Generator(seed = self.seed_number, map = self.map,
+        allocation_generator = AllocationStaticGenerator(seed = self.seed_number, map = self.map,
                                                            task_generator = self.task_generator,
                                                            tasks_per_center = tasks_per_center,
                                                     players_required_ratio = players_required_ratio)
