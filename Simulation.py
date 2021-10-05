@@ -16,7 +16,7 @@ class Entity:
     Class that represents a basic entity in the simulation
     """
 
-    def __init__(self, id_, location, name, type_):
+    def __init__(self, id_, location, name):
         """
         :param id_: The id of the entity
         :type  id_: str
@@ -32,7 +32,6 @@ class Entity:
         self.id_ = id_
         self.location = location
         self.name = name
-        self.type_ = type_
         self.neighbours = []
         self.last_time_updated = 0
 
@@ -109,7 +108,7 @@ class PlayerSimple(Entity):
     Class that represents a basic agent in the simulation
     """
 
-    def __init__(self, id_, location, speed, name=None, type_=1, status=Status.IDLE,
+    def __init__(self, id_, location, speed, name=None, status=Status.IDLE,
                  abilities=None):
         """
         :param id_: The id of the agent
@@ -128,7 +127,7 @@ class PlayerSimple(Entity):
         :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
         :type current_mission: MissionSimple
         """
-        Entity.__init__(id_, location, name, type_)
+        Entity.__init__(id_, location, name)
         if abilities is None:
             abilities = {AbilitySimple("basic", 1)}
         self.speed = speed
@@ -199,7 +198,7 @@ class MissionSimple:
     Class that represents a simple mission (as a part of the event)
     """
 
-    def __init__(self, mission_id, ability=AbilitySimple("basic", 1), type_=1):
+    def __init__(self, mission_id, abilities=[AbilitySimple("basic", 1)]):
         """
         Simple mission constructor
         :param mission_id:
@@ -210,8 +209,8 @@ class MissionSimple:
         :type type_: int
         """
         self.mission_id = mission_id
-        self.ability = ability
-        self.type_ = type_
+        self.abilities = abilities
+
 
     def mission_utility(self):
         """
@@ -226,7 +225,7 @@ class TaskSimple(Entity):
     Class that represents a simple event in the simulation
     """
 
-    def __init__(self, id_, location, name, missions: list, type_=1):
+    def __init__(self, id_, location, name, missions: list):
         """
         :param id_: The id of the event
         :type  id_: str
@@ -240,11 +239,10 @@ class TaskSimple(Entity):
         :param player_responsible, simulation will assign a responsible player to perform that algorithmic task
         computation and message delivery
         """
-        Entity.__init__(id_, location, name, type_)
+        Entity.__init__(id_, location, name)
         if name is None:
             self.name = id
         self.missions = missions
-        self.type_ = type_
         self.player_responsible = None
 
     def event_utility(self):

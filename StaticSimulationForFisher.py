@@ -20,7 +20,8 @@ class SimulationStatic():
 
         self.solver = solver
 
-        allocation_generator = Allocation_Generator(seed = rep_number,map = map,tasks_per_center = tasks_per_center,)
+        allocation_generator = Allocation_Static_Generator(seed = rep_number, map = map,tasks_per_center = tasks_per_center,
+                                                    players_required_ratio = players_required_ratio )
 
         tasks = allocation_generator.tasks
         players = allocation_generator.players
