@@ -17,8 +17,7 @@ class Utility:
         self.t_now = t_now
         self.ro = ro
         if util == -1:
-            self.linear_utility = future_utility(player_entity=self.player_entity,
-                                                 mission_entity=self.mission_entity, task_entity=self.task_entity,
+            self.linear_utility = player_entity.future_utility(mission_entity=self.mission_entity, task_entity=self.task_entity,
                                                  t_now=self.t_now)
         else:
             self.linear_utility = util

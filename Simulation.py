@@ -36,7 +36,6 @@ class Entity:
         self.neighbours = []
         self.last_time_updated = 0
 
-
     def create_neighbours_list(self, entities_list, f_are_neighbours):
         """
         Method that populates the neighbours list of the entity. It accepts list of potential neighbours
@@ -183,6 +182,17 @@ class PlayerSimple(Entity):
         """
         raise NotImplementedError
 
+    def future_utility(self,mission_entity, task_entity,t_now):
+        """
+        :param mission_entity:
+        :param task_entity:
+        :param t_now:
+        :return: personal expected utility if player will attend mission
+        :rtype: float
+        """
+        raise NotImplementedError
+
+
 
 class MissionSimple:
     """
@@ -274,14 +284,15 @@ def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: PlayerSimple):
             return True
 
 
-def find_responsible_agent(task,agents_list):
+def find_responsible_agent(task, agents_list):
     min_distance = 100000
     chosen_agent = agents_list[0]
     for agent in agents_list:
-        dis = calculate_distance(task,agent)
+        dis = calculate_distance(task, agent)
         if min_distance > min:
             min_distance = min
             chosen_agent = agent
+
 
 class MapSimple:
     """
@@ -289,7 +300,7 @@ class MapSimple:
     method. The simple map is in the shape of rectangle (with width and length parameters).
     """
 
-    def __init__(self, number_of_centers=3, seed=1, length=9.0, width=9.0):
+    def __init__(self, number_of_centers=3, seed=1, length_y=9.0, width_x=9.0):
         """
         :param number_of_centers: number of centers in the map. Each center represents a possible base for the agent.
         :type: int
@@ -300,8 +311,8 @@ class MapSimple:
         :param width: The length of the map
         :type: float
         """
-        self.length = length
-        self.width = width
+        self.length_y = length_y
+        self.width_x = width_x
         self.rand = random.Random(seed)
         self.centers_location = []
         for _ in number_of_centers:
@@ -314,10 +325,35 @@ class MapSimple:
         """
         x1 = self.rand.random()
         x2 = self.rand.random()
-        return [self.width * x1, self.length * x2]
+        return [self.width_x * x1, self.length_y * x2]
 
     def get_center_location(self):
         return self.rand.choice(self.centers_location)
+
+
+class MapHubs(MapSimple):
+    def __init__(self, number_of_centers=3, seed=1,length_y=9.0, width_x=9.0, sd_multiplier=0.5):
+        MapSimple.__init__(self, number_of_centers, seed, length_y, width_x)
+        self.sd_multiplier = sd_multiplier
+
+    def generate_location(self):
+        rand_center = self.get_center_location()
+        valid_location = False
+        while not valid_location:
+            ans = self.generate_gauss_location(rand_center)
+            if 0 < ans[0] < self.width_x and 0 < ans[1] < self.length_y:
+                valid_location = True
+        return True
+
+    def generate_gauss_location(self, rand_center):
+        x_center = rand_center[0]
+        x_sd = self.width_x * self.sd_multiplier
+        rand_x = self.rand.gauss(mu=x_center, sigma=x_sd)
+
+        y_center = rand_center[1]
+        y_sd = self.length_y * self.sd_multiplier
+        rand_y = self.rand.gauss(mu=y_center, sigma=y_sd)
+        return [rand_x, rand_y]
 
 
 class SimulationEvent():
@@ -356,7 +392,7 @@ class SimulationEvent():
         raise NotImplementedError
 
 
-class EventArrivalEvent(SimulationEvent):
+class TaskArrivalEvent(SimulationEvent):
     """
     Class that represent an simulation event of new Event(task) arrival.
     """

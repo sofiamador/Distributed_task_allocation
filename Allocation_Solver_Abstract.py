@@ -774,9 +774,17 @@ class AllocationSolver:
             
         self.players_simulation = []
         for player in players_simulation:
-            self.add_task_to_solver(player)
+            self.add_player_to_solver(player)
 
         self.last_event = None
+
+    def add_tasks_list(self,tasks_simulation):
+        for task in tasks_simulation:
+            self.add_task_to_solver(task)
+
+    def add_players_list(self, players_simulation):
+        for player in players_simulation:
+            self.add_player_to_solver(player)
 
     def solve(self, last_event=None) -> {}:
         self.last_event = last_event
