@@ -1,10 +1,28 @@
 import Allocation_Solver_Abstract
-i
-from Simulation import MapHubs, TaskArrivalEvent,TaskGenerator
+
+from Simulation import MapHubs, TaskArrivalEvent,TaskGenerator,calculate_distance,TaskSimple
 from Allocation_Solver_Abstract import AllocationSolver
 simulation_reps = 100
 
+def amount_of_task_respons(player):
+    return len(player.tasks_responsible)
 
+def find_responsible_agent(task:TaskSimple,players):
+    distances = []
+    for player in players:
+        distances.append(calculate_distance(task,player))
+
+    min_distance = min(distances)
+
+    players_min_distances = []
+
+    for player in players:
+        if calculate_distance(task,player)==min_distance:
+            players_min_distances.append(player)
+
+    selected_player = min(players_min_distances, key=amount_of_task_respons)
+    selected_player.tasks_responsible.append(task)
+    task.player_responsible = selected_player
 
 #maps = create_maps()
 #tasks_per_scenario = create_tasks_per_scenario(maps)
@@ -12,9 +30,15 @@ simulation_reps = 100
 #new_task_events_per_scenario = create_new_task_events_per_scenario(maps)
 
 class TaskArrivalEventStatic(TaskArrivalEvent):
+    def __init__(self,task,players,solver:AllocationSolver):
+        self.time = 0
+        self.task=task
+        self.players = players
+        self.solver = solver
 
     def handle_event(self, simulation):
-        find_responsible_agent()
+        find_responsible_agent(task = self.task,agents_list =self.players)
+        self.solver.add_task_to_solver(self.task)
         simulation.solve()
 
 
@@ -22,35 +46,50 @@ class AllocationStaticGenerator:
     """
     create tasks and players and responsible players
     """
-    pass
+    #TODO
 
 
 class SimulationStatic():
-    def __init__(self, rep_number,solver: AllocationSolver, players_required_ratio,
-                 number_of_centers = 3, tasks_per_center = 2,
-                 length_y=9.0, width_x=9.0, sd_multiplier=0.5):
-
+    def __init__(self, rep_number,solver: AllocationSolver, players_required_ratio):
         self.seed_number = rep_number
+        self.solver = solver
+
+        # FOR MAP
+        number_of_centers = 3
+        tasks_per_center = 2
+        length_y = 9.0
+        width_x = 9.0
+        sd_multiplier = 0.5
+        #---------------
+
+        # FOR Task Generator
+        abilities = None #TODO
+        max_amount_of_missions = None #TODO
+        mission_class = None #TODO
 
         self.map = MapHubs(number_of_centers=number_of_centers, seed=self.seed_number,
                                  length_y=length_y, width_x=width_x, sd_multiplier=sd_multiplier)
-        self.task_generator = TaskGenerator(self.map,self.seed_number) #get_next_task
-        #abilities,map,seed,max amount of missions, task class, mission task (need to extend)
+
+
+        self.task_generator = TaskGenerator(map = self.map,seed = self.seed_number, abilities = abilities,
+                                            max_amount_of_missions = max_amount_of_missions,mission_class = mission_class) #get_next_task
+
         allocation_generator = Allocation_Static_Generator(seed = self.seed_number, map = self.map,
                                                            task_generator = self.task_generator,
                                                            tasks_per_center = tasks_per_center,
-                                                    players_required_ratio = players_required_ratio )
+                                                    players_required_ratio = players_required_ratio)
 
         self.tasks = allocation_generator.tasks
         self.players = allocation_generator.players
 
-        self.solver = solver
         self.solver.add_tasks_list(self.tasks)
         self.solver.add_players_list(self.players)
         self.task_arrive_event =  self.create_task_arrival_event()
 
     def create_task_arrival_event(self):
-        self.seed_number = self.seed_number*17
+        task_new = self.task_generator.get_next_task()
+        TaskArrivalEventStatic()
+
 
 
 

@@ -815,7 +815,6 @@ class AllocationSolver:
         raise NotImplementedError
 
 
-
 class AllocationSolverCentralized(AllocationSolver):
     def __init__(self, tasks_simulation=[], players_simulation=[]):
         AllocationSolver.__init__(self, tasks_simulation=[], players_simulation=[])
