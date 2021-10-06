@@ -56,7 +56,9 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     """
     Calculates the distance between two entities. Each entity must have a location property.
     :param entity1:first entity
+    :type entity1: Entity
     :param entity2:second entity
+    :type entity1: Entity
     :return: Euclidean distance between two entities
     :rtype: float
     """
@@ -72,7 +74,9 @@ def are_neighbours(entity1: Entity, entity2: Entity):
     """
     The functions checks if the entities (agents) can be neighbours
     :param entity1: first entity
+    :type entity1: Entity
     :param entity2: second entity
+    :type entity1: Entity
     :return: bool
     """
     return True
@@ -126,6 +130,7 @@ class PlayerSimple(Entity):
         :type current_task: TaskSimple
         :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
         :type current_mission: MissionSimple
+        :type entity1: Entity
         """
         Entity.__init__(id_, location, name)
         if abilities is None:
@@ -181,17 +186,6 @@ class PlayerSimple(Entity):
         """
         raise NotImplementedError
 
-    def future_utility(self,mission_entity, task_entity,t_now):
-        """
-        :param mission_entity:
-        :param task_entity:
-        :param t_now:
-        :return: personal expected utility if player will attend mission
-        :rtype: float
-        """
-        raise NotImplementedError
-
-
 
 class MissionSimple:
     """
@@ -210,7 +204,6 @@ class MissionSimple:
         """
         self.mission_id = mission_id
         self.abilities = abilities
-
 
     def mission_utility(self):
         """
@@ -282,14 +275,26 @@ def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: PlayerSimple):
             return True
 
 
-def find_responsible_agent(task, agents_list):
-    min_distance = 100000
-    chosen_agent = agents_list[0]
-    for agent in agents_list:
-        dis = calculate_distance(task, agent)
-        if min_distance > min:
-            min_distance = min
-            chosen_agent = agent
+def amount_of_task_responsible(player):
+    return len(player.tasks_responsible)
+
+
+def find_responsible_agent(task: TaskSimple, players):
+    distances = []
+    for player in players:
+        distances.append(calculate_distance(task, player))
+
+    min_distance = min(distances)
+
+    players_min_distances = []
+
+    for player in players:
+        if calculate_distance(task, player) == min_distance:
+            players_min_distances.append(player)
+
+    selected_player = min(players_min_distances, key=amount_of_task_responsible)
+    selected_player.tasks_responsible.append(task)
+    task.player_responsible = selected_player
 
 
 class MapSimple:
@@ -298,7 +303,7 @@ class MapSimple:
     method. The simple map is in the shape of rectangle (with width and length parameters).
     """
 
-    def __init__(self, number_of_centers=3, seed=1, length_y=9.0, width_x=9.0):
+    def __init__(self, number_of_centers=3, seed=1, length=9.0, width=9.0):
         """
         :param number_of_centers: number of centers in the map. Each center represents a possible base for the agent.
         :type: int
@@ -309,8 +314,8 @@ class MapSimple:
         :param width: The length of the map
         :type: float
         """
-        self.length_y = length_y
-        self.width_x = width_x
+        self.length = length
+        self.width = width
         self.rand = random.Random(seed)
         self.centers_location = []
         for _ in number_of_centers:
@@ -323,35 +328,10 @@ class MapSimple:
         """
         x1 = self.rand.random()
         x2 = self.rand.random()
-        return [self.width_x * x1, self.length_y * x2]
+        return [self.width * x1, self.length * x2]
 
     def get_center_location(self):
         return self.rand.choice(self.centers_location)
-
-
-class MapHubs(MapSimple):
-    def __init__(self, number_of_centers=3, seed=1,length_y=9.0, width_x=9.0, sd_multiplier=0.5):
-        MapSimple.__init__(self, number_of_centers, seed, length_y, width_x)
-        self.sd_multiplier = sd_multiplier
-
-    def generate_location(self):
-        rand_center = self.get_center_location()
-        valid_location = False
-        while not valid_location:
-            ans = self.generate_gauss_location(rand_center)
-            if 0 < ans[0] < self.width_x and 0 < ans[1] < self.length_y:
-                valid_location = True
-        return True
-
-    def generate_gauss_location(self, rand_center):
-        x_center = rand_center[0]
-        x_sd = self.width_x * self.sd_multiplier
-        rand_x = self.rand.gauss(mu=x_center, sigma=x_sd)
-
-        y_center = rand_center[1]
-        y_sd = self.length_y * self.sd_multiplier
-        rand_y = self.rand.gauss(mu=y_center, sigma=y_sd)
-        return [rand_x, rand_y]
 
 
 class SimulationEvent():
@@ -365,20 +345,23 @@ class SimulationEvent():
         :type: float
         :param agent: The relevant agent for this simulation event. Can be None(depends on extension).
         :type: AgentSimple
-        :param event: The relevant event(task) to this simulation event. Can be None(depends on extension).
+        :param task: The relevant event(task) to this simulation event. Can be None(depends on extension).
         :type: EventSimple
-        :param mission: The relevant mission (of event) for this simulation event. Can be None(depends on extension).
+        :param mission: The relevant mission (of tasl) for this simulation event. Can be None(depends on extension).
         :type: MissionSimple
+        :param task: The relevant task for this simulation event. Can be None(depends on extension).
+        :type: TaskSimple
         """
         self.time = time
         self.agent = agent
         self.mission = mission
+        self.task = task
 
     def __hash__(self):
         return hash(self.time)
 
-    def __cmp__(self, other):
-        return self.time - other.time
+    def __lt__(self, other):
+        return self.time < other.time
 
     def handle_event(self, simulation):
         """
@@ -395,17 +378,18 @@ class TaskArrivalEvent(SimulationEvent):
     Class that represent an simulation event of new Event(task) arrival.
     """
 
-    def __init__(self, time, task):
+    def __init__(self, time: float, task: TaskSimple):
         """
         :param time:the time of the event
         :type: float
         :param event: The new event that arrives to simulation.
-        :type: EventSimple
+        :type: TaskSimple
         """
-        SimulationEvent.__init__(time=time, event=task)
+        SimulationEvent.__init__(time=time, task=task)
 
     def handle_event(self, simulation):
         find_responsible_agent()
+        simulation.solver.add_task_to_solver(self.task)
         simulation.solve()
         simulation.check_new_allocation()  # TODO can be a part of the solve method in simulation
         simulation.generate_new_event()
@@ -457,11 +441,14 @@ class AgentFinishHandleMissionEvent(SimulationEvent):
 
 
 class Simulation:
-    def __init__(self, name, agents_list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
+    def __init__(self, name, players_list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
                  events_generator, first_event, f_calculate_distance=calculate_distance):
+        self.tnow = 0
+        self.last_event = None
         self.name = name
-        self.agent_list = agents_list
+        self.agent_list = players_list
         self.solver = solver
+        self.solver.add_players_list()
         self.f_are_agents_neighbours = f_are_agents_neighbours
         self.f_is_agent_can_be_allocated_to_mission = f_is_agent_can_be_allocated_to_mission
         self.events_generator = events_generator
@@ -473,7 +460,7 @@ class Simulation:
         pass
 
     def solve(self):
-        self.solver.solve(self.agent_list, self.event_list)
+        self.solver.solve(self.last_event)
 
     def generate_new_event(self):
         self.events_generator.get_event()
