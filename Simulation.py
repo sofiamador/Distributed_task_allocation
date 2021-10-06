@@ -333,6 +333,29 @@ class MapSimple:
     def get_center_location(self):
         return self.rand.choice(self.centers_location)
 
+class MapHubs(MapSimple):
+    def __init__(self, number_of_centers=3, seed=1,length_y=9.0, width_x=9.0, sd_multiplier=0.5):
+        MapSimple.__init__(self, number_of_centers, seed, length_y, width_x)
+        self.sd_multiplier = sd_multiplier
+
+    def generate_location(self):
+        rand_center = self.get_center_location()
+        valid_location = False
+        while not valid_location:
+            ans = self.generate_gauss_location(rand_center)
+            if 0 < ans[0] < self.width_x and 0 < ans[1] < self.length_y:
+                valid_location = True
+        return True
+
+    def generate_gauss_location(self, rand_center):
+        x_center = rand_center[0]
+        x_sd = self.width_x * self.sd_multiplier
+        rand_x = self.rand.gauss(mu=x_center, sigma=x_sd)
+
+        y_center = rand_center[1]
+        y_sd = self.length_y * self.sd_multiplier
+        rand_y = self.rand.gauss(mu=y_center, sigma=y_sd)
+        return [rand_x, rand_y]
 
 class SimulationEvent():
     """
