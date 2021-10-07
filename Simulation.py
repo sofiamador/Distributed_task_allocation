@@ -87,16 +87,16 @@ class AbilitySimple:
        Class that represents a simple ability that the missions require and the agents have
     """
 
-    def __init__(self, ability_name, max_amount, min_amount=1):
+    def __init__(self, ability_type=1, max_amount=1, min_amount=1):
         """
-       :param ability_name
-       :type ability_name: str
+       :param ability_type
+       :type ability_type: int
        :param max_amount: maximum amount of required ability
        :type max_amount:float
        :param min_amount: minimum amount of required ability
        :type min_amount:float
         """
-        self.ability_name = ability_name
+        self.ability_type = ability_type
         self.max_amount = max_amount
         self.min_amount = min_amount
 
@@ -134,7 +134,7 @@ class PlayerSimple(Entity):
         """
         Entity.__init__(id_, location, name)
         if abilities is None:
-            abilities = {AbilitySimple("basic", 1)}
+            abilities = {AbilitySimple()}
         self.speed = speed
         if name is None:
             self.name = id
@@ -192,7 +192,7 @@ class MissionSimple:
     Class that represents a simple mission (as a part of the event)
     """
 
-    def __init__(self, mission_id, abilities=[AbilitySimple("basic", 1)]):
+    def __init__(self, mission_id, abilities=[AbilitySimple()]):
         """
         Simple mission constructor
         :param mission_id:
@@ -333,8 +333,9 @@ class MapSimple:
     def get_center_location(self):
         return self.rand.choice(self.centers_location)
 
+
 class MapHubs(MapSimple):
-    def __init__(self, number_of_centers=3, seed=1,length_y=9.0, width_x=9.0, sd_multiplier=0.5):
+    def __init__(self, number_of_centers=3, seed=1, length_y=9.0, width_x=9.0, sd_multiplier=0.5):
         MapSimple.__init__(self, number_of_centers, seed, length_y, width_x)
         self.sd_multiplier = sd_multiplier
 
@@ -356,6 +357,25 @@ class MapHubs(MapSimple):
         y_sd = self.length_y * self.sd_multiplier
         rand_y = self.rand.gauss(mu=y_center, sigma=y_sd)
         return [rand_x, rand_y]
+
+
+class TaskGenerator():
+    def __init__(self, map_=MapSimple(seed=1), seed=1):
+        """
+
+        :param map_:
+        :param seed:
+        """
+        self.map = map_
+        self.random = random.Random(seed)
+
+    def get_task(self):
+        return NotImplementedError
+
+class StaticTaskGenerator(TaskGenerator):
+    def __init__(self,tasks_list, map_=MapSimple(seed=1), seed=1,):
+        TaskGenerator.__init__(self,map_=map_,seed=seed)
+
 
 class SimulationEvent():
     """
