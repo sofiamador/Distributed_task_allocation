@@ -16,14 +16,12 @@ class Entity:
     Class that represents a basic entity in the simulation
     """
 
-    def __init__(self, id_, location, name):
+    def __init__(self, id_, location):
         """
         :param id_: The id of the entity
         :type  id_: str
         :param location: The location of the entity. A list of of coordination.
         :type location: list of floats
-        :param name: The name of the entity
-        :type name: str
         :param type_: The type of the entity
         :type type_: int
         :param last_time_updated:
@@ -31,7 +29,6 @@ class Entity:
         """
         self.id_ = id_
         self.location = location
-        self.name = name
         self.neighbours = []
         self.last_time_updated = 0
 
@@ -87,24 +84,29 @@ class AbilitySimple:
        Class that represents a simple ability that the missions require and the agents have
     """
 
-    def __init__(self, ability_type=1, max_amount=1, min_amount=1):
+    def __init__(self, ability_type, ability_name=None):
+
         """
-       :param ability_type
-       :type ability_type: int
-       :param max_amount: maximum amount of required ability
-       :type max_amount:float
-       :param min_amount: minimum amount of required ability
-       :type min_amount:float
+        :param ability_type: The type of the ability
+        :type ability_type: int
+        :param ability_name: The name of the ability. If the name is not given it will be set to the type of the ability
+        (casted to str) 
+        :type ability_name: str
         """
+
         self.ability_type = ability_type
-        self.max_amount = max_amount
-        self.min_amount = min_amount
+        self.ability_name = ability_name
+        if self.ability_name is None:
+            self.ability_name = str(ability_type)
 
     def __hash__(self):
-        return hash(self.ability_name)
+        return hash(self.ability_type)
 
     def __eq__(self, other):
-        return self.ability_name == other.ability_name
+        return self.ability_type == other.ability_type
+
+    def __str__(self):
+        return self.ability_name
 
 
 class PlayerSimple(Entity):
@@ -112,16 +114,13 @@ class PlayerSimple(Entity):
     Class that represents a basic agent in the simulation
     """
 
-    def __init__(self, id_, location, speed, name=None, status=Status.IDLE,
+    def __init__(self, id_, location, speed, status=Status.IDLE,
                  abilities=None):
         """
         :param id_: The id of the agent
         :type  id_: str
         :param location: The location of the agent
         :type location: list of float
-        :param name: The name of the agent
-        :param type_: The type of the agent
-        :type type_: int
         :param status: The status of the agent
         :type  status: Status
         :param abilities: abilities of the agent
@@ -130,14 +129,12 @@ class PlayerSimple(Entity):
         :type current_task: TaskSimple
         :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
         :type current_mission: MissionSimple
-        :type entity1: Entity
+
         """
-        Entity.__init__(id_, location, name)
+        Entity.__init__(id_, location)
         if abilities is None:
-            abilities = {AbilitySimple()}
+            abilities = [AbilitySimple(ability_type=0)]
         self.speed = speed
-        if name is None:
-            self.name = id
         self.status = status
         self.abilities = abilities
         self.current_task = None
@@ -192,7 +189,7 @@ class MissionSimple:
     Class that represents a simple mission (as a part of the event)
     """
 
-    def __init__(self, mission_id, abilities=[AbilitySimple()]):
+    def __init__(self, mission_id, ability=[AbilitySimple(ability_type=0)],min_players=1,max_players=1):
         """
         Simple mission constructor
         :param mission_id:
@@ -203,7 +200,10 @@ class MissionSimple:
         :type type_: int
         """
         self.mission_id = mission_id
-        self.abilities = abilities
+        self.ability = ability
+        self.min_players = min_players
+        self.max_players = max_players
+
 
     def mission_utility(self):
         """
@@ -218,25 +218,24 @@ class TaskSimple(Entity):
     Class that represents a simple event in the simulation
     """
 
-    def __init__(self, id_, location, name, missions: list):
+    def __init__(self, id_, location, importance, missions: list):
         """
         :param id_: The id of the event
         :type  id_: str
         :param location: The location of the event
         :type location: list of float
-        :param name: The name of the event
-        :type name: str
+        :param importance: The importance of the event
+        :type importance: int
         :param missions: the missions of the
         :param type_: The type of the event
         :type type_: int
         :param player_responsible, simulation will assign a responsible player to perform that algorithmic task
         computation and message delivery
         """
-        Entity.__init__(id_, location, name)
-        if name is None:
-            self.name = id
+        Entity.__init__(id_, location)
         self.missions = missions
         self.player_responsible = None
+        self.importance =  importance
 
     def event_utility(self):
         """
@@ -373,8 +372,15 @@ class TaskGenerator():
         return NotImplementedError
 
 class StaticTaskGenerator(TaskGenerator):
-    def __init__(self,tasks_list, map_=MapSimple(seed=1), seed=1,):
+    def __init__(self,tasks_list, map_:MapSimple=MapSimple(seed=1), seed=1):
         TaskGenerator.__init__(self,map_=map_,seed=seed)
+        self.tasks_list = tasks_list
+
+    def get_task(self):
+        #random task from a list
+        #random location generated from map
+        #
+
 
 
 class SimulationEvent():
