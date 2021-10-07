@@ -1,8 +1,38 @@
 import Allocation_Solver_Abstract
 
-from Simulation import MapHubs, TaskArrivalEvent,TaskGenerator,find_responsible_agent
+from Simulation import MapHubs, TaskArrivalEvent, TaskGenerator, find_responsible_agent, MissionSimple
 from Allocation_Solver_Abstract import AllocationSolver
 simulation_reps = 100
+
+
+class MissionStatic (MissionSimple):
+    def __init__(self,mission_id, ability, max_players,workload):
+        MissionSimple.__init__(self, mission_id, ability=ability, min_players=1, max_players=max_players)
+
+        self.workload = workload
+        self.workload_remain = self.workload
+        self.time_finish = None
+        self.time_enter = None
+        self.current_allocated_amount = None
+
+
+
+
+    def mission_utility(self):
+        """
+        The utility for handling the mission
+        :return:
+        """
+        return self.accumilative_util
+
+    def decrease_workload(self, time_past):
+
+
+
+    def current_expected_time_
+
+
+
 
 
 
@@ -54,12 +84,9 @@ class SimulationStatic():
 
 
         self.task_generator = StaticTaskGenerator(map_ = self.map,seed = self.seed_number, task_list=) #get_next_task
-
         allocation_generator = AllocationStaticGenerator()
-
         self.tasks = allocation_generator.tasks
         self.players = allocation_generator.players
-
         self.solver.add_tasks_list(self.tasks)
         self.solver.add_players_list(self.players)
         self.task_arrive_event =  self.create_task_arrival_event()
