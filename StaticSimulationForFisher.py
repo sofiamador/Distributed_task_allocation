@@ -53,13 +53,9 @@ class SimulationStatic():
                                  length_y=length_y, width_x=width_x, sd_multiplier=sd_multiplier)
 
 
-        self.task_generator = TaskGenerator(map = self.map,seed = self.seed_number, abilities = abilities,
-                                            max_amount_of_missions = max_amount_of_missions,mission_class = mission_class) #get_next_task
+        self.task_generator = StaticTaskGenerator(map_ = self.map,seed = self.seed_number, task_list=) #get_next_task
 
-        allocation_generator = AllocationStaticGenerator(seed = self.seed_number, map = self.map,
-                                                           task_generator = self.task_generator,
-                                                           tasks_per_center = tasks_per_center,
-                                                    players_required_ratio = players_required_ratio)
+        allocation_generator = AllocationStaticGenerator()
 
         self.tasks = allocation_generator.tasks
         self.players = allocation_generator.players
