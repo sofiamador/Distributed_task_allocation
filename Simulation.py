@@ -1,5 +1,6 @@
 import enum
 import random
+import sys
 
 
 class Status(enum.Enum):
@@ -32,12 +33,14 @@ class Entity:
         self.neighbours = []
         self.last_time_updated = 0
 
-    def create_neighbours_list(self, entities_list, f_are_neighbours):
+    def create_neighbours_list(self, entities_list: list, f_are_neighbours):
         """
         Method that populates the neighbours list of the entity. It accepts list of potential neighbours
-        ana a function that returns whether a pair of entities are neighbours
-        :param entities_list:
-        :param f_are_neighbours:
+        and a function that returns whether a pair of entities are neighbours
+        :param entities_list: List of entities that are potential neighbours
+        :type entities_list: list ot Entity
+        :param f_are_neighbours: Function that receives 2 entities and return true if they can be neighbours
+        :type f_are_neighbours: function
         :return: None
         """
         raise NotImplementedError
@@ -189,21 +192,31 @@ class MissionSimple:
     Class that represents a simple mission (as a part of the event)
     """
 
-    def __init__(self, mission_id, ability=[AbilitySimple(ability_type=0)],min_players=1,max_players=1,workload = 0):
+    def __init__(self, mission_id,initial_workload,arrival_time_to_the_system, ability=[AbilitySimple(ability_type=0)],
+                 min_players=1,max_players=1):
         """
         Simple mission constructor
-        :param mission_id:
+        :param mission_id: Mission's id
         :type mission_id: str
-        :param ability: The required ability for the mission
-        :type ability: AbilitySimple
-        :param type_: the type of the mission
-        :type type_: int
+        :param initial_workload: The required workload of the mission (in seconds)
+        :type initial_workload: float
+        :param arrival_time_to_the_system: The time that task (with the mission)  arrived
+        :param ability:
+        :param min_players:
+        :param max_players:
         """
+
         self.mission_id = mission_id
         self.ability = ability
         self.min_players = min_players
         self.max_players = max_players
-        self.workload = workload
+        self.initial_workload = initial_workload
+        self.remaining_workload = initial_workload
+        self.current_players_list = []
+        self.is_done = False
+        self.arrival_time_to_the_system = arrival_time_to_the_system
+        self.last_updated = arrival_time_to_the_system
+
 
     def mission_utility(self):
         """
@@ -211,6 +224,17 @@ class MissionSimple:
         :return:
         """
         raise NotImplementedError
+
+    def add_player(self, new_player, tnow):
+        self.update_workload(tnow)
+        self.current_players_list.append(new_player)
+
+    def update_workload(self,tnow):
+        delta = tnow - self.last_updated
+        self.remaining_workload -= delta*len(self.current_players_list)
+        if self.remaining_workload == sys.float_info.epsilon:
+            self.is_done = True
+
 
 
 class TaskSimple(Entity):
@@ -370,16 +394,6 @@ class TaskGenerator():
 
     def get_task(self):
         return NotImplementedError
-
-class StaticTaskGenerator(TaskGenerator):
-    def __init__(self,tasks_list, map_:MapSimple=MapSimple(seed=1), seed=1):
-        TaskGenerator.__init__(self,map_=map_,seed=seed)
-        self.tasks_list = tasks_list
-
-    def get_task(self):
-        #random task from a list
-        #random location generated from map
-        #
 
 
 
