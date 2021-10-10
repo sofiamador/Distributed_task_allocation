@@ -1,7 +1,5 @@
 import enum
 import random
-import copy
-from builtins import function
 
 
 class Status(enum.Enum):
@@ -18,7 +16,7 @@ class Entity:
     Class that represents a basic entity in the simulation
     """
 
-    def __init__(self, id_: str, location: list):
+    def __init__(self, id_, location):
         """
         :param id_: The id of the entity
         :type  id_: str
@@ -26,15 +24,15 @@ class Entity:
         :type location: list of floats
         :param type_: The type of the entity
         :type type_: int
-        :param last_time_updated: The last time that the entity was updated in the simulation
-        :type last_time_updated: float
+        :param last_time_updated:
+
         """
         self.id_ = id_
         self.location = location
         self.neighbours = []
         self.last_time_updated = 0
 
-    def create_neighbours_list(self, entities_list: list, f_are_neighbours: function):
+    def create_neighbours_list(self, entities_list, f_are_neighbours):
         """
         Method that populates the neighbours list of the entity. It accepts list of potential neighbours
         ana a function that returns whether a pair of entities are neighbours
@@ -48,11 +46,6 @@ class Entity:
         return hash(self.id_)
 
     def __eq__(self, other):
-        """
-        Checks if 2 enteties are equal according to their ids'
-        :param other:
-        :return: bool
-        """
         return self.id_ == other.id
 
 
@@ -91,7 +84,8 @@ class AbilitySimple:
        Class that represents a simple ability that the missions require and the agents have
     """
 
-    def __init__(self, ability_type: int, ability_name: str=None):
+    def __init__(self, ability_type, ability_name=None):
+
         """
         :param ability_type: The type of the ability
         :type ability_type: int
@@ -120,7 +114,7 @@ class PlayerSimple(Entity):
     Class that represents a basic agent in the simulation
     """
 
-    def __init__(self, id_: str, location: list, speed: float, status=Status.IDLE,
+    def __init__(self, id_, location, speed, status=Status.IDLE,
                  abilities=None):
         """
         :param id_: The id of the agent
@@ -135,6 +129,7 @@ class PlayerSimple(Entity):
         :type current_task: TaskSimple
         :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
         :type current_mission: MissionSimple
+
         """
         Entity.__init__(id_, location)
         if abilities is None:
@@ -194,22 +189,21 @@ class MissionSimple:
     Class that represents a simple mission (as a part of the event)
     """
 
-    def __init__(self, mission_id: str, ability=[AbilitySimple(ability_type=0)], min_players: int=1, max_players: int=1):
+    def __init__(self, mission_id, ability=[AbilitySimple(ability_type=0)],min_players=1,max_players=1,workload = 0):
         """
         Simple mission constructor
         :param mission_id:
         :type mission_id: str
         :param ability: The required ability for the mission
         :type ability: AbilitySimple
-        :param min_players: minimum number of players for this mission (default value is 1).
-        :type min_players: int
-        :param max_players: maximum number of players for this mission (default value is 1).
-        :type max_players: int
+        :param type_: the type of the mission
+        :type type_: int
         """
         self.mission_id = mission_id
         self.ability = ability
         self.min_players = min_players
         self.max_players = max_players
+        self.workload = workload
 
     def mission_utility(self):
         """
@@ -241,7 +235,7 @@ class TaskSimple(Entity):
         Entity.__init__(id_, location)
         self.missions = missions
         self.player_responsible = None
-        self.importance = importance
+        self.importance =  importance
 
     def event_utility(self):
         """
@@ -367,8 +361,9 @@ class MapHubs(MapSimple):
 class TaskGenerator():
     def __init__(self, map_=MapSimple(seed=1), seed=1):
         """
-        :param map_: Location generator on specific map
-        :param seed: a seed for
+
+        :param map_:
+        :param seed:
         """
         self.map = map_
         self.random = random.Random(seed)
@@ -376,18 +371,15 @@ class TaskGenerator():
     def get_task(self):
         return NotImplementedError
 
-
 class StaticTaskGenerator(TaskGenerator):
-    def __init__(self, tasks_list, map_: MapSimple = MapSimple(seed=1), seed=1):
-        TaskGenerator.__init__(self, map_=map_, seed=seed)
+    def __init__(self,tasks_list, map_:MapSimple=MapSimple(seed=1), seed=1):
+        TaskGenerator.__init__(self,map_=map_,seed=seed)
         self.tasks_list = tasks_list
 
     def get_task(self):
-        x = self.random.randint(a=0, b=len(self.tasks_list))
-        task = copy.deepcopy(self.tasks_list[x])
-        location = self.map.generate_location()
-        task.location = location
-        return task
+        #random task from a list
+        #random location generated from map
+        #
 
 
 
@@ -457,7 +449,7 @@ class AgentArriveToEMissionEvent(SimulationEvent):
     Class that represent an event of agent's arrival to the mission.
     """
 
-    def __init__(self, time: float, agent: PlayerSimple, event, mission):
+    def __init__(self, time, agent, event, mission):
         """
         :param time:the time of the event
         :type: float
@@ -498,18 +490,8 @@ class AgentFinishHandleMissionEvent(SimulationEvent):
 
 
 class Simulation:
-    def __init__(self, name: str, players_list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
+    def __init__(self, name, players_list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
                  events_generator, first_event, f_calculate_distance=calculate_distance):
-        """
-        :param name:
-        :param players_list:
-        :param solver:
-        :param f_are_agents_neighbours:
-        :param f_is_agent_can_be_allocated_to_mission:
-        :param events_generator:
-        :param first_event:
-        :param f_calculate_distance:
-        """
         self.tnow = 0
         self.last_event = None
         self.name = name
