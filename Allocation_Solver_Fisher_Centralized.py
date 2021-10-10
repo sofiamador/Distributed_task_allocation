@@ -138,9 +138,10 @@ class FisherCentralizedImplementation:
 
 
 class AllocationSolverFisherCentralized (AllocationSolverCentralized):
-    def __init__(self, tasks_simulation=[], players_simulation=[]):
+    def __init__(self, future_utility_function,tasks_simulation=[], players_simulation=[]):
         AllocationSolverCentralized.__init__(tasks_simulation,players_simulation)
         self.dict_ptmu = {}
+        self.future_utility_function = future_utility_function
         self.reset_dict()
 
     def allocate(self):
@@ -156,7 +157,7 @@ class AllocationSolverFisherCentralized (AllocationSolverCentralized):
                 self.dict_ptmu[task] = {}
                 for mission in task.missions:
                     util = Utility(player_entity=player, mission_entity=mission, task_entity=task,
-                                   t_now=self.last_event.time)
+                                   t_now=self.last_event.time,  future_utility_function=self.future_utility_function)
                     self.dict_ptmu[player][task][mission] = util
 
 

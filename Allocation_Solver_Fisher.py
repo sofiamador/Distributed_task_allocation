@@ -5,19 +5,19 @@ from abc import ABC
 
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
     default_communication_disturbance
-from Simulation import Entity, TaskSimple, future_utility, PlayerSimple
+from Simulation import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg,MsgTaskEntity
 
 
 class Utility:
-    def __init__(self, player_entity, mission_entity, task_entity, t_now, ro=1, util=-1):
+    def __init__(self, player_entity, mission_entity, task_entity, t_now,future_utility_function, ro=1, util=-1):
         self.player_entity = player_entity
         self.mission_entity = mission_entity
         self.task_entity = task_entity
         self.t_now = t_now
         self.ro = ro
         if util == -1:
-            self.linear_utility = player_entity.future_utility(mission_entity=self.mission_entity, task_entity=self.task_entity,
+            self.linear_utility = future_utility_function(mission_entity=self.mission_entity, task_entity=self.task_entity,
                                                  t_now=self.t_now)
         else:
             self.linear_utility = util
@@ -42,15 +42,17 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     return distance ** 0.5
 
 class FisherPlayerASY(PlayerAlgorithm):
-    def __init__(self, agent_simulator, t_now):
+    def __init__(self, agent_simulator, t_now, future_utility_function):
         PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now)
         self.r_i = {} # dict {key = task, value = dict{key= mission,value = utility}}
         self.bids = {}
         self.x_i = {} # dict {key = task, value = dict{key= mission,value = allocation}}
         self.msgs_from_tasks = {} # dict {key = task_id, value = last msg}
         self.calculate_bids_flag = False
+        self.future_utility_function = future_utility_function
 
     def reset_additional_fields(self):
+
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
         self.bids = {}
         self.x_i = {}  # dict {key = task, value = dict{key= mission,value = allocation}}
@@ -83,7 +85,7 @@ class FisherPlayerASY(PlayerAlgorithm):
         self.r_i[task_in_log] = {}
         for mission_log in task_in_log.missions:
             util = Utility(player_entity=self.simulation_entity, mission_entity=mission_log, task_entity=task_in_log,
-                           t_now=self.t_now)
+                           t_now=self.t_now, future_utility_function = self.future_utility_function)
             self.r_i[task_in_log][mission_log] = util
 
     def set_initial_bids(self):
