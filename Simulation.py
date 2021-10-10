@@ -17,7 +17,7 @@ class Entity:
     Class that represents a basic entity in the simulation
     """
 
-    def __init__(self, id_, location):
+    def __init__(self, id_, location, tnow):
         """
         :param id_: The id of the entity
         :type  id_: str
@@ -31,7 +31,11 @@ class Entity:
         self.id_ = id_
         self.location = location
         self.neighbours = []
-        self.last_time_updated = 0
+        self.last_time_updated = tnow
+
+    def update_time(self, tnow):
+        if tnow >= self.last_time_updated:
+            self.last_time_updated = tnow
 
     def create_neighbours_list(self, entities_list: list, f_are_neighbours):
         """
@@ -88,7 +92,6 @@ class AbilitySimple:
     """
 
     def __init__(self, ability_type, ability_name=None):
-
         """
         :param ability_type: The type of the ability
         :type ability_type: int
@@ -192,8 +195,9 @@ class MissionSimple:
     Class that represents a simple mission (as a part of the event)
     """
 
-    def __init__(self, mission_id,initial_workload,arrival_time_to_the_system, ability=[AbilitySimple(ability_type=0)],
-                 min_players=1,max_players=1):
+    def __init__(self, mission_id, initial_workload, arrival_time_to_the_system,
+                 ability=[AbilitySimple(ability_type=0)],
+                 min_players=1, max_players=1):
         """
         Simple mission constructor
         :param mission_id: Mission's id
@@ -217,7 +221,6 @@ class MissionSimple:
         self.arrival_time_to_the_system = arrival_time_to_the_system
         self.last_updated = arrival_time_to_the_system
 
-
     def mission_utility(self):
         """
         The utility for handling the mission
@@ -228,13 +231,17 @@ class MissionSimple:
     def add_player(self, new_player, tnow):
         self.update_workload(tnow)
         self.current_players_list.append(new_player)
+        self.last_updated = tnow
 
-    def update_workload(self,tnow):
+    def update_workload(self, tnow):
         delta = tnow - self.last_updated
-        self.remaining_workload -= delta*len(self.current_players_list)
+        self.workload_updating()
         if self.remaining_workload == sys.float_info.epsilon:
             self.is_done = True
+        self.last_updated = tnow
 
+    def workload_updating(self, delta):
+        self.remaining_workload -= delta * len(self.current_players_list)
 
 
 class TaskSimple(Entity):
@@ -259,7 +266,7 @@ class TaskSimple(Entity):
         Entity.__init__(id_, location)
         self.missions = missions
         self.player_responsible = None
-        self.importance =  importance
+        self.importance = importance
 
     def event_utility(self):
         """
@@ -267,10 +274,10 @@ class TaskSimple(Entity):
         :return: utility
         :rtype: float
         """
-        self.sum_ = 0
+        sum_ = 0
         for m in self.missions:
-            self.sum_ += m.mission_utility
-        return self.sum_
+            sum_ += m.mission_utility
+        return sum_
 
     def create_neighbours_list(self, agents_list, f_is_agent_can_be_allocated_to_mission):
         """
@@ -394,7 +401,6 @@ class TaskGenerator():
 
     def get_task(self):
         return NotImplementedError
-
 
 
 class SimulationEvent():
