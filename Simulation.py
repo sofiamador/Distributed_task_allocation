@@ -249,7 +249,7 @@ class TaskSimple(Entity):
     Class that represents a simple event in the simulation
     """
 
-    def __init__(self, id_, location, importance, missions: list):
+    def __init__(self, id_, location, importance,  missions: list, tnow = 0):
         """
         :param id_: The id of the event
         :type  id_: str
@@ -263,7 +263,7 @@ class TaskSimple(Entity):
         :param player_responsible, simulation will assign a responsible player to perform that algorithmic task
         computation and message delivery
         """
-        Entity.__init__(id_, location)
+        Entity.__init__(self,id_, location, tnow)
         self.missions = missions
         self.player_responsible = None
         self.importance = importance
@@ -348,7 +348,7 @@ class MapSimple:
         self.width = width
         self.rand = random.Random(seed)
         self.centers_location = []
-        for _ in number_of_centers:
+        for _ in range(number_of_centers):
             self.centers_location.append(self.generate_location())
 
     def generate_location(self):
@@ -369,22 +369,22 @@ class MapHubs(MapSimple):
         MapSimple.__init__(self, number_of_centers, seed, length_y, width_x)
         self.sd_multiplier = sd_multiplier
 
-    def generate_location(self):
+    def generate_location_gauss_around_center(self):
         rand_center = self.get_center_location()
         valid_location = False
         while not valid_location:
             ans = self.generate_gauss_location(rand_center)
-            if 0 < ans[0] < self.width_x and 0 < ans[1] < self.length_y:
+            if 0 < ans[0] < self.width and 0 < ans[1] < self.length:
                 valid_location = True
-        return True
+        return ans
 
     def generate_gauss_location(self, rand_center):
         x_center = rand_center[0]
-        x_sd = self.width_x * self.sd_multiplier
+        x_sd = self.width * self.sd_multiplier
         rand_x = self.rand.gauss(mu=x_center, sigma=x_sd)
 
         y_center = rand_center[1]
-        y_sd = self.length_y * self.sd_multiplier
+        y_sd = self.length * self.sd_multiplier
         rand_y = self.rand.gauss(mu=y_center, sigma=y_sd)
         return [rand_x, rand_y]
 
