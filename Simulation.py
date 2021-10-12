@@ -17,7 +17,7 @@ class Entity:
     Class that represents a basic entity in the simulation
     """
 
-    def __init__(self, id_, location, tnow):
+    def __init__(self, id_, location, tnow = 0):
         """
         :param id_: The id of the entity
         :type  id_: str
@@ -121,7 +121,7 @@ class PlayerSimple(Entity):
     """
 
     def __init__(self, id_, location, speed, status=Status.IDLE,
-                 abilities=None):
+                 abilities=None,tnow = 0):
         """
         :param id_: The id of the agent
         :type  id_: str
@@ -137,7 +137,7 @@ class PlayerSimple(Entity):
         :type current_mission: MissionSimple
 
         """
-        Entity.__init__(id_, location)
+        Entity.__init__(self,id_, location,tnow)
         if abilities is None:
             abilities = [AbilitySimple(ability_type=0)]
         self.speed = speed
