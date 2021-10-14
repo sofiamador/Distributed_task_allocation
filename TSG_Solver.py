@@ -1,4 +1,4 @@
-from Simulation import MissionSimple, TaskSimple, AbilitySimple
+from Simulation import MissionSimple, TaskSimple, AbilitySimple,PlayerSimple
 
 import math
 
@@ -128,7 +128,7 @@ class Casualty(object):
         self.RPM_survival_care_time_df = survival_table
 
 
-class TSGMissionSimple(MissionSimple):
+class TSGMission(MissionSimple):
 
     # ##-----------------------------Constructor---------------------------------##
 
@@ -169,7 +169,7 @@ class TSGMissionSimple(MissionSimple):
 
     # ##------------------------------Methods for strings and equal---------------------------------##
     def __eq__(self, other):
-        if type(other) is Mission:
+        if type(other) is TSGMission:
             return self.agent_type == other.agent_type and self.event_id == other.event_id
         return False
 
@@ -307,3 +307,13 @@ class TSGMissionSimple(MissionSimple):
     def calculate_optimal_threshold(self):
         optimal_threshold = self.required_workload * self.damage_level_threshold  # Gets the required_workload and multiply by a agreed percentage.
         return optimal_threshold  # Store as threshold.
+
+
+class TSGEvent(TaskSimple):
+    def __init__(self):
+        pass
+
+
+class TSGPlayer(PlayerSimple):
+    def __init__(self):
+        pass

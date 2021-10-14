@@ -231,7 +231,14 @@ class MissionSimple:
     def add_player(self, new_player, tnow):
         self.update_workload(tnow)
         self.current_players_list.append(new_player)
-        self.last_updated = tnow
+
+    def remove_player(self, new_player, tnow):
+        self.update_workload(tnow)
+        self.current_players_list.remove(new_player)
+
+    def remove_all_players(self,tnow):
+        self.update_workload(tnow)
+        self.current_players_list.clear()
 
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
