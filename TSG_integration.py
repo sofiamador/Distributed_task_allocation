@@ -4,23 +4,6 @@ import copy
 from TSG_Solver import TSGPlayer,TSGMission,TSGEvent,Allocation
 
 
-
-def input_to_file(agent_list_, event_list_, allocation_list_, event_params_, force_type_data_, discrete_params_):
-    f = open("../input.txt", "w")
-    f.write(str(agent_list_))
-    f.write(str("\n"))
-    f.write(str(event_list_))
-    f.write(str("\n"))
-    f.write(str(allocation_list_))
-    f.write(str("\n"))
-    f.write(str(event_params_))
-    f.write(str("\n"))
-    f.write(str(force_type_data_))
-    f.write(str("\n"))
-    f.write(str(discrete_params_))
-    f.close()
-
-
 def create_obj_allocations(allocations_list):
     allocation_obj_lst = []
     for all in allocations_list:
@@ -175,7 +158,6 @@ def print_allocations(allocation_obj_list, event_obj_list, agent_obj_list):
     print()
 
 def calcAllocationsInternal(agent_list, event_list, allocations_list, event_params, force_type_data, discrete_params):
-    input_to_file(agent_list, event_list, allocations_list, event_params, force_type_data, discrete_params)
     # agents creation#
     force_data_map = create_force_type_data_map(force_type_data)
     agent_obj_list = create_agents(agent_list, force_data_map)
