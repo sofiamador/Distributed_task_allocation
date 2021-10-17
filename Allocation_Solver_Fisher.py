@@ -194,7 +194,7 @@ class FisherPlayerASY(PlayerAlgorithm):
                     x_not_none+=1
                     r_ij = self.r_i[task][mission]
                     sum_of_bids_list.append(r_ij.get_utility(ratio=x_ij))
-                self.atomic_counter = self.atomic_counter + 1
+                #self.atomic_counter = self.atomic_counter + 1
 
                 x_counter+=1
 
@@ -332,7 +332,7 @@ class FisherTaskASY(TaskAlgorithm):
         ans = 0
         for mission in self.simulation_entity.missions:
             for bid in self.bids[mission].values():
-                self.atomic_counter = self.atomic_counter+1
+                #self.atomic_counter = self.atomic_counter+1
                 ans = ans +bid
         return ans
 
@@ -386,11 +386,11 @@ class FisherTaskASY(TaskAlgorithm):
 class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
-        AllocationSolverTasksPlayersSemi.__init__(mailer, f_termination_condition, f_global_measurements,
+        AllocationSolverTasksPlayersSemi.__init__(self,mailer, f_termination_condition, f_global_measurements,
                                              f_communication_disturbance)
 
     def create_algorithm_task(self, task: TaskSimple):
-        return FisherPlayerASY(agent_simulator=task,t_now = self.last_event.time)
+        return  FisherTaskASY(agent_simulator=task,t_now = self.tnow)
 
     def create_algorithm_player(self, player:PlayerSimple):
-        return FisherTaskASY(agent_simulator=player,t_now = self.last_event.time)
+        return FisherPlayerASY(agent_simulator=player,t_now = self.tnow,future_utility_function = None)

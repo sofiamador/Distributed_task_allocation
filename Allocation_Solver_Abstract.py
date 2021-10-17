@@ -138,22 +138,20 @@ class Mailer(threading.Thread):
 
         self.measurements = {}
 
-    def reset(self, agents_algorithm):
+    def reset(self):
         global mailer_counter
         self.msg_box = []
         mailer_counter = mailer_counter + 1
         self.id_ = mailer_counter
         self.agents_outboxes = {}  # TODO update in allocate
         self.inbox = None  # TODO update in solver
-        self.agents_algorithm = agents_algorithm
         self.time_mailer = ClockObject()
         self.measurements = {}
 
         for key in self.f_global_measurements.keys():
             self.measurements[key] = {}
-            self.measurements[key + "_single"] = {}
 
-        for aa in agents_algorithm:
+        for aa in self.agents_algorithm:
             aa.reset_fields()
 
     def add_out_box(self, key: str, value: UnboundedBuffer):
@@ -192,7 +190,7 @@ class Mailer(threading.Thread):
 
         self.mailer_iteration(with_update_clock_for_empty_msg_to_send=True)
 
-        while not self.termination_condition(self.agents_algorithm):
+        while not self.f_termination_condition(self.agents_algorithm, self):
             self.create_measurements()  # TODO
 
             self.self_check_if_all_idle_to_continue()
@@ -202,26 +200,14 @@ class Mailer(threading.Thread):
         self.kill_agents()
 
     def create_measurements(self):
+
         current_clock = self.time_mailer.get_clock()  # TODO check if immutable
 
-        for key, value in self.f_global_measurements.items():
-            dict_of_the_measure_up_to_now = self.measurements[key]
+        for measurement_name, measurement_function in self.f_global_measurements.items():
 
-            measure = value(self.agents_algorithm)
+            measured_value = measurement_function(self.agents_algorithm, single_agent = False)
 
-            dict_of_the_measure_up_to_now[current_clock] = measure
-
-            single_agent = self.agents_algorithm[0]
-
-            temp_list = []
-
-            temp_list.append(single_agent)
-
-            measure = value(temp_list)
-
-            dict_of_the_measure_up_to_now = self.measurements[key + "_single"]
-
-            dict_of_the_measure_up_to_now[current_clock] = measure
+            self.measurements[measurement_name][current_clock] = measured_value
 
     def kill_agents(self):
 
@@ -661,7 +647,6 @@ class AgentAlgorithm(threading.Thread, ABC):
     def reset_additional_fields(self):
         raise NotImplementedError
 
-
 class AgentAlgorithmTaskPlayers(AgentAlgorithm):
     def __init__(self, simulation_entity: Entity, t_now, is_with_timestamp=False):
         AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
@@ -683,14 +668,11 @@ class AgentAlgorithmTaskPlayers(AgentAlgorithm):
     def is_identical_context(self, msg:Msg):
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def update_message_in_context_after_check(self, msg:Msg):
-        raise NotImplementedError
+
 
     @abc.abstractmethod
     def get_list_of_ids_under_responsibility(self):
         raise NotImplementedError
-
 
 class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
     def __init__(self, simulation_entity:PlayerSimple, t_now, is_with_timestamp=False):
@@ -776,7 +758,7 @@ class AllocationSolver:
         for player in players_simulation:
             self.add_player_to_solver(player)
 
-        self.last_event = None
+        self.tnow = None
 
     def add_tasks_list(self,tasks_simulation):
         for task in tasks_simulation:
@@ -786,8 +768,8 @@ class AllocationSolver:
         for player in players_simulation:
             self.add_player_to_solver(player)
 
-    def solve(self, last_event=None) -> {}:
-        self.last_event = last_event
+    def solve(self, tnow=None) -> {}:
+        self.tnow = tnow
         return self.allocate()
 
     @abc.abstractmethod
@@ -813,7 +795,6 @@ class AllocationSolver:
         :returns dictionary with key = agent and value = mission
         """
         raise NotImplementedError
-
 
 class AllocationSolverCentralized(AllocationSolver):
     def __init__(self, tasks_simulation=[], players_simulation=[]):
@@ -963,14 +944,14 @@ class AllocationSolverDistributed(AllocationSolver):
         self.reset_algorithm_agents()
         self.connect_entities()
         self.agents_initialize()
-        self.mailer.reset(self.agents_algorithm)
+        self.mailer.reset()
         self.mailer.start()
         self.mailer.join()
         return self.mailer.get_allocation_dictionary()  # TODO
 
     def reset_algorithm_agents(self):
         for aa in self.agents_algorithm:
-            aa.reset_fields(self.last_event.time)
+            aa.reset_fields(self.tnow)
 
     def agents_initialize(self):
         """
@@ -1014,7 +995,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
 
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
-        AllocationSolverDistributed.__init__(mailer, f_termination_condition, f_global_measurements,
+        AllocationSolverDistributed.__init__(self,mailer, f_termination_condition, f_global_measurements,
                                              f_communication_disturbance)
         self.tasks_algorithm = []
         self.players_algorithm = []

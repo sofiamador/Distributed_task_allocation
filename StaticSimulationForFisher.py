@@ -1,18 +1,19 @@
 import math
 import random
-
-# matplotlib inline
 import matplotlib.pyplot as plt
+
+from Allocation_Solver_Fisher import FisherAsynchronousSolver
+from Data_fisher_market import get_data_fisher
 
 plt.style.use('seaborn-whitegrid')
 import numpy as np
 import pandas as pd
-
 from Simulation import MapHubs, TaskArrivalEvent, TaskGenerator, find_responsible_agent, MissionSimple, TaskSimple, \
     AbilitySimple, PlayerSimple, Status
-from Allocation_Solver_Abstract import AllocationSolver
+from Allocation_Solver_Abstract import AllocationSolver, default_communication_disturbance
 
 simulation_reps = 100
+termination_time_constant = 1000
 
 import string
 
@@ -41,7 +42,8 @@ def create_ability_dict(ability_dict):
 
 
 class SingleTaskStaticPoliceGenerator():
-    def __init__(self,create_ability_dict,rand: random.Random, map: MapHubs, small_p=[0.21, 0.1, 0.1, 0.21, 0.17, 0.21]):
+    def __init__(self, create_ability_dict, rand: random.Random, map: MapHubs,
+                 small_p=[0.21, 0.1, 0.1, 0.21, 0.17, 0.21]):
         self.rand = rand
         self.ability_dict = {}
         create_ability_dict(self.ability_dict)
@@ -173,7 +175,6 @@ class TaskArrivalEventStatic(TaskArrivalEvent):
         self.solver = solver
 
     def handle_event(self, simulation):
-        find_responsible_agent(task=self.task, agents_list=self.players)
         self.solver.add_task_to_solver(self.task)
         simulation.solve()
 
@@ -183,7 +184,8 @@ def get_task_importance(task: TaskSimple):
 
 
 class SimulationStatic():
-    def __init__(self, rep_number, solver: AllocationSolver = None, players_required_ratio=0.5, create_ability_dict= create_ability_dict):
+    def __init__(self, rep_number, solver: AllocationSolver, players_required_ratio=0.5,
+                 create_ability_dict=create_ability_dict):
         self.create_ability_dict = create_ability_dict
         self.players_required_ratio = players_required_ratio
         self.rand = random.Random(rep_number * 17)
@@ -199,19 +201,32 @@ class SimulationStatic():
         self.players = []
         self.create_players_and_allocations()
 
-        # self.players = allocation_generator.players
-        # self.solver.add_tasks_list(self.tasks)
-        # self.solver.add_players_list(self.players)
-        # self.task_arrive_event =  self.create_task_arrival_event()
 
-    def create_task_arrival_event(self):
-        task_new = self.task_generator.get_next_task()
-        TaskArrivalEventStatic()
+    def add_solver (self,solver:AllocationSolver):
+        self.solver = solver
+        task_arrive = SingleTaskStaticPoliceGenerator(rand=self.rand, map=self.map,
+                                                      create_ability_dict=self.create_ability_dict).random_task
+        self.tasks.append(task_arrive)
+        for task in self.tasks:
+            find_responsible_agent(task = task, players = self.players)
+
+        for player in self.players:
+            self.solver.add_player_to_solver(player)
+
+        self.solver.add_task_to_solver(task_arrive)
+        for task in self.tasks:
+            self.solver.add_task_to_solver(task)
+
+
+
+
+        self.solver.solve(0)
 
     def create_tasks(self):
         total_number_of_tasks = self.tasks_per_center * len(self.map.centers_location)
         for _ in range(total_number_of_tasks):
-            task = SingleTaskStaticPoliceGenerator(rand=self.rand, map=self.map, create_ability_dict =self.create_ability_dict).random_task
+            task = SingleTaskStaticPoliceGenerator(rand=self.rand, map=self.map,
+                                                   create_ability_dict=self.create_ability_dict).random_task
             self.tasks.append(task)
 
     def draw_tasks(self):
@@ -255,7 +270,7 @@ class SimulationStatic():
         allocation = self.create_allocation_dict_greedy(number_of_players)
         self.add_abilities_to_players()
 
-        print(allocation)
+        #print(allocation)
 
     def add_abilities_to_players(self):
         abilities_dict = create_ability_dict({})
@@ -264,15 +279,15 @@ class SimulationStatic():
             abilities_list.append(ability)
 
         for player in self.players:
-            abilities_selected = self.rand.choices(abilities_list,k=2)
+            abilities_selected = self.rand.choices(abilities_list, k=2)
             abilities_to_add = []
             for ability in abilities_selected:
                 if not ability in player.abilities:
                     abilities_to_add.append(ability)
             for ability in abilities_to_add:
                 player.abilities.append(ability)
-            if not AbilitySimple(0,"Basic") in player.abilities:
-                player.abilities.append(AbilitySimple(0,"Basic"))
+            if not AbilitySimple(0, "Basic") in player.abilities:
+                player.abilities.append(AbilitySimple(0, "Basic"))
 
     def get_number_of_tasks_required(self):
         ans = 0
@@ -306,7 +321,23 @@ class SimulationStatic():
         return allocation
 
 
+def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
+                                                 termination_time_constant_input=termination_time_constant):
+    if mailer.time_mailer.get_clock() < termination_time_constant_input:
+        return False
+    return True
 
 
 if __name__ == '__main__':
-    ss = SimulationStatic(rep_number=50)
+
+    fisher_solver = FisherAsynchronousSolver(f_termination_condition=f_termination_condition_constant_mailer_nclo,
+                                             f_global_measurements=get_data_fisher,
+                                             f_communication_disturbance=default_communication_disturbance)
+
+    for i in range(simulation_reps):
+        ss = SimulationStatic(rep_number=i, solver=None)
+
+
+        ss.add_solver( fisher_solver)
+        fisher_solver.solve()
+
