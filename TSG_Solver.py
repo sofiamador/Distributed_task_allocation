@@ -1,6 +1,16 @@
-from Simulation import MissionSimple, TaskSimple, AbilitySimple,PlayerSimple
+import enum
+from abc import ABC
+
+from Simulation import MissionSimple, TaskSimple, AbilitySimple, PlayerSimple
 
 import math
+
+
+class Status(enum.Enum):
+    IDLE = 0
+    TOTAL_RESTING = 1  # can be disturbed
+    RESTING = 2
+    HANDLING_WITH_A_MISSION = 6
 
 
 def calculate_how_many_time_intervals_in_hours(time):
@@ -315,5 +325,268 @@ class TSGEvent(TaskSimple):
 
 
 class TSGPlayer(PlayerSimple):
-    def __init__(self):
-        pass
+    """ Class that represents an agent"""
+
+    def __init__(self, agent_id, agent_type, last_update_time, point, start_activity_time,
+                 start_resting_time, max_activity_time, extra_hours_allowed, min_competence_time, competence_length,
+                 is_working_extra_hours, address, status=Status.IDLE,tnow=0):
+
+        # ##------------------------Parameters received from TSG during simulation run-------------------------##
+
+        PlayerSimple.__init__(id_=agent_id, location=point, speed=50, status=Status.IDLE,
+                              abilities=AbilitySimple(ability_type=agent_type), tnow=tnow)
+        self.agent_type = agent_type
+        self.last_update_time = last_update_time
+        self.point = point
+        self.start_activity_time = start_activity_time
+        self.start_resting_time = start_resting_time
+        self.max_activity_time = max_activity_time
+        self.extra_hours_allowed = extra_hours_allowed
+        self.min_competence_time = min_competence_time
+        self.competence_length = competence_length
+
+        self.overtime_worth = 0.5
+        self.status = status
+        self.is_working_extra_hours = is_working_extra_hours
+
+        # ##-----------------------------Parameters that updates during simulation---------------------------------##
+
+        self.start_min_resting_time = None
+        self.productivity = 1
+        self.scheduled_missions = []
+        self.current_mission = None
+        self.did_agent_start_overtime = False
+
+    # ##------------------------Methods for change status--------------------------------------------##
+
+    def check_if_agent_is_idle(self):
+        if self.status is Status.IDLE:
+            return 1
+        else:
+            return 0
+
+    def check_if_agent_is_resting(self):
+
+        if self.status is Status.RESTING or self.status is Status.RETRO:
+
+            return True
+
+        else:
+            return False
+
+    def check_if_agent_is_allocated_to_mission(self):
+
+        if self.status in [Status.HANDLING_WITH_A_MISSION, Status.ON_THE_WAY_TO_THE_MISSION,
+                           Status.WORKING_EXTRA_HOURS]:
+            return True
+        else:
+            return False
+
+    def check_if_agent_is_on_the_way_to_mission(self):
+
+        if self.status is Status.ON_THE_WAY_TO_THE_MISSION:
+            return 1
+        else:
+            return 0
+
+    # Returns True if the team is ready to activity
+    def can_be_active(self, tnow):
+        if tnow - self.start_resting_time > self.min_competence_time:
+            return True
+        return False
+
+    # ##------------------------Method for time calculations----------------------------------------##
+
+    def time_left_until_end_of_shift(self, Tnow):
+        time_left = Tnow - self.start_activity_time
+        if time_left < 0:
+            print(self.agent_id_, "Logic Error - Time left until end of shift is negative")
+        return time_left
+
+    # ##------------------------------Update productivity methods---------------------------------##
+
+    def update_productivity_for_allocation_calculations(self, time_now):
+
+        productivity_after_disturbance = self.update_productivity_after_rest_disturbance(time_now=time_now)
+        self.productivity = productivity_after_disturbance
+        self.start_activity_time = time_now
+
+    def update_productivity_after_rest_disturbance(self, time_now):
+
+        resting_time_prior_disturbance = time_now - self.start_min_resting_time + self.min_competence_time
+
+        point_a = (6, 0.1)  # Insert the first point - Assuming this is a linear function.
+        point_b = (8, 1)  # Insert the second point - Assuming this is a linear function.
+        slope = (point_a[1] - point_b[1]) / (point_a[0] - point_b[0])  # Slope calculation.
+        n = point_a[1] - (slope * point_a[0])  # Complete the n in y = mx + n linear function.
+        productivity_after_disturbance = slope * resting_time_prior_disturbance + n
+        return productivity_after_disturbance
+
+    # ##------------------------STR and Equality-------------------------##
+
+    def get_agent_type(self):
+        return self.agent_type
+
+    def __eq__(self, other):
+        if type(other) is type(TSGPlayer):
+            return self.id_ == other.id_
+        return False
+
+    def __str__(self):
+        return str(self.agent_name)
+
+        # ##-----------------------------Time calculations Methods---------------------------------##
+
+    def shift_and_overtime_hours_worth(self, time_now):
+
+        hours_worth = self.agent_shift_hours_worth(time_now=time_now)
+        overtime_worth = self.agent_overtime_hours_worth(time_now=time_now)
+
+        return hours_worth, overtime_worth
+
+    def shift_and_overtime_hours_left(self, time_now):
+
+        remaining_time_until_end_of_shift = self.calculate_remaining_working_hours_in_shift(time_now=time_now)
+        remaining_overtime = self.calculate_remaining_overtime(time_now=time_now)
+        return remaining_time_until_end_of_shift, remaining_overtime
+
+    def calculate_remaining_working_hours_in_shift(self, time_now):
+
+        if self.status is Status.RESTING:
+
+            agent_shift_time = self.max_activity_time  # Get the agent duration for the shift.
+            agent_remaining_time_until_end_of_shift = agent_shift_time  # Calculate the remaining time during the shift.
+            return agent_remaining_time_until_end_of_shift
+
+        else:
+
+            agent_starting_time = self.start_activity_time  # Get the agent start activity time.
+            agent_shift_time = self.max_activity_time  # Get the agent duration for the shift.
+            agent_remaining_time_until_end_of_shift = agent_starting_time + agent_shift_time - time_now  # Calculate the remaining time during the shift.
+            if agent_remaining_time_until_end_of_shift <= 0:  # In case the agent is in its overtime.
+                return 0
+
+            return agent_remaining_time_until_end_of_shift
+
+    def calculate_remaining_overtime(self, time_now):
+
+        if self.status is Status.RESTING:
+
+            agent_over_time = self.extra_hours_allowed
+            return agent_over_time
+
+        else:
+
+            start_time = self.start_activity_time
+            agent_shift_time = self.max_activity_time
+            extra_hours_allowed = self.extra_hours_allowed
+
+            remaining_overtime = start_time + agent_shift_time + extra_hours_allowed - time_now
+
+        if remaining_overtime > extra_hours_allowed:  # if the agent is not in overtime yet, will return overtime allowed.
+
+            return extra_hours_allowed
+
+        else:
+
+            return remaining_overtime
+
+    def agent_shift_hours_worth(self, time_now):
+
+        remaining_time_until_end_of_shift = self.calculate_remaining_working_hours_in_shift(time_now=time_now)
+        shift_hours_worth = remaining_time_until_end_of_shift * self.productivity
+        return shift_hours_worth
+
+    def agent_overtime_hours_worth(self, time_now):
+
+        remaining_time_until_overtime_end = self.calculate_remaining_overtime(time_now=time_now)
+        overtime_worth = remaining_time_until_overtime_end * self.productivity * self.overtime_worth
+        return overtime_worth
+
+    def mission_workload_to_reduce(self, interval_time):
+
+        workload_reduced_by_agent = 0
+
+        if self.status is Status.HANDLING_WITH_A_MISSION:  # If is handling the mission and not in overtime
+
+            workload_reduced_by_agent = interval_time * self.productivity
+
+        elif self.status is Status.WORKING_EXTRE_HOURS:
+
+            workload_reduced_by_agent = interval_time * self.productivity * self.overtime_worth
+
+        return workload_reduced_by_agent
+
+    def agent_overtime_hours_worth_with_time_interval(self, time_for_overtime):
+
+        overtime_worth = time_for_overtime * self.productivity * self.overtime_worth
+        return overtime_worth
+
+    def agent_shift_hours_worth_with_time_interval(self, time_for_shift):
+
+        shift_hours_worth = time_for_shift * self.productivity
+        return shift_hours_worth
+
+    def transform_hours_worth_to_shift_time(self, time_interval):
+
+        shift_time = time_interval / self.productivity
+
+        return shift_time
+
+    def transform_overtime_worth_to_overtime_time(self, time_interval):
+
+        overtime_time = time_interval / (self.productivity * self.overtime_worth)
+
+        return overtime_time
+
+    def shift_and_overtime_potential_hours_worth(self):
+
+        shift_hours_potential = self.max_activity_time * self.productivity
+        overtime_hours_potential = self.extra_hours_allowed * self.productivity * self.overtime_worth
+
+        return shift_hours_potential, overtime_hours_potential
+
+    def shift_and_overtime_hours_future_worth(self, event, begin_simulation_time):
+
+        event_point = event.point
+        travel_time = self.travel_time(a=self.point, b=event_point)
+        time_left_for_shift_worth = 0
+        overtime_worth = 0
+
+        if begin_simulation_time + travel_time <= self.start_activity_time + self.max_activity_time:
+
+            time_left_for_shift = self.start_activity_time + self.max_activity_time - begin_simulation_time - travel_time
+            time_left_for_shift_worth = time_left_for_shift * self.productivity
+            overtime_worth = self.extra_hours_allowed * self.productivity * self.overtime_worth
+            return time_left_for_shift_worth, overtime_worth
+
+        else:
+
+            time_left_for_shift_worth = None
+            overtime_worth = None
+            return time_left_for_shift_worth, overtime_worth
+
+    # When agent starts overtime.
+    def change_agent_status_to_overtime(self, time_now):
+        self.status = Status.WORKING_EXTRA_HOURS
+        self.did_agent_start_overtime = True
+
+
+class Allocations(object):
+
+    # ##-----------------------------Constructor---------------------------------##
+
+    def __init__(self, allocation_id, agent_type, mission_creation_time, last_update_time, mission_status, event_id,
+                 agent_id, working_starting_time, working_ending_time):
+        self.allocation_id = allocation_id
+        self.agent_type = agent_type
+        self.mission_creation_time = mission_creation_time
+        self.last_update_time = last_update_time
+        self.mission_status = mission_status
+        self.event_id = event_id
+        self.agent_id = agent_id
+        self.working_starting_time = working_starting_time
+        self.working_ending_time = working_ending_time
+
+    def __eq__(self, other):
+        return self.event_id == other.event_id and self.agent_id == other.agent_id

@@ -146,6 +146,7 @@ class PlayerSimple(Entity):
         self.current_task = None
         self.current_mission = None
         self.tasks_responsible = []
+        self.neighbours = []
 
     def update_status(self, new_status: Status, tnow: float) -> None:
         """
@@ -174,7 +175,6 @@ class PlayerSimple(Entity):
         :param f_are_neighbours:
         :return:None
         """
-        self.neighbours = []
         for a in agents_list:
             if self.id_ != a.id_ and f_are_neighbours(self, a):
                 self.neighbours.append(a)
