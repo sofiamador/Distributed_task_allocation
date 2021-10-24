@@ -1,9 +1,20 @@
 import enum
-from abc import ABC
+import uuid
 
 from Simulation import MissionSimple, TaskSimple, AbilitySimple, PlayerSimple
 
 import math
+
+# --------------- Parameters ---------------
+
+initial_score_multiplier = 1
+interruption_coefficient = 300
+late_finish_coefficient = interruption_coefficient
+penalty_team_ratio_weight = 200
+ro_for_fisher = 0.9
+remaining_working_time_threshold = 0.25
+distance_penalty = 1
+time_of_abandonment = 0.55
 
 
 class Status(enum.Enum):
@@ -140,29 +151,25 @@ class Casualty(object):
 
 class TSGMission(MissionSimple):
 
+    def mission_utility(self):
+        pass
+
     # ##-----------------------------Constructor---------------------------------##
 
     def __init__(self, agent_type, event_id, mission_id, required_workload, max_number_of_teams,
                  importance, initial_RPM, damage_level_threshold, ratio, mission_creation_time):
-        MissionSimple.__init__(self, mission_id,
-                               ability=AbilitySimple(ability_name=agent_type, max_amount=max_number_of_teams),
-                               type_=agent_type)
+        MissionSimple.__init__(self, mission_id=mission_id, initial_workload=required_workload,
+                               arrival_time_to_the_system=mission_creation_time,
+                               abilities=[AbilitySimple(ability_type=agent_type)],
+                               min_players=1, max_players=max_number_of_teams)
 
-        self.mission_creation_time = mission_creation_time
-        self.agent_type = agent_type
         self.event_id = event_id
-        self.mission_id = mission_id
-        self.required_workload = required_workload
-        self.max_number_of_teams = max_number_of_teams
         self.mission_importance = importance
         self.damage_level_threshold = damage_level_threshold
-        self.agent_on_the_mission = []
-        self.mission_ended = False
         self.initial_RPM = initial_RPM
         self.teams_ratio = ratio
-        self.remaining_workload = self.required_workload
         self.workload_done = 0
-        self.agents_allocated_to_the_mission = []
+        self.players_allocated_to_the_mission = []
 
         self.casualty = Casualty(initial_RPM=self.initial_RPM)
         self.optimal_threshold = self.calculate_optimal_threshold()  # Update for each mission = 0
@@ -175,19 +182,19 @@ class TSGMission(MissionSimple):
         # ##-----------------------------Late Finish Variables----------------------------------------##
 
         self.probability_decrease_after_threshold = 0.03
-        self.optimal_finish = self.required_workload  # Update for each mission = 0
+        self.optimal_finish = self.initial_workload  # Update for each mission = 0
 
     # ##------------------------------Methods for strings and equal---------------------------------##
     def __eq__(self, other):
         if type(other) is TSGMission:
-            return self.agent_type == other.agent_type and self.event_id == other.event_id
+            return self.abilities.ability_type == other.agent_type and self.event_id == other.event_id
         return False
 
     def __hash__(self):
         return self.mission_id.__hash__()
 
     def __str__(self):
-        return "Mission id: " + str(self.mission_id) + ", max agents: " + str(self.max_number_of_teams)
+        return "Mission id: " + str(self.mission_id) + ", max agents: " + str(self.max_players)
 
         # f"Event id:{self.event_id}, required workload:{self.required_workload}," \
         #   f" remaining workload:{self.remaining_workload}" \
@@ -206,9 +213,9 @@ class TSGMission(MissionSimple):
     #                 self.mission_ended = True
 
     def get_number_of_agents_allocated_to_mission(self):
-        if self.agents_allocated_to_the_mission is None:
+        if self.players_allocated_to_the_mission is None:
             return 0
-        return len(self.agents_allocated_to_the_mission)
+        return len(self.players_allocated_to_the_mission)
 
     def evaluate_optimal_threshold_survival_for_number_of_agents(self, number_of_agents, workload_done):
 
@@ -235,14 +242,14 @@ class TSGMission(MissionSimple):
     # ##-----------------------------------Fisher-Market Clearing Methods------------------------------##
     def expected_survival_interruption_decrease(self):
         # Phase 1 - Get the number of agents and remaining workload.
-        number_of_agents = len(self.agent_on_the_mission)
+        number_of_agents = len(self.players_allocated_to_the_mission)
 
         # Phase 2 - Get the current_survival and survival at the optimal threshold time
         optimal_threshold_survival = self.optimal_threshold_survival
 
         # Phase 3 - Calculate the penalty for interruption
         survival_interruption_minus_one_agent = self.evaluate_optimal_threshold_survival_for_number_of_agents(
-            number_of_agents=number_of_agents - 1, workload_done=self.required_workload - self.remaining_workload)
+            number_of_agents=number_of_agents - 1, workload_done=self.initial_workload - self.remaining_workload)
         penalty_for_interruption = optimal_threshold_survival - survival_interruption_minus_one_agent
 
         return penalty_for_interruption
@@ -252,7 +259,7 @@ class TSGMission(MissionSimple):
         penalty_for_late_finish = 0
 
         # Phase 1 - Get the number of agents and remaining workload.
-        number_of_agents = len(self.agent_on_the_mission)
+        number_of_agents = len(self.players_allocated_to_the_mission)
         remaining_workload = self.remaining_workload
         workload_done = self.workload_done
 
@@ -281,7 +288,7 @@ class TSGMission(MissionSimple):
 
             optimal_threshold_survival = self.evaluate_optimal_threshold_survival_for_number_of_agents(
                 number_of_agents=number_of_agents, workload_done=workload_done)
-            workload_until_optimal_finish = self.required_workload - self.optimal_threshold
+            workload_until_optimal_finish = self.initial_workload - self.optimal_threshold
             workload_per_agent = workload_until_optimal_finish / number_of_agents
             time_to_finish = workload_per_agent
             survival_at_optimal_finish = self.casualty.get_updated_survival_in_interval_hours_after_optimal_threshold(
@@ -305,8 +312,8 @@ class TSGMission(MissionSimple):
 
     def calculate_optimal_threshold_time_RPM_survival(self):
 
-        working_time_for_each_agent = self.optimal_threshold / self.max_number_of_teams
-        optimal_threshold_time = working_time_for_each_agent + self.mission_creation_time
+        working_time_for_each_agent = self.optimal_threshold / self.max_players
+        optimal_threshold_time = working_time_for_each_agent + self.initial_workload
         optimal_threshold_RPM = self.casualty.get_updated_rpm_in_intervals_in_hours(
             time_interval=working_time_for_each_agent, initialRPM=self.initial_RPM)
         optimal_threshold_survival = self.casualty.get_updated_survival_probability(
@@ -315,13 +322,195 @@ class TSGMission(MissionSimple):
         return optimal_threshold_time, optimal_threshold_RPM, optimal_threshold_survival
 
     def calculate_optimal_threshold(self):
-        optimal_threshold = self.required_workload * self.damage_level_threshold  # Gets the required_workload and multiply by a agreed percentage.
+        optimal_threshold = self.initial_workload * self.damage_level_threshold  # Gets the required_workload and multiply by a agreed percentage.
         return optimal_threshold  # Store as threshold.
 
 
 class TSGEvent(TaskSimple):
-    def __init__(self):
-        pass
+    def __init__(self, event_id, event_type, damage_level, life_saving_potential,
+                 event_creation_time, event_update_time, point, workload, mission_params, tnow):
+
+        # ##------------------------Parameters received from TSG during simulation run-------------------------##
+        TaskSimple.__init__(self, id_=event_id, location=point, importance=1, missions_list=[], tnow=event_update_time)
+
+        self.initialRPM = 12
+        self.event_type = event_type
+        self.damage_level = damage_level
+        self.life_saving_potential = life_saving_potential
+        self.initial_score = 0
+        self.critical_time = None
+        self.set_initial_score_and_importance()
+        self.event_creation_time = event_creation_time
+        self.event_workload = workload
+        self.mission_params = mission_params
+        self.agents_on_site = []
+        self.set_initial_RPM_according_to_life_saving_potential()
+        self.triage_classification = self.importance
+        self.damage_level_threshold = self.set_damage_level_threshold()
+
+        for ty in mission_params:
+            ratio = mission_params[ty]["max_number_of_teams"] / mission_params[1]["max_number_of_teams"]
+            m = TSGMission(agent_type=ty, event_id=event_id, mission_id=str(uuid.uuid1()).upper(),
+                           required_workload=mission_params[ty]["workload"],
+                           max_number_of_teams=mission_params[ty]["max_number_of_teams"],
+                           importance=self.importance, initial_RPM=self.initialRPM,
+                           damage_level_threshold=self.damage_level_threshold, ratio=ratio,
+                           mission_creation_time=self.event_creation_time)
+            self.missions_list.append(m)
+
+        # ##-----------------------------Parameters that updates during simulation---------------------------------##
+        # TODO in phase 2 integration
+        self.first_agent_arrival_time = None  # The time that first agent arrived to the mission
+
+        # ##----------------------------------Measurements Parameters-------------------------------------------##
+
+        self.event_ended = False
+        self.penalty_for_late_arrival = 1
+        self.optimal_time = 0.5
+        if self.first_agent_arrival_time is not None:
+            self.calculate_penalty_for_late_arrival(self.first_agent_arrival_time)
+        self.initial_ro_coefficient = penalty_team_ratio_weight
+        self.ro_coefficient = self.initialize_ro_coefficient()
+
+    # Determine the threshold damage level according to the damage level.
+    def set_damage_level_threshold(self):
+        damage_level = self.damage_level
+        damage_level_threshold = 1
+        if damage_level == 1:
+            damage_level_threshold = 1
+        elif damage_level == 2:
+            damage_level_threshold = 0.1
+        elif damage_level == 3:
+            damage_level_threshold = 0.3
+        elif damage_level == 4:
+            damage_level_threshold = 0.5
+        elif damage_level == 5:
+            damage_level_threshold = 0.7
+
+        return damage_level_threshold
+
+    def set_initial_RPM_according_to_life_saving_potential(self):
+        initial_RPM = 12
+        if self.life_saving_potential == 1:  # For unknown.
+            initial_RPM = 12
+
+        elif self.life_saving_potential == 2:  # For high.
+            initial_RPM = 11
+
+        elif self.life_saving_potential == 3:  # For medium.
+            initial_RPM = 8
+
+        elif self.life_saving_potential == 4:  # For low.
+            initial_RPM = 6
+
+        elif self.life_saving_potential == 5:  # For zero.
+            initial_RPM = 3
+        self.initialRPM = initial_RPM
+        # ##------------------------------Methods for equality, strings and prints---------------------------------##
+
+    def __eq__(self, other):
+        if type(other) is TSGEvent:
+            return self.event_id == other.event_id
+        return False
+
+    def __str__(self):
+        return f"Event id:{self.event_id}, creation time: {self.event_creation_time}, " \
+               f"importance: {self.event_importance}, event location:{self.point}.\n"
+
+    # ##------------------------------Getters--------------------------------------------------##
+
+    def get_mission(self, agent_type):
+        for m in self.missions_list:
+            if m.agent_type == agent_type:
+                return m
+
+    def check_if_missions_workload_ended(self):
+        for mission in self.missions_list:
+            if mission.is_done is False:
+                return False
+        self.event_ended = True  # Mark the event has ended.
+        return True
+
+    def set_initial_score_and_importance(self):
+        if self.life_saving_potential == 1:
+            lsp = 0
+        elif self.life_saving_potential == 2:
+            lsp = 4
+        elif self.life_saving_potential == 3:
+            lsp = 3
+        elif self.life_saving_potential == 4:
+            lsp = 2
+        elif self.life_saving_potential == 5:
+            lsp = 1
+
+        score = (self.damage_level - 1) * lsp + 1
+        if score - 1 > 10:
+            self.critical_time = 1
+            self.importance = 3
+        elif score - 1 > 4:
+            self.critical_time = 1.5
+            self.importance = 2
+        else:
+            self.critical_time = 2.5
+            self.importance = 1
+        score *= (self.importance * 100)
+        self.initial_score = score
+
+    # penalty for late arrival
+    def calculate_penalty_for_late_arrival(self, time_of_first_arrival, update_late_arrival_indicator=True):
+        penalty = 0
+        if time_of_first_arrival <= self.optimal_time + self.event_creation_time:  # Case 1 - Time of first arrival < Optimal time
+            penalty = self.calculate_according_to_phi_one(time_of_first_arrival=time_of_first_arrival,
+                                                          flag=update_late_arrival_indicator)
+
+        elif time_of_first_arrival > self.optimal_time + self.event_creation_time and (
+                time_of_first_arrival < self.critical_time + self.event_creation_time):  # Case 2 - Time of first arrival > Optimal time and < Critical Time
+            penalty = self.calculate_according_to_phi_two(time_of_first_arrival=time_of_first_arrival,
+                                                          flag=update_late_arrival_indicator)
+
+        elif time_of_first_arrival > self.critical_time + self.event_creation_time:
+            penalty = self.calculate_according_to_phi_three(
+                update_late_arrival_indicator)  # Case 3 - Time of first arrival > Optimal time
+
+        if update_late_arrival_indicator:
+            self.penalty_for_late_arrival = penalty
+
+        return penalty
+
+    def calculate_according_to_phi_one(self, time_of_first_arrival, flag):
+
+        point_a = (1, 0)  # Insert the first point - Assuming this is a linear function.
+        point_b = (0.95, self.optimal_time)  # Insert the second point - Assuming this is a linear function.
+        slope = (point_a[0] - point_b[0]) / (point_a[1] - point_b[1])  # Slope calculation.
+        n = point_a[0] - (slope * point_a[1])  # Complete the n in y = mx + n linear function.
+        time_of_first_arrival = time_of_first_arrival - self.event_creation_time
+        penalty = slope * time_of_first_arrival + n
+        if flag is True:
+            self.penalty_for_late_arrival = penalty
+        return penalty
+
+    def calculate_according_to_phi_two(self, time_of_first_arrival, flag):
+
+        point_a = (0.95, self.optimal_time)  # Insert the first point - Assuming this is a linear function.
+        point_b = (0.1, self.critical_time)  # Insert the second point - Assuming this is a linear function.
+        slope = (point_a[0] - point_b[0]) / (point_a[1] - point_b[1])  # Slope calculation.
+        n = point_a[0] - (slope * point_a[1])  # Complete the n in y = mx + n linear function.
+        time_of_first_arrival = time_of_first_arrival - self.event_creation_time
+        penalty = slope * time_of_first_arrival + n
+        if flag is True:
+            self.penalty_for_late_arrival = penalty
+        return penalty
+
+    def calculate_according_to_phi_three(self, flag):
+
+        penalty = 0.1
+        if flag is True:
+            self.penalty_for_late_arrival = penalty
+        return penalty
+
+    def initialize_ro_coefficient(self):
+
+        return self.initial_ro_coefficient * self.importance
 
 
 class TSGPlayer(PlayerSimple):
@@ -329,15 +518,12 @@ class TSGPlayer(PlayerSimple):
 
     def __init__(self, agent_id, agent_type, last_update_time, point, start_activity_time,
                  start_resting_time, max_activity_time, extra_hours_allowed, min_competence_time, competence_length,
-                 is_working_extra_hours, address, status=Status.IDLE,tnow=0):
+                 is_working_extra_hours, address, status=Status.IDLE, tnow=0):
 
         # ##------------------------Parameters received from TSG during simulation run-------------------------##
 
-        PlayerSimple.__init__(id_=agent_id, location=point, speed=50, status=Status.IDLE,
-                              abilities=AbilitySimple(ability_type=agent_type), tnow=tnow)
-        self.agent_type = agent_type
-        self.last_update_time = last_update_time
-        self.point = point
+        PlayerSimple.__init__(self, id_=agent_id, location=point, speed=50, status=Status.IDLE,
+                              abilities=[AbilitySimple(ability_type=agent_type)], tnow=tnow)
         self.start_activity_time = start_activity_time
         self.start_resting_time = start_resting_time
         self.max_activity_time = max_activity_time
@@ -356,6 +542,7 @@ class TSGPlayer(PlayerSimple):
         self.scheduled_missions = []
         self.current_mission = None
         self.did_agent_start_overtime = False
+        self.address = address
 
     # ##------------------------Methods for change status--------------------------------------------##
 
@@ -433,7 +620,7 @@ class TSGPlayer(PlayerSimple):
         return False
 
     def __str__(self):
-        return str(self.agent_name)
+        return str(self.id_)
 
         # ##-----------------------------Time calculations Methods---------------------------------##
 

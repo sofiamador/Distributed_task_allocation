@@ -24,8 +24,8 @@ def rand_id_str(rand):
 
 
 class TaskSimpleStatic(TaskSimple):
-    def __init__(self, id_, location, importance, missions, name):
-        TaskSimple.__init__(self, id_, location, importance, missions)
+    def __init__(self, id_, location, importance, missions_list, name):
+        TaskSimple.__init__(self, id_, location, importance, missions_list)
         self.name = name
 
     def __str__(self):
@@ -60,110 +60,110 @@ class SingleTaskStaticPoliceGenerator():
 
     def get_cat_task(self):
         m1 = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=1800, arrival_time_to_the_system=0,
-                           ability=self.ability_dict[0], max_players=2)
+                           abilities=self.ability_dict[0], max_players=2)
         m1.remaining_workload = m1.remaining_workload * self.rand.random()
 
-        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=1, missions=[m1],
+        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=1, missions_list=[m1],
                                 name="cat")
 
     def get_bank_rubbery_task(self):
         m_interview = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=3600,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[1], max_players=2)
+                                    abilities=self.ability_dict[1], max_players=2)
         m_interview.remaining_workload = m_interview.remaining_workload * self.rand.random()
 
         m_first_aid = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=3600 * 1.5,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[2], max_players=3)
+                                    abilities=self.ability_dict[2], max_players=3)
         m_first_aid.remaining_workload = m_first_aid.remaining_workload * self.rand.random()
 
         m_observe = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=3600 * 1.5,
                                   arrival_time_to_the_system=0,
-                                  ability=self.ability_dict[3], max_players=4)
+                                  abilities=self.ability_dict[3], max_players=4)
         m_observe.remaining_workload = m_observe.remaining_workload * self.rand.random()
 
         m_gun = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=3600 * 1.5,
                               arrival_time_to_the_system=0,
-                              ability=self.ability_dict[4], max_players=3)
+                              abilities=self.ability_dict[4], max_players=3)
         m_gun.remaining_workload = m_gun.remaining_workload * self.rand.random()
 
         missions = [m_interview, m_first_aid, m_observe, m_gun]
 
-        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=8, missions=missions,
+        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=8, missions_list=missions,
                                 name="bank_rub")
 
     def get_terror_task(self):
         m_interview = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=3600 * 1.5,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[1], max_players=3)
+                                    abilities=self.ability_dict[1], max_players=3)
         m_interview.remaining_workload = m_interview.remaining_workload * self.rand.random()
 
         m_first_aid = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=3600 * 1.5,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[2], max_players=3)
+                                    abilities=self.ability_dict[2], max_players=3)
         m_first_aid.remaining_workload = m_first_aid.remaining_workload * self.rand.random()
 
         m_observe = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=3600 * 1.5,
                                   arrival_time_to_the_system=0,
-                                  ability=self.ability_dict[3], max_players=4)
+                                  abilities=self.ability_dict[3], max_players=4)
         m_observe.remaining_workload = m_observe.remaining_workload * self.rand.random()
 
         m_gun = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=3600 * 1.5,
                               arrival_time_to_the_system=0,
-                              ability=self.ability_dict[4], max_players=4)
+                              abilities=self.ability_dict[4], max_players=4)
         m_gun.remaining_workload = m_gun.remaining_workload * self.rand.random()
 
         missions = [m_interview, m_first_aid, m_observe, m_gun]
 
-        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=10, missions=missions,
+        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=10, missions_list=missions,
                                 name="terror")
 
     def get_car_accident_easy(self):
         m_interview = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=2700,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[1], max_players=1)
+                                    abilities=self.ability_dict[1], max_players=1)
         m_interview.remaining_workload = m_interview.remaining_workload * self.rand.random()
 
         m_first_aid = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=2700,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[2], max_players=2)
+                                    abilities=self.ability_dict[2], max_players=2)
         m_first_aid.remaining_workload = m_first_aid.remaining_workload * self.rand.random()
 
         missions = [m_interview, m_first_aid]
 
-        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=3, missions=missions,
+        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=3, missions_list=missions,
                                 name="easy_car_a")
 
     def get_car_accident_hard(self):
         m_interview = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=5400,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[1], max_players=2)
+                                    abilities=self.ability_dict[1], max_players=2)
         m_interview.remaining_workload = m_interview.remaining_workload * self.rand.random()
 
         m_first_aid = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=5400,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[2], max_players=3)
+                                    abilities=self.ability_dict[2], max_players=3)
         m_first_aid.remaining_workload = m_first_aid.remaining_workload * self.rand.random()
 
         missions = [m_interview, m_first_aid]
 
-        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=6, missions=missions,
+        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=6, missions_list=missions,
                                 name="hard_car_a")
 
     def family_violence(self):
         m_interview = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=4500,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[1], max_players=2)
+                                    abilities=self.ability_dict[1], max_players=2)
         m_interview.remaining_workload = m_interview.remaining_workload * self.rand.random()
 
         m_first_aid = MissionSimple(mission_id=rand_id_str(self.rand), initial_workload=4500,
                                     arrival_time_to_the_system=0,
-                                    ability=self.ability_dict[2], max_players=1)
+                                    abilities=self.ability_dict[2], max_players=1)
         m_first_aid.remaining_workload = m_first_aid.remaining_workload * self.rand.random()
 
         missions = [m_interview, m_first_aid]
 
-        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=4, missions=missions,
+        return TaskSimpleStatic(id_=rand_id_str(self.rand), location=self.location, importance=4, missions_list=missions,
                                 name="family_dis")
 
 
@@ -292,7 +292,7 @@ class SimulationStatic():
     def get_number_of_tasks_required(self):
         ans = 0
         for task in self.tasks:
-            for mission in task.missions:
+            for mission in task.missions_list:
                 ans += mission.max_players
         return ans
 
@@ -300,13 +300,13 @@ class SimulationStatic():
         allocation = {}
         for task in self.tasks:
             allocation[task] = {}
-            for mission in task.missions:
+            for mission in task.missions_list:
                 allocation[task][mission] = []
 
         for task, dic_m_list in allocation.items():
             task_location = task.location
             for mission, m_list in dic_m_list.items():
-                ability = mission.ability
+                ability = mission.abilities
                 max_players = mission.max_players
                 while number_of_players != 0 and max_players != 0:
                     player = PlayerSimple(id_=rand_id_str(self.rand), location=task_location,
@@ -315,7 +315,7 @@ class SimulationStatic():
                     m_list.append(player)
                     player.current_mission = mission
                     player.current_task = task
-                    mission.current_players_list.append(player)
+                    mission.players_allocated_to_the_mission.append(player)
                     number_of_players -= 1
                     max_players -= 1
         return allocation

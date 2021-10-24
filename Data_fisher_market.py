@@ -14,7 +14,7 @@ def calculate_sum_R_X(agents_algorithm):
     ri_xi = 0
     for player in players:
         for task in player.tasks_log:
-            for mission in task.missions:
+            for mission in task.missions_list:
                 r_ijk_util = player.r_i[task][mission]
                 r_ijk = r_ijk_util.get_utility()
                 x_ijk = task.x_jk[mission][player.id_]
@@ -28,7 +28,7 @@ def calculate_sum_R_X_pov(agents_algorithm):
     ri_xi = 0
     for player in players:
         for task in player.tasks_log:
-            for mission in task.missions:
+            for mission in task.missions_list:
                 r_ijk_util = player.r_i[task][mission]
                 r_ijk = r_ijk_util.get_utility()
                 x_ijk = player.x_i[task][mission]
@@ -50,7 +50,7 @@ def calculate_single_R_X_player(agents_algorithm):
     single_player = get_single_player(agents_algorithm)
     ri_xi = 0
     for task in single_player.self.tasks_log:
-        for mission in task.missions:
+        for mission in task.missions_list:
             r_ijk_util = single_player.r_i[task][mission]
             r_ijk = r_ijk_util.get_utility()
             x_ijk = task.x_jk[mission][single_player.id_]
@@ -62,7 +62,7 @@ def calculate_single_R_X_player_pov(agents_algorithm):
     single_player = get_single_player(agents_algorithm)
     ri_xi = 0
     for task in single_player.self.tasks_log:
-        for mission in task.missions:
+        for mission in task.missions_list:
             r_ijk_util = single_player.r_i[task][mission]
             r_ijk = r_ijk_util.get_utility()
             x_ijk = single_player.x_i[task][mission]

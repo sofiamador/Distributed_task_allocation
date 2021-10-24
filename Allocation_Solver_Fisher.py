@@ -74,7 +74,7 @@ class FisherPlayerASY(PlayerAlgorithm):
 
     def set_single_task_in_x_i(self, task_log):
         self.x_i[task_log] = {}
-        for mission_log in task_log.missions:
+        for mission_log in task_log.missions_list:
             self.x_i[task_log][mission_log] = None
 
     def set_initial_r_i(self):
@@ -83,7 +83,7 @@ class FisherPlayerASY(PlayerAlgorithm):
 
     def set_single_task_in_r_i(self, task_in_log):
         self.r_i[task_in_log] = {}
-        for mission_log in task_in_log.missions:
+        for mission_log in task_in_log.missions_list:
             util = Utility(player_entity=self.simulation_entity, mission_entity=mission_log, task_entity=task_in_log,
                            t_now=self.t_now, future_utility_function = self.future_utility_function)
             self.r_i[task_in_log][mission_log] = util
@@ -93,7 +93,7 @@ class FisherPlayerASY(PlayerAlgorithm):
 
         for task_log in self.tasks_log:
             self.bids[task_log]={}
-            for mission_log in task_log.missions:
+            for mission_log in task_log.missions_list:
                 util = self.r_i[task_log][mission_log]
                 linear_util = util.get_utility()
                 self.bids[task_log][mission_log] = linear_util/sum_util
@@ -101,7 +101,7 @@ class FisherPlayerASY(PlayerAlgorithm):
     def get_sum_util(self):
         sum_util_list = []
         for task_log in self.tasks_log:
-            for mission_log in task_log.missions:
+            for mission_log in task_log.missions_list:
                 util = self.r_i[task_log][mission_log]
                 linear_util = util.get_utility()
                 sum_util_list.append(linear_util)
@@ -110,7 +110,7 @@ class FisherPlayerASY(PlayerAlgorithm):
 
     def add_task_entity_to_log(self, task_entity: TaskSimple):
         super().add_task_entity_to_log(task_entity)
-        for mission_entity in task_entity.missions:
+        for mission_entity in task_entity.missions_list:
             if task_entity not in self.r_i:
                 self.r_i[task_entity] = {}
             self.r_i[task_entity][mission_entity] = Utility(player_entity=self.simulation_entity,

@@ -179,16 +179,6 @@ class PlayerSimple(Entity):
             if self.id_ != a.id_ and f_are_neighbours(self, a):
                 self.neighbours.append(a)
 
-    def personal_utility(self, event, ability):
-        """
-        calculates personal utility of the agent from the event using specific ability
-        :param event:
-        :param ability:
-        :return: personal utility
-        :rtype: float
-        """
-        raise NotImplementedError
-
 
 class MissionSimple:
     """
@@ -196,7 +186,7 @@ class MissionSimple:
     """
 
     def __init__(self, mission_id, initial_workload, arrival_time_to_the_system,
-                 ability=[AbilitySimple(ability_type=0)],
+                 abilities=[AbilitySimple(ability_type=0)],
                  min_players=1, max_players=1):
         """
         Simple mission constructor
@@ -205,18 +195,18 @@ class MissionSimple:
         :param initial_workload: The required workload of the mission (in seconds)
         :type initial_workload: float
         :param arrival_time_to_the_system: The time that task (with the mission)  arrived
-        :param ability:
+        :param abilities:
         :param min_players:
         :param max_players:
         """
 
         self.mission_id = mission_id
-        self.ability = ability
+        self.abilities = abilities
         self.min_players = min_players
         self.max_players = max_players
         self.initial_workload = initial_workload
         self.remaining_workload = initial_workload
-        self.current_players_list = []
+        self.players_allocated_to_the_mission = []
         self.is_done = False
         self.arrival_time_to_the_system = arrival_time_to_the_system
         self.last_updated = arrival_time_to_the_system
@@ -230,25 +220,25 @@ class MissionSimple:
 
     def add_player(self, new_player, tnow):
         self.update_workload(tnow)
-        self.current_players_list.append(new_player)
+        self.players_allocated_to_the_mission.append(new_player)
 
     def remove_player(self, new_player, tnow):
         self.update_workload(tnow)
-        self.current_players_list.remove(new_player)
+        self.players_allocated_to_the_mission.remove(new_player)
 
     def remove_all_players(self,tnow):
         self.update_workload(tnow)
-        self.current_players_list.clear()
+        self.players_allocated_to_the_mission.clear()
 
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
-        self.workload_updating()
+        self.workload_updating(delta)
         if self.remaining_workload == sys.float_info.epsilon:
             self.is_done = True
         self.last_updated = tnow
 
     def workload_updating(self, delta):
-        self.remaining_workload -= delta * len(self.current_players_list)
+        self.remaining_workload -= delta * len(self.players_allocated_to_the_mission)
 
 
 class TaskSimple(Entity):
@@ -256,7 +246,7 @@ class TaskSimple(Entity):
     Class that represents a simple event in the simulation
     """
 
-    def __init__(self, id_, location, importance,  missions: list, tnow = 0):
+    def __init__(self,  id_, location, importance, missions_list: list, tnow = 0):
         """
         :param id_: The id of the event
         :type  id_: str
@@ -264,14 +254,14 @@ class TaskSimple(Entity):
         :type location: list of float
         :param importance: The importance of the event
         :type importance: int
-        :param missions: the missions of the
+        :param missions_list: the missions of the
         :param type_: The type of the event
         :type type_: int
         :param player_responsible, simulation will assign a responsible player to perform that algorithmic task
         computation and message delivery
         """
         Entity.__init__(self,id_, location, tnow)
-        self.missions = missions
+        self.missions_list = missions_list
         self.player_responsible = None
         self.importance = importance
 
@@ -282,7 +272,7 @@ class TaskSimple(Entity):
         :rtype: float
         """
         sum_ = 0
-        for m in self.missions:
+        for m in self.missions_list:
             sum_ += m.mission_utility
         return sum_
 
@@ -307,8 +297,8 @@ def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: PlayerSimple):
     :param agent: The agent that is checked if it suitable for the task according to hos abilities.
     :return:
     """
-    for mission in task.missions:
-        if mission.ability in agent.abilities:
+    for mission in task.missions_list:
+        if mission.abilities in agent.abilities:
             return True
 
 

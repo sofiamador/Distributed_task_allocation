@@ -12,17 +12,17 @@ def input_from_file(file_name):
         lst[i] = lst[i].replace("  ", "")
         lst[i] += "]"
         lst[i] = ast.literal_eval(lst[i])
-        print(lst[i])
+        #print(lst[i])
     return lst
 
 
 if __name__ == '__main__':
     file_name = "RUN1.1_input.txt"
-    input_from_file(file_name)
+    host_name = "צוות_חילוץ_1"
     agent_list, event_list, allocation_list, event_params, force_type_data, discrete_params = input_from_file(file_name)
-    print(agent_list)
 
-    allocation_list_updated = TSG_integration.calcAllocations(agent_list=agent_list, event_list=event_list,
+    allocation_list_updated = TSG_integration.calcAllocations(host_agent=host_name, agent_list=agent_list,
+                                                              event_list=event_list,
                                                               allocations_list=allocation_list,
                                                               force_type_data=force_type_data,
                                                               discrete_params=discrete_params,

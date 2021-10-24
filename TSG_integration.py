@@ -1,20 +1,27 @@
 # -*- coding: utf-8 -*-
 import copy
 # import time
+import random
+import uuid
+
 from TSG_Solver import TSGPlayer, TSGMission, TSGEvent, Allocations, Status
 
 remaining_working_time_threshold = 0.25
 
 
+def are_neighbours(a, b):
+    return True
+
+
 def get_event_by_id(events_list, id_):
     for e in events_list:
-        if e.event_id == id_:
+        if e.id_ == id_:
             return e
 
 
 def get_agent_by_id(agents_list, id_):
     for a in agents_list:
-        if a.agent_id_ == id_:
+        if a.id_ == id_:
             return a
 
 
@@ -39,7 +46,7 @@ def create_force_type_data_map(force_type_data):
     return force_data
 
 
-def create_agents(agents_list, force_data_map, t_now):
+def create_agents(agents_list, force_data_map, t_now, host_agent):
     agents_obj_list = []
     agents_id_list = []
 
@@ -52,38 +59,40 @@ def create_agents(agents_list, force_data_map, t_now):
         resting_hours = t[6]
         address = t[7]
 
-        status = None
-        is_working_extra_hours = False
-        if resting_hours > 0 and working_hours > 0:
-            raise Exception
+        if address == host_agent:
+            status = None
+            is_working_extra_hours = False
+            if resting_hours > 0 and working_hours > 0:
+                raise Exception
 
-        if 0 < resting_hours < force_data_map[type_]["min_competence_time"] or \
-                working_hours >= force_data_map[type_]["max_activity_time"] + force_data_map[type_][
-            "extra_hours_allowed"] + remaining_working_time_threshold:
-            status = Status.TOTAL_RESTING
-            start_activity_time = None
-            start_resting_time = t[2] / 3600 - t[6]
-        elif force_data_map[type_]["min_competence_time"] <= resting_hours < force_data_map[type_][
-            "competence_length"]:
-            status = Status.RESTING
-            start_activity_time = None
-            start_resting_time = t[3] / 3600 - t[7]
-        else:
-            status = Status.IDLE
-            start_activity_time = t[2] / 3600 - t[5]
-            start_resting_time = None
-            if working_hours >= force_data_map[type_]["max_activity_time"]:
-                is_working_extra_hours = True
+            if 0 < resting_hours < force_data_map[type_]["min_competence_time"] or \
+                    working_hours >= force_data_map[type_]["max_activity_time"] + force_data_map[type_][
+                "extra_hours_allowed"] + remaining_working_time_threshold:
+                status = Status.TOTAL_RESTING
+                start_activity_time = None
+                start_resting_time = t[2] / 3600 - t[6]
+            elif force_data_map[type_]["min_competence_time"] <= resting_hours < force_data_map[type_][
+                "competence_length"]:
+                status = Status.RESTING
+                start_activity_time = None
+                start_resting_time = t[3] / 3600 - t[7]
+            else:
+                status = Status.IDLE
+                start_activity_time = t[2] / 3600 - t[5]
+                start_resting_time = None
+                if working_hours >= force_data_map[type_]["max_activity_time"]:
+                    is_working_extra_hours = True
 
-        a = TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
-                      point=[t[3], t[4]], start_activity_time=start_activity_time,
-                      start_resting_time=start_resting_time,
-                      max_activity_time=force_data_map[type_]["max_activity_time"],
-                      extra_hours_allowed=force_data_map[type_]["extra_hours_allowed"],
-                      min_competence_time=force_data_map[type_]["min_competence_time"],
-                      competence_length=force_data_map[type_]["competence_length"], status=status,
-                      is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now)
-        agents_obj_list.append(a)
+            a = TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
+                          point=[t[3], t[4]], start_activity_time=start_activity_time,
+                          start_resting_time=start_resting_time,
+                          max_activity_time=force_data_map[type_]["max_activity_time"],
+                          extra_hours_allowed=force_data_map[type_]["extra_hours_allowed"],
+                          min_competence_time=force_data_map[type_]["min_competence_time"],
+                          competence_length=force_data_map[type_]["competence_length"], status=status,
+                          is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now)
+
+            agents_obj_list.append(a)
     return agents_obj_list, agents_id_list
 
 
@@ -100,13 +109,15 @@ def create_event_params_data_map(event_params):
     return events_data
 
 
-def create_events(events_list, event_params_map):
+def create_events(events_list, event_params_map, agent_ids_list, t_now, host_agent):
     event_obj_list = []
     for t in events_list:
-        e = TSGEvent(event_id=t[0], event_name=t[1], event_type=t[2], damage_level=t[3], life_saving_potential=t[4],
-                     event_creation_time=t[6] / 3600, event_update_time=t[7] / 3600,
-                     point=[t[8], t[9]], workload=event_params_map[(t[2], t[3], t[4])]["total_workload"],
-                     mission_params=event_params_map[(t[2], t[3], t[4])]["mission_params"])
+        e = TSGEvent(event_id=t[0], event_type=t[1], damage_level=t[2], life_saving_potential=t[3],
+                     event_creation_time=t[5] / 3600, event_update_time=t[6] / 3600,
+                     point=[t[7], t[8]], workload=event_params_map[(t[1], t[2], t[3])]["total_workload"],
+                     mission_params=event_params_map[(t[1], t[2], t[3])]["mission_params"], tnow=t_now)
+        e.player_responsible = host_agent
+        e.neighbours = agent_ids_list
         event_obj_list.append(e)
     return event_obj_list
 
@@ -124,8 +135,8 @@ def update_agents_status_and_missions_workload(agents_obj_list, events_obj_list,
             agent.current_mission = mission
             if agent.status != Status.TOTAL_RESTING:
                 agent.status = Status.HANDLING_WITH_A_MISSION
-            mission.agent_on_the_mission.append(agent)
-            mission.agents_allocated_to_the_mission.append(agent)
+            mission.players_allocated_to_the_mission.append(agent)
+            mission.players_allocated_to_the_mission.append(agent)
             work_done = t_now - a.working_starting_time
         elif t_now > a.working_ending_time:
             work_done = a.working_ending_time - a.working_starting_time
@@ -134,7 +145,21 @@ def update_agents_status_and_missions_workload(agents_obj_list, events_obj_list,
 
 
 def solve(agent_obj_list, event_obj_list, t_now):
-    pass
+    allocations = []
+    for i in range(len(agent_obj_list)):
+        agent = agent_obj_list[i]
+        event = event_obj_list[i % len(event_obj_list)]
+        a = Allocations(allocation_id=uuid.uuid1(), agent_type=agent.abilities[0].ability_type,
+                        mission_creation_time=t_now,
+                        last_update_time=t_now, mission_status=1, event_id=event.id_,
+                        agent_id=agent.id_, working_starting_time=t_now,
+                        working_ending_time=t_now + 3600 * random.random())
+        for m in event.missions_list:
+            if m.abilities[0] == agent.abilities[0]:
+                m.add_player(agent,t_now)
+
+        allocations.append(a)
+    return allocations
     # FMC_algorithm = SolveFisher(agents_=agent_obj_list, events_=event_obj_list, time_now_=t_now)
     # return FMC_algorithm.first_allocations
 
@@ -144,14 +169,15 @@ def merge_new_and_prev_allocations(new_obj_allocations, old_obj_alloctions):
         for old_a in old_obj_alloctions:
             if a == old_a:
                 a.allocation_id = old_a.allocation_id
-                a.mission_creation_time = old_a.mission_creation_time
+                a.initial_workload = old_a.initial_workload
 
 
 def create_list_of_tuples_allocations(new_obj_allocations):
     allocations_list = []
     for a in new_obj_allocations:
         tup = (
-            a.allocation_id, a.agent_type, a.mission_creation_time * 3600, a.last_update_time * 3600, a.mission_status,
+            a.allocation_id, a.agent_type, a.mission_creation_time * 3600, a.working_ending_time * 3600,
+            a.mission_status,
             a.event_id,
             a.agent_id, a.working_starting_time * 3600, a.working_ending_time * 3600)
         allocations_list.append(copy.deepcopy(tup))
@@ -166,41 +192,46 @@ def calcAllocations(*args, **kwargs):
     #    f.write(e)
 
 
-def print_allocations(allocation_obj_list, event_obj_list, agent_obj_list):
+def print_allocations(event_obj_list):
     for e in event_obj_list:
-        print(e.event_name, "importance", e.event_importance)
+        print(e.id_, "importance", e.importance)
         for m in e.missions_list:
             agent_l = "{"
-            for a in m.agents_allocated_to_the_mission:
+            for a in m.players_allocated_to_the_mission:
                 agent_l += a.__str__() + ", "
             agent_l += "}"
-            print("workload", m.remaining_workload, "max teams", m.max_number_of_teams, "type", m.agent_type, agent_l)
+            print("workload", m.remaining_workload, "max teams", m.max_players, "type", m.abilities[0].ability_type,
+                  agent_l)
     print()
     print()
 
 
-def calcAllocationsInternal(agent_list, event_list, allocations_list, event_params, force_type_data, discrete_params):
-
+def calcAllocationsInternal(host_agent, agent_list, event_list, allocations_list, event_params, force_type_data,
+                            discrete_params):
     # t_now = time.time()/3600
-    t_now = event_list[-1][7]
+    t_now = event_list[-1][6] / 3600
     # agents creation#
     force_data_map = create_force_type_data_map(force_type_data)  # ok
-    agent_obj_list = create_agents(agent_list, force_data_map, t_now)  #
+    agents_obj_list, agent_ids_list = create_agents(agent_list, force_data_map, t_now, host_agent)  # ok
 
     # mission creation#
-    event_params_map = create_event_params_data_map(event_params)
-    event_obj_list = create_events(event_list, event_params_map)
+    event_params_map = create_event_params_data_map(event_params)  # ok
+    event_obj_list = create_events(event_list, event_params_map, agent_ids_list=agent_ids_list, t_now=t_now,
+                                   host_agent=host_agent)  # ok
+
+    # update the host agent
+    h = get_agent_by_id(agents_obj_list, host_agent)
+    h.neighbours = agents_obj_list
+    h.tasks_responsible = event_obj_list
 
     #  update missions and agents
-    allocation_obj_list = create_obj_allocations(allocations_list)
+    allocation_obj_list = create_obj_allocations(allocations_list)  # ok
 
-
-    update_agents_status_and_missions_workload(agents_obj_list=agent_obj_list, events_obj_list=event_obj_list,
+    update_agents_status_and_missions_workload(agents_obj_list=agents_obj_list, events_obj_list=event_obj_list,
                                                allocation_list_=allocation_obj_list,
                                                t_now=t_now)
-    solve(agent_obj_list, event_obj_list, t_now)
-    print_allocations(allocation_obj_list, event_obj_list, agent_obj_list)
-    new_obj_allocations = solve(agent_obj_list, event_obj_list, t_now)
+    print_allocations(event_obj_list)
+    new_obj_allocations = solve(agents_obj_list, event_obj_list, t_now)
     merge_new_and_prev_allocations(new_obj_allocations=new_obj_allocations, old_obj_alloctions=allocation_obj_list)
-    print_allocations(new_obj_allocations, event_obj_list, agent_obj_list)
+    print_allocations(event_obj_list)
     return create_list_of_tuples_allocations(new_obj_allocations)

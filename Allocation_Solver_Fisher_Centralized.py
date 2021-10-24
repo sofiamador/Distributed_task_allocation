@@ -155,7 +155,7 @@ class AllocationSolverFisherCentralized (AllocationSolverCentralized):
             self.dict_ptmu = {}
             for task in self.tasks_simulation:
                 self.dict_ptmu[task] = {}
-                for mission in task.missions:
+                for mission in task.missions_list:
                     util = Utility(player_entity=player, mission_entity=mission, task_entity=task,
                                    t_now=self.last_event.time,  future_utility_function=self.future_utility_function)
                     self.dict_ptmu[player][task][mission] = util
