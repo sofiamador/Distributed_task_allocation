@@ -1,6 +1,6 @@
 import math
 
-from TSG_Solver import TSGPlayer, TSGMission, TSGEvent
+from TSG_Solver import TSGPlayer, TSGMission, TSGEvent, late_finish_coefficient, interruption_coefficient
 
 
 def calc_ratio_utility_for_current_mission(task_entity,mission_entity,player_entity:TSGPlayer):
@@ -33,7 +33,7 @@ def calc_ratio_utility_for_current_mission(task_entity,mission_entity,player_ent
     return ans
 
 
-def calc_distance_penalty(task_entity,player_entity,tnow):
+def calc_distance_penalty(task_entity:TSGEvent,player_entity:TSGPlayer,tnow):
 
     delta_x = task_entity.location[0]-player_entity.location[0]
     delta_y = task_entity.location[1]-player_entity.location[1]
@@ -60,6 +60,45 @@ def calc_shift_time_worth_ratio(player_entity:TSGPlayer,mission_entity:TSGMissio
     potential_worth = shift_hours_potential + overtime_hours_potential
 
     return remaining_worth / potential_worth
+
+def calc_ratio_utility_for_other_missions(task_entity:TSGEvent,mission_entity:TSGMission):
+    current_sar_size = task_entity.get_mission(1).get_number_of_agents_allocated_to_mission()
+    ans = 0
+    if mission_entity.abilities[0].ability_type == 1:
+        if current_sar_size == 0:
+            for m in task_entity.missions_list:
+                if m.agent_type != 1:
+                    ans += m.teams_ratio
+        if current_sar_size > 0:
+            for m in task_entity.missions_list:
+                if m.agent_type != 1:
+                    current_team_size_non_sar = m.get_number_of_agents_allocated_to_mission()
+                    if current_team_size_non_sar > 0:
+                        opt_ratio = m.teams_ratio
+                        ans += abs(opt_ratio - (current_team_size_non_sar / current_sar_size)) - abs(
+                            opt_ratio - (current_team_size_non_sar / (current_sar_size + 1)))
+    else:
+        current_team_size_non_sar = mission_entity.get_number_of_agents_allocated_to_mission()
+        if current_sar_size == 0:
+            return 0
+        elif current_team_size_non_sar == 0 and current_sar_size > 0:
+            return mission_entity.teams_ratio
+        else:
+            opt_ratio = mission_entity.teams_ratio
+            return abs(opt_ratio - (current_team_size_non_sar / current_sar_size)) - abs(
+                opt_ratio - (current_team_size_non_sar + 1) / current_sar_size)
+    return ans
+
+def calc_interruption_penalty(player_entity:TSGPlayer):
+    if player_entity.current_mission is None:
+        return 0
+    return player_entity.current_mission.expected_survival_interruption_decrease()
+
+def calc_late_finish(player_entity:TSGPlayer):
+    if player_entity.current_mission is None:
+        return 0
+
+    return player_entity.agent.current_mission.expected_survival_late_finish_decrease()
 
 def calculate_rij_tsg(player_entity :TSGPlayer, mission_entity:TSGMission, task_entity:TSGEvent,
                                                  t_now=0):
@@ -90,16 +129,16 @@ def calculate_rij_tsg(player_entity :TSGPlayer, mission_entity:TSGMission, task_
     if player_entity.current_mission is not None and player_entity.current_mission.mission_id == mission_entity.mission_id:
         ratio_utility = calc_ratio_utility_for_current_mission(task_entity=task_entity,mission_entity=mission_entity,player_entity=player_entity)
     else:
-        ratio_utility = self.calc_ratio_utility_for_other_missions()  # [0,1]
+        ratio_utility = calc_ratio_utility_for_other_missions(task_entity=task_entity,mission_entity=mission_entity)  # [0,1]
 
     if player_entity.current_mission is not None and not mission_entity.is_passed_optimal_workload:
-        interruption_penalty = self.calc_interruption_penalty()
+        interruption_penalty = calc_interruption_penalty(player_entity=player_entity)
     else:
         interruption_penalty = 0
 
-    w_late_penalty = Integration.events_integ.late_finish_coefficient
-    late_penalty = self.calc_late_finish()
-    w_interruption_penalty = Integration.events_integ.interruption_coefficient
+    w_late_penalty = late_finish_coefficient
+    late_penalty = calc_late_finish(player_entity=player_entity)
+    w_interruption_penalty = interruption_coefficient
 
     abandonment_penalty = w_late_penalty * late_penalty + w_interruption_penalty * interruption_penalty
 

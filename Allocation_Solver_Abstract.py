@@ -417,7 +417,7 @@ class AgentAlgorithm(threading.Thread, ABC):
 
         threading.Thread.__init__(self)
         self.t_now = t_now
-        self.neighbours_ids_list = {}
+        self.neighbours_ids_list = []
         self.is_with_timestamp = is_with_timestamp  # is agent using timestamp when msgs are received
         self.timestamp_counter = 0  # every msg sent the timestamp counter increases by one (see run method)
         self.simulation_entity = simulation_entity  # all the information regarding the simulation entity
@@ -431,7 +431,7 @@ class AgentAlgorithm(threading.Thread, ABC):
 
     def reset_fields(self,t_now):
         self.t_now = t_now
-        self.neighbours_ids_list = {}
+        self.neighbours_ids_list = []
         self.timestamp_counter = 0  # every msg sent the timestamp counter increases by one (see run method)
         self.atomic_counter = 0  # counter changes every computation
         self.NCLO = ClockObject()  # an instance of an object with
@@ -447,11 +447,11 @@ class AgentAlgorithm(threading.Thread, ABC):
         self.cond = condition_input
 
     def add_neighbour_id(self, id_: str):
-        if self.id_ not in self.neighbours_ids_list:
+        if self.simulation_entity.id_ not in self.neighbours_ids_list:
             self.neighbours_ids_list.append(id_)
 
     def remove_neighbour_id(self, id_: str):
-        if self.id_ in self.neighbours_ids_list:
+        if self.simulation_entity.id_ in self.neighbours_ids_list:
             self.neighbours_ids_list.remove(id_)
 
     def add_task_entity(self, task_entity: TaskSimple):

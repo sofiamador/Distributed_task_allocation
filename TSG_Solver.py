@@ -518,7 +518,7 @@ class TSGPlayer(PlayerSimple):
 
     def __init__(self, agent_id, agent_type, last_update_time, point, start_activity_time,
                  start_resting_time, max_activity_time, extra_hours_allowed, min_competence_time, competence_length,
-                 is_working_extra_hours, address, status=Status.IDLE, tnow=0):
+                 is_working_extra_hours, address, status=Status.IDLE, productivity = 1, tnow=0):
 
         # ##------------------------Parameters received from TSG during simulation run-------------------------##
 
@@ -538,7 +538,7 @@ class TSGPlayer(PlayerSimple):
         # ##-----------------------------Parameters that updates during simulation---------------------------------##
 
         self.start_min_resting_time = None
-        self.productivity = 1
+        self.productivity = productivity
         self.scheduled_missions = []
         self.current_mission = None
         self.did_agent_start_overtime = False
@@ -615,7 +615,8 @@ class TSGPlayer(PlayerSimple):
         return self.agent_type
 
     def __eq__(self, other):
-        if type(other) is type(TSGPlayer):
+
+        if isinstance(other,TSGPlayer):
             return self.id_ == other.id_
         return False
 

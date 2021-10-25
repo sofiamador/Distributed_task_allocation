@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from Allocation_Solver_Fisher import FisherAsynchronousSolver
 from Data_fisher_market import get_data_fisher
+from TSG_rij import calculate_rij_tsg
 from TaskStaticGenerator import SingleTaskStaticPoliceGenerator, SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
 
 plt.style.use('seaborn-whitegrid')
@@ -70,21 +71,18 @@ class SimulationStatic():
 
         self.players = []
         self.create_players_given_ratio()
-        self.draw_map() # show map of tasks location for debug
+        #self.draw_map() # show map of tasks location for debug
 
 
     def add_solver (self,solver:AllocationSolver):
         self.solver = solver
-        task_arrive = SingleTaskStaticPoliceGenerator(rand=self.rand, map=self.map,
-                                                      create_ability_dict=self.create_ability_dict).random_task
-        self.tasks.append(task_arrive)
+
         for task in self.tasks:
             find_responsible_agent(task = task, players = self.players)
 
         for player in self.players:
             self.solver.add_player_to_solver(player)
 
-        self.solver.add_task_to_solver(task_arrive)
         for task in self.tasks:
             self.solver.add_task_to_solver(task)
 
@@ -154,7 +152,7 @@ class SimulationStatic():
             else:
                 for k,v in dict_copy.items():
                     if v!=0:
-                        player = SinglePlayerGeneratorTSG( rand = self.rand , map_=self.map, ability_number = k)
+                        player = SinglePlayerGeneratorTSG( rand = self.rand , map_=self.map, ability_number = k).rnd_player
                         self.players.append(player)
                         dict_copy[k]=v-1
                         number_of_players-=1
@@ -185,14 +183,14 @@ def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
 
 if __name__ == '__main__':
 
-    fisher_solver = FisherAsynchronousSolver(f_termination_condition=f_termination_condition_constant_mailer_nclo,
-                                             f_global_measurements=get_data_fisher,
-                                             f_communication_disturbance=default_communication_disturbance,
-                                             future_utility_function=None)
+
 
     for i in range(simulation_reps):
         ss = SimulationStatic(rep_number=i, solver=None)
-
+        fisher_solver = FisherAsynchronousSolver(f_termination_condition=f_termination_condition_constant_mailer_nclo,
+                                                 f_global_measurements=get_data_fisher,
+                                                 f_communication_disturbance=default_communication_disturbance,
+                                                 future_utility_function=calculate_rij_tsg)
 
         ss.add_solver( fisher_solver)
         fisher_solver.solve()

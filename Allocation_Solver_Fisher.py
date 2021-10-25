@@ -275,14 +275,14 @@ class FisherTaskASY(TaskAlgorithm):
 
     def reset_x_jk(self):
         self.x_jk = {}
-        for mission in self.simulation_entity.missions:
+        for mission in self.simulation_entity.missions_list:
             self.x_jk[mission] = {}
             for n_id in self.potential_players_ids_list:
                 self.x_jk[mission][n_id] = None
 
     def reset_bids(self):
         self.bids = {}
-        for mission in self.simulation_entity.missions:
+        for mission in self.simulation_entity.missions_list:
             self.bids[mission] = {}
             for n_id in self.potential_players_ids_list:
                 self.bids[mission][n_id] = None
@@ -320,7 +320,7 @@ class FisherTaskASY(TaskAlgorithm):
         self.price_t_minus = self.price_current
         self.price_current = self.calculate_price()
         self.price_delta = math.fabs(self.price_t_minus-self.price_current)
-        for mission in self.simulation_entity.missions:
+        for mission in self.simulation_entity.missions_list:
             for player_id,bid in self.bids[mission].items():
                 self.atomic_counter = self.atomic_counter+1
                 if self.bids[mission][player_id] is not None:
@@ -330,7 +330,7 @@ class FisherTaskASY(TaskAlgorithm):
 
     def calculate_price(self):
         ans = 0
-        for mission in self.simulation_entity.missions:
+        for mission in self.simulation_entity.missions_list:
             for bid in self.bids[mission].values():
                 #self.atomic_counter = self.atomic_counter+1
                 ans = ans +bid
@@ -341,7 +341,7 @@ class FisherTaskASY(TaskAlgorithm):
         for n_id in self.potential_players_ids_list:
             info = {}
             flag = False
-            for mission in self.simulation_entity.missions:
+            for mission in self.simulation_entity.missions_list:
                 x_ijk = self.x_jk[mission][n_id]
                 if x_ijk != 0:
                     flag = True
