@@ -1,10 +1,11 @@
+import copy
 import math
 import random
 import matplotlib.pyplot as plt
 
 from Allocation_Solver_Fisher import FisherAsynchronousSolver
 from Data_fisher_market import get_data_fisher
-from TaskStaticGenerator import SingleTaskStaticPoliceGenerator, SingleTaskGeneratorTSG
+from TaskStaticGenerator import SingleTaskStaticPoliceGenerator, SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
 
 plt.style.use('seaborn-whitegrid')
 import numpy as np
@@ -54,22 +55,22 @@ def get_task_importance(task: TaskSimple):
 
 
 class SimulationStatic():
-    def __init__(self, rep_number, solver: AllocationSolver, players_required_ratio=1.5,
+    def __init__(self, rep_number, solver: AllocationSolver, players_required_ratio=1,
                  create_ability_dict=create_ability_dict):
         self.create_ability_dict = create_ability_dict
         self.players_required_ratio = players_required_ratio
         self.rand = random.Random(rep_number * 17)
         self.seed_number = rep_number
         self.solver = solver
-        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=3, sd_multiplier=0.05)
+        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=4, sd_multiplier=0.05, length_y=90,width_x=90)
         self.tasks_per_center = 3
 
         self.tasks = []
         self.create_tasks()
-        self.draw_tasks() # show map of tasks location for debug
 
         self.players = []
-        self.create_players_and_allocations()
+        self.create_players_given_ratio()
+        self.draw_map() # show map of tasks location for debug
 
 
     def add_solver (self,solver:AllocationSolver):
@@ -103,7 +104,7 @@ class SimulationStatic():
                    #                                create_ability_dict=self.create_ability_dict).random_task
 
 
-    def draw_tasks(self):
+    def draw_map(self):
         x = []
         y = []
         importance = []
@@ -113,22 +114,23 @@ class SimulationStatic():
         for t in self.tasks:
             x.append(t.location[0])
             y.append(t.location[1])
-            # importance.append(t.importance)
-            #name.append(t.name)
             type_.append("task")
 
         for cent in self.map.centers_location:
             x.append(cent[0])
             y.append(cent[1])
-            # importance.append(t.importance)
-            #name.append("center")
             type_.append("center")
+
+        for player in self.players:
+            x.append(player.location[0])
+            y.append(player.location[1])
+            type_.append("player")
 
         df = pd.DataFrame(dict(x=x, y=y, type_=type_))
 
         fig, ax = plt.subplots()
 
-        colors = {'center': 'red', 'task': 'blue'}
+        colors = {'center': 'red', 'task': 'blue','player':'green'}
 
         ax.scatter(df['x'], df['y'], c=df['type_'].map(colors))
 
@@ -137,39 +139,32 @@ class SimulationStatic():
         plt.ylim(0, self.map.length)
         plt.show()
 
-    def create_players_and_allocations(self):
+    def create_players_given_ratio(self):
         number_players_required = self.get_number_of_tasks_required()
         number_of_players = math.floor(self.players_required_ratio * number_players_required)
         self.tasks = sorted(self.tasks, key=get_task_importance, reverse=True)
-        self.create_allocation_dict_greedy(number_of_players)
-        if number_of_players>len(self.players):
-            self.allocate_extra_agents_to_centers(number_of_players)
-        self.add_abilities_to_players()
+        self.create_players(number_of_players)
 
-    def allocate_extra_agents_to_centers(self,number_of_players):
-        amount_players_left = number_of_players-len(self.players)
-        centers = self.map.centers_location
-        while amount_players_left>0:
-            for center in centers:
-                if amount_players_left>0: return
-                amount_players_left=-1
+    def create_players(self,number_of_players,dict_input = {1:14,4:6,8:1}):
+        dict_copy = copy.deepcopy(dict_input)
+        while number_of_players!=0:
 
-    def add_abilities_to_players(self):
-        abilities_dict = create_ability_dict({})
-        abilities_list = []
-        for ability in abilities_dict.values():
-            abilities_list.append(ability)
-
-        for player in self.players:
-            abilities_selected = self.rand.choices(abilities_list, k=2)
-            abilities_to_add = []
-            for ability in abilities_selected:
-                if not ability in player.abilities:
-                    abilities_to_add.append(ability)
-            for ability in abilities_to_add:
-                player.abilities.append(ability)
-            if not AbilitySimple(0, "Basic") in player.abilities:
-                player.abilities.append(AbilitySimple(0, "Basic"))
+            if self.all_values_are_zero(dict_copy.values()):
+                dict_copy = copy.deepcopy(dict_input)
+            else:
+                for k,v in dict_copy.items():
+                    if v!=0:
+                        player = SinglePlayerGeneratorTSG( rand = self.rand , map_=self.map, ability_number = k)
+                        self.players.append(player)
+                        dict_copy[k]=v-1
+                        number_of_players-=1
+                        if number_of_players==0:
+                            break
+    def all_values_are_zero(self,values):
+        for v in values:
+            if v!=0:
+                return False
+        return True
 
     def get_number_of_tasks_required(self):
         ans = 0
@@ -178,29 +173,7 @@ class SimulationStatic():
                 ans += mission.max_players
         return ans
 
-    def create_allocation_dict_greedy(self, number_of_players):
-        allocation = {}
-        for task in self.tasks:
-            allocation[task] = {}
-            for mission in task.missions_list:
-                allocation[task][mission] = []
 
-        for task, dic_m_list in allocation.items():
-            task_location = task.location
-            for mission, m_list in dic_m_list.items():
-                ability = mission.abilities
-                max_players = mission.max_players
-                while number_of_players != 0 and max_players != 0:
-                    player = PlayerSimple(id_=rand_id_str(self.rand), location=task_location,
-                                          speed=0.013889, status=Status.ON_MISSION, abilities=[ability])
-                    self.players.append(player)
-                    m_list.append(player)
-                    player.current_mission = mission
-                    player.current_task = task
-                    mission.players_allocated_to_the_mission.append(player)
-                    number_of_players -= 1
-                    max_players -= 1
-        return allocation
 
 
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
@@ -214,7 +187,8 @@ if __name__ == '__main__':
 
     fisher_solver = FisherAsynchronousSolver(f_termination_condition=f_termination_condition_constant_mailer_nclo,
                                              f_global_measurements=get_data_fisher,
-                                             f_communication_disturbance=default_communication_disturbance)
+                                             f_communication_disturbance=default_communication_disturbance,
+                                             future_utility_function=None)
 
     for i in range(simulation_reps):
         ss = SimulationStatic(rep_number=i, solver=None)

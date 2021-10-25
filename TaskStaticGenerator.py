@@ -1,9 +1,9 @@
 import string
 import random
 
-from Simulation import MapHubs, MissionSimple, TaskSimple
+from Simulation import MapHubs, MissionSimple, TaskSimple, AbilitySimple
 # from StaticSimulation import TaskSimpleStatic, rand_id_str
-from TSG_Solver import TSGEvent
+from TSG_Solver import TSGEvent, Status, TSGPlayer
 
 
 class TaskSimpleStatic(TaskSimple):
@@ -20,9 +20,82 @@ def rand_id_str(rand):
     return ans
 
 
-class SinglePlayerGeneratorTSG():
-    def __init__(self, rand: random.Random):
 
+
+
+class SinglePlayerGeneratorTSG():
+    def __init__(self, rand: random.Random, map_: MapHubs, ability_number, tnow =0):
+        self.rand = rand
+        self.tnow = tnow
+        self.location = map_.generate_location_gauss_around_center()
+        self.selected_ability = self.get_selected_ability(ability_number)
+        parameters_input = self.get_parameters_input_dict()
+        force_data_dict = self.create_force_type_data_map(parameters_input)
+        self.rnd_player = self.create_agents(force_data_dict,t_now = self.tnow)
+
+    def create_agents(self, force_data_dict, t_now ):
+        agents_id_list = []
+        agent_id = rand_id_str(self.rand)
+        agents_id_list.append(agent_id)
+        type_ = self.selected_ability
+        last_update_time = self.tnow
+        working_hours = 0
+        resting_hours = 8
+        address = "TODO"
+
+        is_working_extra_hours = False
+        if resting_hours > 0 and working_hours > 0:
+            raise Exception
+
+        if 0 < resting_hours < force_data_dict[type_.ability_type]["min_competence_time"] or \
+                working_hours >= force_data_dict[type_.ability_type]["max_activity_time"] + force_data_dict[type_.ability_type][
+            "extra_hours_allowed"] + 0.25:
+            status = Status.TOTAL_RESTING
+            start_activity_time = None
+            start_resting_time = last_update_time  - resting_hours
+        elif force_data_dict[type_.ability_type]["min_competence_time"] <= resting_hours < force_data_dict[type_.ability_type][
+            "competence_length"]:
+            status = Status.RESTING
+            start_activity_time = None
+            start_resting_time =None #TODO t[3] / 3600 - t[7]
+        else:
+            status = Status.IDLE
+            start_activity_time = last_update_time - working_hours
+            start_resting_time = None
+            if working_hours >= force_data_dict[type_.ability_type]["max_activity_time"]:
+                is_working_extra_hours = True
+
+        return TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
+                      point=self.location, start_activity_time=start_activity_time,
+                      start_resting_time=start_resting_time,
+                      max_activity_time=force_data_dict[type_.ability_type]["max_activity_time"],
+                      extra_hours_allowed=force_data_dict[type_.ability_type]["extra_hours_allowed"],
+                      min_competence_time=force_data_dict[type_.ability_type]["min_competence_time"],
+                      competence_length=force_data_dict[type_.ability_type]["competence_length"], status=status,
+                      is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now)
+
+
+
+
+    def get_selected_ability(self,ability_number):
+        if ability_number == 1:
+            name = "SR"
+        if ability_number == 8:
+            name = "HQ"
+        if ability_number == 4:
+            name = "MED"
+        return AbilitySimple(ability_type=ability_number, ability_name=name)
+
+    def get_parameters_input_dict(self):
+        return [(1, 960, 120, 360, 480), (4, 960, 120, 360, 480),(8, 480, 60, 420, 480)]
+
+    def create_force_type_data_map(self,force_type_data):
+        force_data = {}
+        for t in force_type_data:
+            force_data[t[0]] = {"max_activity_time": t[1] / 60, "extra_hours_allowed": t[2] / 60,
+                                "min_competence_time": t[3] / 60,
+                                "competence_length": t[4] / 60}
+        return force_data
 
 class SingleTaskGeneratorTSG():
     def __init__(self, rand: random.Random, map_: MapHubs, tnow =0):

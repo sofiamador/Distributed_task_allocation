@@ -17,7 +17,7 @@ class Utility:
         self.t_now = t_now
         self.ro = ro
         if util == -1:
-            self.linear_utility = future_utility_function(mission_entity=self.mission_entity, task_entity=self.task_entity,
+            self.linear_utility = future_utility_function(player_entity = self.player_entity, mission_entity=self.mission_entity, task_entity=self.task_entity,
                                                  t_now=self.t_now)
         else:
             self.linear_utility = util
@@ -385,12 +385,13 @@ class FisherTaskASY(TaskAlgorithm):
 
 class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
-                 f_communication_disturbance=default_communication_disturbance):
+                 f_communication_disturbance=default_communication_disturbance,future_utility_function=None):
         AllocationSolverTasksPlayersSemi.__init__(self,mailer, f_termination_condition, f_global_measurements,
                                              f_communication_disturbance)
+        self.future_utility_function = future_utility_function
 
     def create_algorithm_task(self, task: TaskSimple):
         return  FisherTaskASY(agent_simulator=task,t_now = self.tnow)
 
     def create_algorithm_player(self, player:PlayerSimple):
-        return FisherPlayerASY(agent_simulator=player,t_now = self.tnow,future_utility_function = None)
+        return FisherPlayerASY(agent_simulator=player,t_now = self.tnow,future_utility_function = self.future_utility_function)
