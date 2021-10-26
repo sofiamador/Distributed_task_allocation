@@ -357,7 +357,7 @@ class FisherTaskASY(TaskAlgorithm):
                 msg = Msg(sender=self.simulation_entity.id_,receiver = n_id, information = info,
                           is_with_perfect_communication =is_perfect_com)
                 ans.append(msg)
-            return ans
+        return ans
 
 
 

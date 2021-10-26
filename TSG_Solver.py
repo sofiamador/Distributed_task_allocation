@@ -414,7 +414,7 @@ class TSGEvent(TaskSimple):
 
     def __eq__(self, other):
         if isinstance(other,TSGEvent):
-            return self.id_ == other.event_id
+            return self.id_ == other.id_
         return False
 
     def __str__(self):

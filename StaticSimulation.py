@@ -188,7 +188,7 @@ if __name__ == '__main__':
     for i in range(simulation_reps):
         ss = SimulationStatic(rep_number=i, solver=None)
         fisher_solver = FisherAsynchronousSolver(f_termination_condition=f_termination_condition_constant_mailer_nclo,
-                                                 f_global_measurements=get_data_fisher,
+                                                 f_global_measurements=get_data_fisher(),
                                                  f_communication_disturbance=default_communication_disturbance,
                                                  future_utility_function=calculate_rij_tsg)
 

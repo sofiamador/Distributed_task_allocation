@@ -739,7 +739,7 @@ class TaskAlgorithm(AgentAlgorithmTaskPlayers):
         return self.ans
 
     def send_msgs(self):
-        msgs = self.get_list_of_msgs()
+        msgs = self.get_list_of_msgs_to_send()
         ans = []
         for msg in msgs:
             ans.append(MsgTaskEntity(msg, copy.copy(self.simulation_entity)))
@@ -945,6 +945,8 @@ class AllocationSolverDistributed(AllocationSolver):
         self.connect_entities()
         self.agents_initialize()
         self.mailer.reset()
+        self.start_all_threads()
+
         self.mailer.start()
         self.mailer.join()
         return self.mailer.get_allocation_dictionary()  # TODO
