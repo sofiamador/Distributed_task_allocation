@@ -39,6 +39,7 @@ def calc_distance_penalty(task_entity:TSGEvent,player_entity:TSGPlayer,tnow):
     delta_y = task_entity.location[1]-player_entity.location[1]
     quad_distance = math.sqrt(delta_x**2+delta_y**2)
     travel_time = player_entity.speed/quad_distance #speed in km/hr?
+
     arrive_now = task_entity.calculate_penalty_for_late_arrival(time_of_first_arrival=tnow,
                                                                update_late_arrival_indicator=False)
     arrive_after_travel = task_entity.calculate_penalty_for_late_arrival(time_of_first_arrival=tnow+travel_time,

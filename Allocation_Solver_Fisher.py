@@ -17,6 +17,7 @@ class Utility:
         self.t_now = t_now
         self.ro = ro
         if util == -1:
+
             self.linear_utility = future_utility_function(player_entity = self.player_entity, mission_entity=self.mission_entity, task_entity=self.task_entity,
                                                  t_now=self.t_now)
         else:
@@ -44,12 +45,16 @@ def calculate_distance(entity1: Entity, entity2: Entity):
 class FisherPlayerASY(PlayerAlgorithm):
     def __init__(self, agent_simulator, t_now, future_utility_function):
         PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now)
+        if t_now is None:
+            print("allocation_solver_fisher")
         self.r_i = {} # dict {key = task, value = dict{key= mission,value = utility}}
         self.bids = {}
         self.x_i = {} # dict {key = task, value = dict{key= mission,value = allocation}}
         self.msgs_from_tasks = {} # dict {key = task_id, value = last msg}
         self.calculate_bids_flag = False
         self.future_utility_function = future_utility_function
+
+
 
     def reset_additional_fields(self):
 
@@ -82,6 +87,7 @@ class FisherPlayerASY(PlayerAlgorithm):
             self.set_single_task_in_r_i(task_in_log)
 
     def set_single_task_in_r_i(self, task_in_log):
+
         self.r_i[task_in_log] = {}
         for mission_log in task_in_log.missions_list:
             util = Utility(player_entity=self.simulation_entity, mission_entity=mission_log, task_entity=task_in_log,

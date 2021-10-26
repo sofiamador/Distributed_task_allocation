@@ -24,6 +24,7 @@ class UnboundedBuffer():
 
         with self.cond:
             self.buffer.append(list_of_msgs)
+            self.cond.notify_all()
 
     def extract(self):
 
@@ -80,7 +81,9 @@ class Msg:
 
 class MsgTaskEntity(Msg):
     def __init__(self, msg: Msg, task_entity):
-        Msg.__init__(self, msg.sender, msg.receiver, msg.information, msg.msg_time, msg.timestamp)
+        Msg.__init__(self, sender=msg.sender, receiver=msg.receiver, information=msg.information,
+                     is_with_perfect_communication=msg.is_with_perfect_communication)
+
         self.task_entity = task_entity
 
 
@@ -137,6 +140,9 @@ class Mailer(threading.Thread):
         self.time_mailer = ClockObject()
 
         self.measurements = {}
+
+    def get_allocation_dictionary(self):
+        pass
 
     def reset(self):
         global mailer_counter
@@ -198,6 +204,8 @@ class Mailer(threading.Thread):
             self.mailer_iteration(with_update_clock_for_empty_msg_to_send=False)
 
         self.kill_agents()
+        for aa in self.agents_algorithm:
+            aa.join()
 
     def create_measurements(self):
 
@@ -205,7 +213,7 @@ class Mailer(threading.Thread):
 
         for measurement_name, measurement_function in self.f_global_measurements.items():
 
-            measured_value = measurement_function(self.agents_algorithm, single_agent = False)
+            measured_value = measurement_function(self.agents_algorithm)
 
             self.measurements[measurement_name][current_clock] = measured_value
 
@@ -281,14 +289,16 @@ class Mailer(threading.Thread):
 
         """
 
-        for msg in msgs_from_inbox:
-            self.update_clock_upon_msg_recieved(msg)
-            communication_disturbance_output = self.f_communication_disturbance(msg)
-            if  not msg.is_with_perfect_communication:
-                if communication_disturbance_output is not None:
-                    delay = communication_disturbance_output
-                    msg.set_time_of_msg(delay)
-            self.msg_box.append(msg)
+        for msgs in msgs_from_inbox:
+            for msg in msgs:
+                self.update_clock_upon_msg_received(msg)
+                communication_disturbance_output = self.f_communication_disturbance(msg)
+                if  not msg.is_with_perfect_communication:
+                    if communication_disturbance_output is not None:
+                        delay = communication_disturbance_output
+                        msg.set_time_of_msg(delay)
+                self.msg_box.append(msg)
+
     def update_clock_upon_msg_received(self, msg: Msg):
 
         """
@@ -592,7 +602,15 @@ class AgentAlgorithm(threading.Thread, ABC):
         for msg in msgs:
             msg.add_current_NCLO(self.NCLO.clock)
             msg.add_timestamp(self.timestamp)
+            msg.is_with_perfect_communication = self.check_if_msg_should_have_perfect_communication(msg)
         self.outbox.insert(msgs)
+
+    def check_if_msg_should_have_perfect_communication(self):
+        """
+        if both agent "sit" on the same computer them true
+        :return: bool
+        """
+        raise NotImplementedError
 
     @abc.abstractmethod
     def get_list_of_msgs_to_send(self):
@@ -678,11 +696,22 @@ class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
     def __init__(self, simulation_entity:PlayerSimple, t_now, is_with_timestamp=False):
         AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
                                 is_with_timestamp=is_with_timestamp)
+
         self.tasks_responsible_ids = []
         for task_responsible in simulation_entity.tasks_responsible:
             self.tasks_responsible_ids.append(task_responsible.id_)
         self.tasks_log = []
         self.additional_tasks_in_log = []
+
+
+    def check_if_msg_should_have_perfect_communication(self,msg:Msg):
+        ids_ = []
+        for t in self.tasks_log:
+            ids_.append(t.id_)
+
+        if msg.receiver in ids_:
+            return True
+        return False
 
     def get_list_of_ids_under_responsibility(self):
         return self.tasks_responsible_ids
@@ -733,18 +762,32 @@ class TaskAlgorithm(AgentAlgorithmTaskPlayers):
                                 is_with_timestamp=is_with_timestamp)
 
 
+
+    def check_if_msg_should_have_perfect_communication(self,msg:Msg):
+        if self.simulation_entity.player_responsible is not None:
+            if msg.receiver== self.simulation_entity.player_responsible.id_:
+                return True
+        return False
+
+
     def get_list_of_ids_under_responsibility(self):
         ans = []
         ans.append(self.simulation_entity.player_responsible.id_)
         return self.ans
 
     def send_msgs(self):
-        msgs = self.get_list_of_msgs_to_send()
         ans = []
+
+        msgs = self.get_list_of_msgs_to_send()
         for msg in msgs:
-            ans.append(MsgTaskEntity(msg, copy.copy(self.simulation_entity)))
-        msgs = ans
-        self.outbox.insert(msgs)
+            temp_msg = MsgTaskEntity(msg, copy.copy(self.simulation_entity))
+            temp_msg.add_current_NCLO(self.NCLO.clock)
+            temp_msg.add_timestamp(self.is_with_timestamp)
+            temp_msg.is_with_perfect_communication = self.check_if_msg_should_have_perfect_communication(msg)
+            ans.append(temp_msg)
+        self.outbox.insert(temp_msg)
+
+
 
 class AllocationSolver:
     
@@ -942,18 +985,24 @@ class AllocationSolverDistributed(AllocationSolver):
         """
         #self.agents_algorithm = self.create_agents_algorithm()
         self.reset_algorithm_agents()
+        self.mailer.reset()
         self.connect_entities()
         self.agents_initialize()
-        self.mailer.reset()
         self.start_all_threads()
 
         self.mailer.start()
         self.mailer.join()
         return self.mailer.get_allocation_dictionary()  # TODO
 
+
+
     def reset_algorithm_agents(self):
         for aa in self.agents_algorithm:
             aa.reset_fields(self.tnow)
+
+    def start_all_threads(self):
+        for aa in self.agents_algorithm:
+            aa.start()
 
     def agents_initialize(self):
         """
@@ -989,6 +1038,9 @@ class AllocationSolverDistributed(AllocationSolver):
         create all connections between agents according to selected algorithm
         """
         raise NotImplementedError
+
+
+
 
 class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
     """
@@ -1106,8 +1158,8 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         for task_sim in self.tasks_simulation:
             tasks_neighbours = task_sim.neighbours
             task_algorithm = self.get_algorithm_agent_by_entity(task_sim)
-            for player_sim in tasks_neighbours:
-                task_algorithm.add_neighbour_id(player_sim.id_)
+            for player_sim_id in tasks_neighbours:
+                task_algorithm.add_neighbour_id(player_sim_id)
 
     def agents_initialize(self):
         for task_algo in self.tasks_algorithm:

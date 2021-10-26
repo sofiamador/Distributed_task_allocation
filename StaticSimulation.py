@@ -142,7 +142,14 @@ class SimulationStatic():
         number_of_players = math.floor(self.players_required_ratio * number_players_required)
         self.tasks = sorted(self.tasks, key=get_task_importance, reverse=True)
         self.create_players(number_of_players)
+        self.set_tasks_neighbors()
 
+    def set_tasks_neighbors(self):
+        ids_ = []
+        for player in self.players:
+            ids_.append(player.id_)
+        for task in self.tasks:
+            task.create_neighbours_list(ids_)
     def create_players(self,number_of_players,dict_input = {1:14,4:6,8:1}):
         dict_copy = copy.deepcopy(dict_input)
         while number_of_players!=0:

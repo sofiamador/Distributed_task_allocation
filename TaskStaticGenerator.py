@@ -27,12 +27,13 @@ class SinglePlayerGeneratorTSG():
     def __init__(self, rand: random.Random, map_: MapHubs, ability_number, tnow =0, is_static_simulation = False):
         self.rand = rand
         self.tnow = tnow
+        self.is_static_simulation =is_static_simulation
+
         self.location = map_.generate_location_gauss_around_center()
         self.selected_ability = ability_number#self.get_selected_ability(ability_number)
         parameters_input = self.get_parameters_input_dict()
         force_data_dict = self.create_force_type_data_map(parameters_input)
         self.rnd_player = self.create_agents(force_data_dict,t_now = self.tnow)
-        self.is_static_simulation =is_static_simulation
     def create_agents(self, force_data_dict, t_now ):
         agents_id_list = []
         agent_id = rand_id_str(self.rand)
@@ -46,7 +47,7 @@ class SinglePlayerGeneratorTSG():
         is_working_extra_hours = False
         if resting_hours > 0 and working_hours > 0:
             raise Exception
-        if self.is_static_simulation:
+        if not self.is_static_simulation:
             if 0 < resting_hours < force_data_dict[type_]["min_competence_time"] or \
                     working_hours >= force_data_dict[type_]["max_activity_time"] + force_data_dict[type_][
                 "extra_hours_allowed"] + 0.25:
@@ -64,11 +65,14 @@ class SinglePlayerGeneratorTSG():
                 start_resting_time = None
                 if working_hours >= force_data_dict[type_]["max_activity_time"]:
                     is_working_extra_hours = True
+            productivity = 1
         else:
             status = Status.IDLE
-            start_activity_time = last_update_time - working_hours
+            start_activity_time =t_now- self.rand.random()*force_data_dict[type_]["max_activity_time"]
             start_resting_time = None
-
+            productivity = 1-(t_now-start_activity_time)/force_data_dict[type_]["max_activity_time"]
+            if not 0<productivity<1:
+                raise Exception("something in the calc went wrong")
 
         return TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
                       point=self.location, start_activity_time=start_activity_time,
@@ -77,8 +81,8 @@ class SinglePlayerGeneratorTSG():
                       extra_hours_allowed=force_data_dict[type_]["extra_hours_allowed"],
                       min_competence_time=force_data_dict[type_]["min_competence_time"],
                       competence_length=force_data_dict[type_]["competence_length"], status=status,
-                      is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now,productivity=
-                         0.3+0.7*self.rand.random())
+                      is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now,productivity=productivity
+                         )
 
 
 
@@ -124,7 +128,7 @@ class SingleTaskGeneratorTSG():
                                  point=self.location,
                                  workload=value["total_workload"],
                                  mission_params=value["mission_params"],
-                                 tnow=self.tnow)
+                                 tnow=self.tnow,importance=None)
 
     def get_parameters_input_dict(self):
         return [

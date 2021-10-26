@@ -43,11 +43,15 @@ def get_player_id_(player:PlayerSimple):
 def get_single_player(agents_algorithm):
     players = get_specified_type_agent(agents_algorithm, PlayerSimple)
     sorted(players, key=get_player_id_)
-    return players[0]
+    if len(players)!=0:
+        return players[0]
+
 
 def calculate_single_R_X_player(agents_algorithm):
 
     single_player = get_single_player(agents_algorithm)
+    if single_player == None:
+        return 0
     ri_xi = 0
     for task in single_player.self.tasks_log:
         for mission in task.missions_list:
@@ -60,6 +64,8 @@ def calculate_single_R_X_player(agents_algorithm):
 
 def calculate_single_R_X_player_pov(agents_algorithm):
     single_player = get_single_player(agents_algorithm)
+    if single_player == None:
+        return 0
     ri_xi = 0
     for task in single_player.self.tasks_log:
         for mission in task.missions_list:

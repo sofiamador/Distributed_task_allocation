@@ -280,17 +280,19 @@ class TaskSimple(Entity):
             sum_ += m.mission_utility
         return sum_
 
-    def create_neighbours_list(self, agents_list, f_is_agent_can_be_allocated_to_mission):
+    def create_neighbours_list(self, agents_list, f_is_agent_can_be_allocated_to_mission= are_neighbours):
         """
         Creates 
         :param agents_list:
         :param f_is_agent_can_be_allocated_to_mission:
         :return:
         """
+        #for a in agents_list:
+            #if self.id_ != a.id_ and f_is_agent_can_be_allocated_to_mission(self, a):
+                #self.neighbours.append(a)
         for a in agents_list:
-            if self.id_ != a.id_ and f_is_agent_can_be_allocated_to_mission(self, a):
-                self.neighbours.append(a)
-
+                if f_is_agent_can_be_allocated_to_mission(self, a):
+                    self.neighbours.append(a)
 
 def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: PlayerSimple):
     """
