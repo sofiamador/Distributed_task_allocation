@@ -75,7 +75,7 @@ def create_agents(agents_list, force_data_map, t_now, host_agent):
                 "competence_length"]:
                 status = Status.RESTING
                 start_activity_time = None
-                start_resting_time = t[3] / 3600 - t[7]
+                start_resting_time = t[2] / 3600 - t[6]
             else:
                 status = Status.IDLE
                 start_activity_time = t[2] / 3600 - t[5]
@@ -112,7 +112,7 @@ def create_event_params_data_map(event_params):
 def create_events(events_list, event_params_map, agent_ids_list, t_now, host_agent):
     event_obj_list = []
     for t in events_list:
-        e = TSGEvent(event_id=t[0], event_type=t[1], damage_level=t[2], life_saving_potential=t[3],
+        e = TSGEvent(event_id=t[0], event_type=t[1], damage_level=t[2], life_saving_potential=t[3],importance = t[4],
                      event_creation_time=t[5] / 3600, event_update_time=t[6] / 3600,
                      point=[t[7], t[8]], workload=event_params_map[(t[1], t[2], t[3])]["total_workload"],
                      mission_params=event_params_map[(t[1], t[2], t[3])]["mission_params"], tnow=t_now)
@@ -221,6 +221,15 @@ def calcAllocationsInternal(host_agent, agent_list, event_list, allocations_list
 
     # update the host agent
     h = get_agent_by_id(agents_obj_list, host_agent)
+    # if h is None:
+    #     h =  TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
+    #                       point=[t[3], t[4]], start_activity_time=start_activity_time,
+    #                       start_resting_time=start_resting_time,
+    #                       max_activity_time=force_data_map[type_]["max_activity_time"],
+    #                       extra_hours_allowed=force_data_map[type_]["extra_hours_allowed"],
+    #                       min_competence_time=force_data_map[type_]["min_competence_time"],
+    #                       competence_length=force_data_map[type_]["competence_length"], status=status,
+    #                       is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now)
     h.neighbours = agents_obj_list
     h.tasks_responsible = event_obj_list
 

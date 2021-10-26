@@ -12,7 +12,7 @@ def input_from_file(file_name):
         lst[i] = lst[i].replace("  ", "")
         lst[i] += "]"
         lst[i] = ast.literal_eval(lst[i])
-        #print(lst[i])
+        print(lst[i])
     return lst
 
 
