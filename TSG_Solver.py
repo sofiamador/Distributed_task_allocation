@@ -340,6 +340,7 @@ class TSGEvent(TaskSimple):
         self.initial_score = 0
         self.critical_time = None
         self.set_initial_score_and_importance()
+        self.importance = importance
         self.event_creation_time = event_creation_time
         self.event_workload = workload
         self.mission_params = mission_params

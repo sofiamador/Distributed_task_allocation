@@ -185,11 +185,11 @@ def create_list_of_tuples_allocations(new_obj_allocations):
 
 
 def calcAllocations(*args, **kwargs):
-    # try:
-    return calcAllocationsInternal(*args, **kwargs)
-    # except Exception as e:
-    #    f = open("error.txt","r")
-    #    f.write(e)
+    try:
+        return calcAllocationsInternal(*args, **kwargs)
+    except Exception as e:
+        f = open("error.txt","r")
+        f.write(e)
 
 
 def print_allocations(event_obj_list):
