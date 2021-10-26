@@ -12,11 +12,11 @@ def calc_ratio_utility_for_current_mission(task_entity,mission_entity,player_ent
             raise Exception()
         elif current_sar_size == 1:
             for m in task_entity.missions_list:
-                if m.agent_type != 1:
+                if m.abilities[0].ability_type != 1:
                     ans += m.teams_ratio
         else:
             for m in task_entity.missions_list:
-                if m.agent_type != 1:
+                if m.abilities[0].ability_type != 1:
                     current_team_size_non_sar = m.get_number_of_agents_allocated_to_mission()
                     if current_team_size_non_sar > 0:  # current_sar_size > 1 and current_ems_size > 0:
                         opt_ratio = m.teams_ratio
@@ -67,11 +67,11 @@ def calc_ratio_utility_for_other_missions(task_entity:TSGEvent,mission_entity:TS
     if mission_entity.abilities[0].ability_type == 1:
         if current_sar_size == 0:
             for m in task_entity.missions_list:
-                if m.agent_type != 1:
+                if m.abilities[0].ability_type != 1:
                     ans += m.teams_ratio
         if current_sar_size > 0:
             for m in task_entity.missions_list:
-                if m.agent_type != 1:
+                if m.abilities[0].ability_type != 1:
                     current_team_size_non_sar = m.get_number_of_agents_allocated_to_mission()
                     if current_team_size_non_sar > 0:
                         opt_ratio = m.teams_ratio
@@ -103,8 +103,15 @@ def calc_late_finish(player_entity:TSGPlayer):
 def calculate_rij_tsg(player_entity :TSGPlayer, mission_entity:TSGMission, task_entity:TSGEvent,
                                                  t_now=0):
     flag = False
-    for ability in player_entity.abilities:
-        if ability in mission_entity.abilities:
+    player_abilities_numbers = []
+    mission_abilities_numbers = []
+
+    for ability in player_entity.abilities: player_abilities_numbers.append(ability.get_ability_type())
+    for ability in mission_entity.abilities: mission_abilities_numbers.append(ability.get_ability_type())
+
+    for player_ability_number in player_abilities_numbers:
+
+        if player_ability_number in mission_abilities_numbers:
            flag = True
 
     if not flag:

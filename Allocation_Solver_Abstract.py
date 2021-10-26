@@ -758,7 +758,7 @@ class AllocationSolver:
         for player in players_simulation:
             self.add_player_to_solver(player)
 
-        self.tnow = None
+        self.tnow = 0
 
     def add_tasks_list(self,tasks_simulation):
         for task in tasks_simulation:
@@ -979,7 +979,7 @@ class AllocationSolverDistributed(AllocationSolver):
         for aa in self.agents_algorithm:
             aa.set_outbox(mailer_inbox)
             agent_inbox = UnboundedBuffer()
-            self.mailer.add_out_box(aa.id_, agent_inbox)
+            self.mailer.add_out_box(aa.simulation_entity.id_, agent_inbox)
             aa.set_inbox(agent_inbox)
 
     def connect_neighbors(self):
@@ -1080,8 +1080,9 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         for player_sim in self.players_simulation:
             player_algorithm = self.get_algorithm_agent_by_entity(player_sim)
             current_task = player_sim.current_task
-            current_task_updated = self.get_updated_entity_copy_of_current_task(current_task)
-            player_algorithm.update_log_with_task(current_task_updated)
+            if current_task is not None:
+                current_task_updated = self.get_updated_entity_copy_of_current_task(current_task)
+                player_algorithm.update_log_with_task(current_task_updated)
 
     def get_updated_entity_copy_of_current_task(self, current_task:TaskSimple):
         for task_algo in self.tasks_algorithm:

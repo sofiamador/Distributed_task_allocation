@@ -52,6 +52,7 @@ class Entity:
     def __hash__(self):
         return hash(self.id_)
 
+
     def __eq__(self, other):
         return self.id_ == other.id
 
@@ -113,6 +114,9 @@ class AbilitySimple:
 
     def __str__(self):
         return self.ability_name
+
+    def get_ability_type(self):
+        return self.ability_type
 
 
 class PlayerSimple(Entity):

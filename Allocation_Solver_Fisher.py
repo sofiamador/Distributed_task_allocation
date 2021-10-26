@@ -111,11 +111,14 @@ class FisherPlayerASY(PlayerAlgorithm):
     def add_task_entity_to_log(self, task_entity: TaskSimple):
         super().add_task_entity_to_log(task_entity)
         for mission_entity in task_entity.missions_list:
-            if task_entity not in self.r_i:
+            task_ids_in_r_i = []
+            for task_key in self.r_i.keys():
+                task_ids_in_r_i.append(task_key.id_)
+            if task_entity.id_ not in task_ids_in_r_i:
                 self.r_i[task_entity] = {}
             self.r_i[task_entity][mission_entity] = Utility(player_entity=self.simulation_entity,
                                                             mission_entity=mission_entity,
-                                                            task_entity=task_entity, t_now=self.t_now)
+                                                            task_entity=task_entity, t_now=self.t_now,future_utility_function=self.future_utility_function)
 
     def initiate_algorithm(self):
         raise Exception("only tasks initiate the algorithm")

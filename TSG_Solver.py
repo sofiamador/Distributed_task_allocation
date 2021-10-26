@@ -372,6 +372,10 @@ class TSGEvent(TaskSimple):
         self.initial_ro_coefficient = penalty_team_ratio_weight
         self.ro_coefficient = self.initialize_ro_coefficient()
 
+
+    def __hash__(self):
+        return hash(self.id_)
+
     # Determine the threshold damage level according to the damage level.
     def set_damage_level_threshold(self):
         damage_level = self.damage_level
@@ -409,8 +413,8 @@ class TSGEvent(TaskSimple):
         # ##------------------------------Methods for equality, strings and prints---------------------------------##
 
     def __eq__(self, other):
-        if type(other) is TSGEvent:
-            return self.event_id == other.event_id
+        if isinstance(other,TSGEvent):
+            return self.id_ == other.event_id
         return False
 
     def __str__(self):
@@ -421,7 +425,7 @@ class TSGEvent(TaskSimple):
 
     def get_mission(self, agent_type):
         for m in self.missions_list:
-            if m.agent_type == agent_type:
+            if m.abilities[0].ability_type == agent_type:
                 return m
 
     def check_if_missions_workload_ended(self):
