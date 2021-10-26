@@ -152,7 +152,7 @@ class SimulationStatic():
             else:
                 for k,v in dict_copy.items():
                     if v!=0:
-                        player = SinglePlayerGeneratorTSG( rand = self.rand , map_=self.map, ability_number = k).rnd_player
+                        player = SinglePlayerGeneratorTSG( rand = self.rand , map_=self.map, ability_number = k,is_static_simulation=True).rnd_player
                         self.players.append(player)
                         dict_copy[k]=v-1
                         number_of_players-=1
