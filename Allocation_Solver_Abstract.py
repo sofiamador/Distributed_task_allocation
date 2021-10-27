@@ -237,7 +237,7 @@ class Mailer(threading.Thread):
 
                 msgs_to_send = self.handle_delay()
 
-                self.agents_recieve_msgs(msgs_to_send)
+                self.agents_receive_msgs(msgs_to_send)
 
     def mailer_iteration(self, with_update_clock_for_empty_msg_to_send):
 
@@ -250,7 +250,7 @@ class Mailer(threading.Thread):
 
         msgs_to_send = self.handle_delay()
 
-        self.agents_recieve_msgs(msgs_to_send)
+        self.agents_receive_msgs(msgs_to_send)
 
     def handle_delay(self):
 
@@ -289,15 +289,14 @@ class Mailer(threading.Thread):
 
         """
 
-        for msgs in msgs_from_inbox:
-            for msg in msgs:
-                self.update_clock_upon_msg_received(msg)
-                communication_disturbance_output = self.f_communication_disturbance(msg)
-                if  not msg.is_with_perfect_communication:
-                    if communication_disturbance_output is not None:
-                        delay = communication_disturbance_output
-                        msg.set_time_of_msg(delay)
-                self.msg_box.append(msg)
+        for msg in msgs_from_inbox:
+            self.update_clock_upon_msg_received(msg)
+            communication_disturbance_output = self.f_communication_disturbance(msg)
+            if  not msg.is_with_perfect_communication:
+                if communication_disturbance_output is not None:
+                    delay = communication_disturbance_output
+                    msg.set_time_of_msg(delay)
+            self.msg_box.append(msg)
 
     def update_clock_upon_msg_received(self, msg: Msg):
 
@@ -671,7 +670,7 @@ class AgentAlgorithmTaskPlayers(AgentAlgorithm):
                                 is_with_timestamp=is_with_timestamp)
 
 
-    def set_receive_flag_to_true_given_msg(self, msg):
+    def set_receive_flag_to_true_given_msg(self, msg:Msg):
         sender_id = msg.sender
         list_of_ids_under_responsibility = self.get_list_of_ids_under_responsibility()
         if sender_id in list_of_ids_under_responsibility:
