@@ -466,6 +466,7 @@ class TSGEvent(TaskSimple):
     def calculate_penalty_for_late_arrival(self, time_of_first_arrival, update_late_arrival_indicator=True):
         penalty = 0
 
+
         if time_of_first_arrival <= self.optimal_time + self.event_creation_time:  # Case 1 - Time of first arrival < Optimal time
             penalty = self.calculate_according_to_phi_one(time_of_first_arrival=time_of_first_arrival,
                                                           flag=update_late_arrival_indicator)

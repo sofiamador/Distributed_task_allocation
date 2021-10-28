@@ -4,6 +4,7 @@ import copy
 from abc import ABC
 
 from enum import Enum
+solver_debug = True
 
 from Simulation import PlayerSimple,TaskSimple,Entity
 
@@ -197,15 +198,16 @@ class Mailer(threading.Thread):
         self.mailer_iteration(with_update_clock_for_empty_msg_to_send=True)
 
         while not self.f_termination_condition(self.agents_algorithm, self):
-            self.create_measurements()  # TODO
+            self.create_measurements()
 
             self.self_check_if_all_idle_to_continue()
 
             self.mailer_iteration(with_update_clock_for_empty_msg_to_send=False)
 
         self.kill_agents()
-        for aa in self.agents_algorithm:
-            aa.join()
+
+        #for aa in self.agents_algorithm:
+            #aa.join()
 
     def create_measurements(self):
 
@@ -289,28 +291,32 @@ class Mailer(threading.Thread):
 
         """
 
-        for msg in msgs_from_inbox:
-            self.update_clock_upon_msg_received(msg)
-            communication_disturbance_output = self.f_communication_disturbance(msg)
-            if  not msg.is_with_perfect_communication:
-                if communication_disturbance_output is not None:
-                    delay = communication_disturbance_output
-                    msg.set_time_of_msg(delay)
-            self.msg_box.append(msg)
+        for msgs in msgs_from_inbox:
+            if isinstance(msgs, list):
+                for msg in msgs:
+                    self.place_single_msg_from_inbox_in_msgs_box(msg)
+            else:
+                self.place_single_msg_from_inbox_in_msgs_box(msgs)
+
+    def place_single_msg_from_inbox_in_msgs_box(self,msg):
+        self.update_clock_upon_msg_received(msg)
+        communication_disturbance_output = self.f_communication_disturbance(msg)
+        if not msg.is_with_perfect_communication:
+            if communication_disturbance_output is not None:
+                delay = communication_disturbance_output
+                msg.set_time_of_msg(delay)
+        self.msg_box.append(msg)
 
     def update_clock_upon_msg_received(self, msg: Msg):
 
         """
-
         prior for msg entering to msg box the mailer's clock is being updated
-
         if the msg time is larger than
-
         :param msg:
-
         :return:
 
         """
+
         msg_time = msg.msg_time
         self.time_mailer.change_clock_if_required(msg_time)
         # current_clock = self.time_mailer.get_clock()  # TODO check if immutable
@@ -325,9 +331,16 @@ class Mailer(threading.Thread):
         insert msgs to relevant agent's inbox
         """
         msgs_dict_by_reciever_id = self.get_receivers_by_id(msgs_to_send)
+
+
         for node_id, msgs_list in msgs_dict_by_reciever_id.items():
+            for msg in msgs_list:
+                if msg.receiver == "B8R738M6HF" and msg.sender == "467TOZJ346" and node_id == "467TOZJ346":
+                    print("allocation solver abstract 335")
+
             node_id_inbox = self.agents_outboxes[node_id]
             node_id_inbox.insert(msgs_list)
+
     def get_receivers_by_id(self, msgs_to_send):
 
         '''
@@ -352,8 +365,8 @@ class Mailer(threading.Thread):
             msgs_of_receiver = []
 
             for msg in msgs_to_send:
-                msgs_of_receiver.append(msg)
-
+                if msg.receiver == receiver:
+                    msgs_of_receiver.append(msg)
             ans[receiver] = msgs_of_receiver
 
         return ans
@@ -597,10 +610,10 @@ class AgentAlgorithm(threading.Thread, ABC):
         raise NotImplementedError
 
     def send_msgs(self):
-        msgs = self.get_list_of_msgs()
+        msgs = self.get_list_of_msgs_to_send()
         for msg in msgs:
             msg.add_current_NCLO(self.NCLO.clock)
-            msg.add_timestamp(self.timestamp)
+            msg.add_timestamp(self.timestamp_counter)
             msg.is_with_perfect_communication = self.check_if_msg_should_have_perfect_communication(msg)
         self.outbox.insert(msgs)
 
@@ -632,15 +645,20 @@ class AgentAlgorithm(threading.Thread, ABC):
 
             self.set_idle_to_true()
 
-            msgs = self.inbox.extract()  # TODO when finish mailer
+            msgs_list = self.inbox.extract()  # TODO when finish mailer
 
-            self.set_idle_to_false()
-
-            if msgs is None:
+            if msgs_list is None:
                 break
 
+            msgs = []
+            for msg_list in msgs_list:
+                for msg in msg_list:
+                    msgs.append(msg)
+            self.set_idle_to_false()
             self.receive_msgs(msgs)
             self.reaction_to_msgs()
+        if solver_debug:
+            print(self.simulation_entity.id_,"of type",type(self.simulation_entity), "is dead")
 
     def set_idle_to_true(self):
 
@@ -671,15 +689,18 @@ class AgentAlgorithmTaskPlayers(AgentAlgorithm):
 
 
     def set_receive_flag_to_true_given_msg(self, msg:Msg):
+
         sender_id = msg.sender
         list_of_ids_under_responsibility = self.get_list_of_ids_under_responsibility()
         if sender_id in list_of_ids_under_responsibility:
             if self.is_identical_context(msg):
                 return
         else:
-            self.set_receive_flag_to_true_given_msg_after_check()
+            self.set_receive_flag_to_true_given_msg_after_check(msg)
 
-
+    @abc.abstractmethod
+    def set_receive_flag_to_true_given_msg_after_check(self,msg):
+        raise NotImplementedError
 
     @abc.abstractmethod
     def is_identical_context(self, msg:Msg):
@@ -772,7 +793,7 @@ class TaskAlgorithm(AgentAlgorithmTaskPlayers):
     def get_list_of_ids_under_responsibility(self):
         ans = []
         ans.append(self.simulation_entity.player_responsible.id_)
-        return self.ans
+        return ans
 
     def send_msgs(self):
         ans = []
@@ -784,7 +805,7 @@ class TaskAlgorithm(AgentAlgorithmTaskPlayers):
             temp_msg.add_timestamp(self.is_with_timestamp)
             temp_msg.is_with_perfect_communication = self.check_if_msg_should_have_perfect_communication(msg)
             ans.append(temp_msg)
-        self.outbox.insert(temp_msg)
+            self.outbox.insert(temp_msg)
 
 
 
@@ -802,6 +823,7 @@ class AllocationSolver:
 
         self.tnow = 0
 
+
     def add_tasks_list(self,tasks_simulation):
         for task in tasks_simulation:
             self.add_task_to_solver(task)
@@ -810,7 +832,7 @@ class AllocationSolver:
         for player in players_simulation:
             self.add_player_to_solver(player)
 
-    def solve(self, tnow=None) -> {}:
+    def solve(self, tnow=0) -> {}:
         self.tnow = tnow
         return self.allocate()
 

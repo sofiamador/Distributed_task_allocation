@@ -3,6 +3,8 @@ import random
 import sys
 
 
+global solver_debug
+
 class Status(enum.Enum):
     """
     Enum that represents the status of the agent in the simulation

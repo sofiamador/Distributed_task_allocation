@@ -56,15 +56,15 @@ def get_task_importance(task: TaskSimple):
 
 
 class SimulationStatic():
-    def __init__(self, rep_number, solver: AllocationSolver, players_required_ratio=1,
+    def __init__(self, rep_number, solver: AllocationSolver, players_required_ratio=0.5,
                  create_ability_dict=create_ability_dict):
         self.create_ability_dict = create_ability_dict
         self.players_required_ratio = players_required_ratio
         self.rand = random.Random(rep_number * 17)
         self.seed_number = rep_number
         self.solver = solver
-        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=4, sd_multiplier=0.05, length_y=90,width_x=90)
-        self.tasks_per_center = 3
+        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=1, sd_multiplier=0.05, length_y=90,width_x=90)
+        self.tasks_per_center = 2
 
         self.tasks = []
         self.create_tasks()
@@ -85,9 +85,6 @@ class SimulationStatic():
 
         for task in self.tasks:
             self.solver.add_task_to_solver(task)
-
-
-
 
         self.solver.solve(0)
 

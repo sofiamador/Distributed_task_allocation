@@ -42,6 +42,7 @@ def calc_distance_penalty(task_entity:TSGEvent,player_entity:TSGPlayer,tnow):
 
     arrive_now = task_entity.calculate_penalty_for_late_arrival(time_of_first_arrival=tnow,
                                                                update_late_arrival_indicator=False)
+
     arrive_after_travel = task_entity.calculate_penalty_for_late_arrival(time_of_first_arrival=tnow+travel_time,
                                                                          update_late_arrival_indicator=False)
 
