@@ -196,6 +196,6 @@ if __name__ == '__main__':
                                                  f_communication_disturbance=default_communication_disturbance,
                                                  future_utility_function=calculate_rij_tsg)
 
-        ss.add_solver( fisher_solver)
+        ss.add_solver(fisher_solver)
         fisher_solver.solve()
         print(3)

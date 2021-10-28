@@ -206,8 +206,8 @@ class Mailer(threading.Thread):
 
         self.kill_agents()
 
-        #for aa in self.agents_algorithm:
-            #aa.join()
+        for aa in self.agents_algorithm:
+            aa.join()
 
     def create_measurements(self):
 
@@ -1079,6 +1079,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         algorithm_player = self.create_algorithm_player(player)
         self.agents_algorithm.append(algorithm_player)
         self.players_algorithm.append(algorithm_player)
+        self.mailer.agents_algorithm.append(algorithm_player)
 
     @staticmethod
     def connect_condition(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
@@ -1119,6 +1120,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         task_algorithm = self.create_algorithm_task(task)
         self.agents_algorithm.append(task_algorithm)
         self.tasks_algorithm.append(task_algorithm)
+        self.mailer.agents_algorithm.append(task_algorithm)
         player_sim_responsible = task.player_responsible
         player_algorithm = self.get_algorithm_agent_by_entity(player_sim_responsible)
 
