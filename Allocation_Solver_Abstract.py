@@ -145,7 +145,7 @@ class Mailer(threading.Thread):
     def get_allocation_dictionary(self):
         pass
 
-    def reset(self):
+    def reset(self,tnow):
         global mailer_counter
         self.msg_box = []
         mailer_counter = mailer_counter + 1
@@ -159,7 +159,7 @@ class Mailer(threading.Thread):
             self.measurements[key] = {}
 
         for aa in self.agents_algorithm:
-            aa.reset_fields()
+            aa.reset_fields(tnow)
 
     def add_out_box(self, key: str, value: UnboundedBuffer):
         self.agents_outboxes[key] = value
@@ -206,8 +206,8 @@ class Mailer(threading.Thread):
 
         self.kill_agents()
 
-        #for aa in self.agents_algorithm:
-            #aa.join()
+        for aa in self.agents_algorithm:
+            aa.join()
 
     def create_measurements(self):
 
@@ -334,10 +334,6 @@ class Mailer(threading.Thread):
 
 
         for node_id, msgs_list in msgs_dict_by_reciever_id.items():
-            for msg in msgs_list:
-                if msg.receiver == "B8R738M6HF" and msg.sender == "467TOZJ346" and node_id == "467TOZJ346":
-                    print("allocation solver abstract 335")
-
             node_id_inbox = self.agents_outboxes[node_id]
             node_id_inbox.insert(msgs_list)
 
@@ -657,8 +653,7 @@ class AgentAlgorithm(threading.Thread, ABC):
             self.set_idle_to_false()
             self.receive_msgs(msgs)
             self.reaction_to_msgs()
-        if solver_debug:
-            print(self.simulation_entity.id_,"of type",type(self.simulation_entity), "is dead")
+
 
     def set_idle_to_true(self):
 
@@ -1006,7 +1001,7 @@ class AllocationSolverDistributed(AllocationSolver):
         """
         #self.agents_algorithm = self.create_agents_algorithm()
         self.reset_algorithm_agents()
-        self.mailer.reset()
+        self.mailer.reset(self.tnow)
         self.connect_entities()
         self.agents_initialize()
         self.start_all_threads()
@@ -1079,6 +1074,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         algorithm_player = self.create_algorithm_player(player)
         self.agents_algorithm.append(algorithm_player)
         self.players_algorithm.append(algorithm_player)
+        self.mailer.agents_algorithm.append(algorithm_player)
 
     @staticmethod
     def connect_condition(player_algo: PlayerAlgorithm, task_algo: TaskAlgorithm):
@@ -1119,6 +1115,7 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         task_algorithm = self.create_algorithm_task(task)
         self.agents_algorithm.append(task_algorithm)
         self.tasks_algorithm.append(task_algorithm)
+        self.mailer.agents_algorithm.append(task_algorithm)
         player_sim_responsible = task.player_responsible
         player_algorithm = self.get_algorithm_agent_by_entity(player_sim_responsible)
 
