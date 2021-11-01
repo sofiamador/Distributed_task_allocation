@@ -38,7 +38,7 @@ def calc_distance_penalty(task_entity:TSGEvent,player_entity:TSGPlayer,tnow):
     delta_x = task_entity.location[0]-player_entity.location[0]
     delta_y = task_entity.location[1]-player_entity.location[1]
     quad_distance = math.sqrt(delta_x**2+delta_y**2)
-    travel_time = player_entity.speed/quad_distance #speed in km/hr?
+    travel_time = 1/player_entity.speed*quad_distance #speed in km/hr?
 
     arrive_now = task_entity.calculate_penalty_for_late_arrival(time_of_first_arrival=tnow,
                                                                update_late_arrival_indicator=False)
@@ -122,6 +122,7 @@ def calculate_rij_tsg(player_entity :TSGPlayer, mission_entity:TSGMission, task_
     max_util = task_entity.initial_score
     late_arrival_indicator = task_entity.penalty_for_late_arrival  # [0,1]
     distance_penalty = calc_distance_penalty(task_entity=task_entity,player_entity=player_entity,tnow=t_now)  # [0,1]
+
     productivity = player_entity.productivity  # [0,1] # TODO integration phase 2
 
     shift_time_ratio = calc_shift_time_worth_ratio(player_entity,mission_entity,t_now)  # TODO cannot be larger then 1

@@ -1,10 +1,12 @@
 import abc
+import math
 import threading
 import copy
 from abc import ABC
 
 from enum import Enum
-solver_debug = True
+
+debug_fisher_market = True
 
 from Simulation import PlayerSimple,TaskSimple,Entity
 
@@ -211,7 +213,12 @@ class Mailer(threading.Thread):
 
     def create_measurements(self):
 
+
         current_clock = self.time_mailer.get_clock()  # TODO check if immutable
+
+        if debug_fisher_market:
+            self.print_fisher_input()
+            #self.print_fisher_market()
 
         for measurement_name, measurement_function in self.f_global_measurements.items():
 
@@ -400,6 +407,17 @@ class Mailer(threading.Thread):
 
         return True
 
+    def print_fisher_input(self):
+
+        for p in  self.agents_algorithm:
+            if isinstance(p,PlayerAlgorithm):
+                print()
+                with p.cond:
+                    for task, dict in p.r_i.items():
+                        for mission,util in dict.items():
+                            print(round(util.linear_utility,2),end=" ")
+        print()
+
 class AgentAlgorithm(threading.Thread, ABC):
     """
     list of abstract methods:
@@ -431,7 +449,7 @@ class AgentAlgorithm(threading.Thread, ABC):
     --> returns dict with key: str of measure, value: the calculated measure
     """
 
-    def __init__(self, simulation_entity:Entity, t_now, is_with_timestamp=False):
+    def __init__(self, simulation_entity:Entity, t_now, is_with_timestamp=True):
 
         threading.Thread.__init__(self)
         self.t_now = t_now
@@ -637,11 +655,13 @@ class AgentAlgorithm(threading.Thread, ABC):
 
     def run(self) -> None:
 
+
         while True:
 
             self.set_idle_to_true()
 
             msgs_list = self.inbox.extract()  # TODO when finish mailer
+
 
             if msgs_list is None:
                 break
@@ -690,6 +710,8 @@ class AgentAlgorithmTaskPlayers(AgentAlgorithm):
         if sender_id in list_of_ids_under_responsibility:
             if self.is_identical_context(msg):
                 return
+            else:
+                self.set_receive_flag_to_true_given_msg_after_check(msg)
         else:
             self.set_receive_flag_to_true_given_msg_after_check(msg)
 
@@ -708,7 +730,7 @@ class AgentAlgorithmTaskPlayers(AgentAlgorithm):
         raise NotImplementedError
 
 class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
-    def __init__(self, simulation_entity:PlayerSimple, t_now, is_with_timestamp=False):
+    def __init__(self, simulation_entity:PlayerSimple, t_now, is_with_timestamp=True):
         AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
                                 is_with_timestamp=is_with_timestamp)
 
@@ -797,7 +819,7 @@ class TaskAlgorithm(AgentAlgorithmTaskPlayers):
         for msg in msgs:
             temp_msg = MsgTaskEntity(msg, copy.copy(self.simulation_entity))
             temp_msg.add_current_NCLO(self.NCLO.clock)
-            temp_msg.add_timestamp(self.is_with_timestamp)
+            temp_msg.add_timestamp(self.timestamp_counter)
             temp_msg.is_with_perfect_communication = self.check_if_msg_should_have_perfect_communication(msg)
             ans.append(temp_msg)
             self.outbox.insert(temp_msg)

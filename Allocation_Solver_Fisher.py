@@ -5,7 +5,7 @@ from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, Allocatio
     default_communication_disturbance
 from Simulation import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg, MsgTaskEntity
-
+fisher_player_debug = False
 
 class Utility:
     def __init__(self, player_entity, mission_entity, task_entity, t_now, future_utility_function, ro=1, util=-1):
@@ -45,7 +45,7 @@ def calculate_distance(entity1: Entity, entity2: Entity):
 
 class FisherPlayerASY(PlayerAlgorithm):
     def __init__(self, agent_simulator, t_now, future_utility_function):
-        PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now)
+        PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=True)
 
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
         self.bids = {}
@@ -135,31 +135,45 @@ class FisherPlayerASY(PlayerAlgorithm):
     def get_current_timestamp_from_context(self, msg):
         task_id = msg.sender
         if task_id not in self.msgs_from_tasks:
-            return 0
+            return -1
         else:
             return self.msgs_from_tasks[task_id].timestamp
 
     def update_message_in_context(self, msg):
         task_in_log = self.is_task_entity_new_in_log(msg.task_entity)
-        task_is_new_in_log=False
+        task_is_new_in_log = False
         if task_in_log is None:
             task_in_log = msg.task_entity
-            task_is_new_in_log = True
-        else:
-            task_information_is_updated = task_in_log.last_time_updated < msg.task_entity.last_time_updated
+        #      task_is_new_in_log = True
+        # else:
+        #     task_information_is_updated = task_in_log.last_time_updated < msg.task_entity.last_time_updated
+        #
+        # if task_is_new_in_log or task_information_is_updated:
 
-        if task_is_new_in_log or task_information_is_updated:
+        self.set_single_task_in_x_i(task_in_log)
+        self.set_single_task_in_r_i(task_in_log)
 
-            self.set_single_task_in_x_i(task_in_log)
-            self.set_single_task_in_r_i(task_in_log)
+        task_id = msg.sender
+        self.msgs_from_tasks[task_id] = msg
 
-            task_id = msg.sender
-            self.msgs_from_tasks[task_id] = msg
-
-            dict_missions_xi = msg.information
-            task_simulation = msg.task_entity
-            for mission, x_ij in dict_missions_xi.items():
+        dict_missions_xi = msg.information
+        task_simulation = msg.task_entity
+        for mission, x_ij in dict_missions_xi.items():
+            if x_ij is None:
                 self.x_i[task_simulation][mission] = x_ij
+            elif x_ij> 0.001:
+                self.x_i[task_simulation][mission] = x_ij
+            else:
+                self.x_i[task_simulation][mission] = 0
+
+            if fisher_player_debug and self.simulation_entity.id_== "QDPV68R5J2":
+                self.debug_print_received_xij(task_simulation,mission,x_ij)
+
+    def debug_print_received_xij(self, task_simulation,mission,x_ij):
+        print("RIJ = ", self.r_i[task_simulation][mission].linear_utility)
+        print("task:",task_simulation.id_,mission,"type:",mission.abilities[0].ability_type,"XIJ=",x_ij)
+        print("_________")
+
 
     def is_task_entity_new_in_log(self, task_entity: TaskSimple):
         for task_in_log in self.tasks_log:
@@ -173,7 +187,7 @@ class FisherPlayerASY(PlayerAlgorithm):
         sum_of_bids, sum_util_nones, w_none, w_not_none = self.calculate_sum_xij_rj()
         atomic_counter = 0
         for task, dict in self.x_i.items():
-            self.bids[task]={}
+            self.bids[task] = {}
             for mission, x_ij in dict.items():
                 if x_ij is None:
                     r_ij = self.r_i[task][mission].get_utility(ratio=1)
@@ -347,7 +361,7 @@ class FisherTaskASY(TaskAlgorithm):
         for mission in self.simulation_entity.missions_list:
             for player_id, bid in self.bids[mission].items():
                 self.atomic_counter = self.atomic_counter + 1
-                if self.bids[mission][player_id] is not None and self.price_current!=0:
+                if self.bids[mission][player_id] is not None and self.price_current != 0:
                     self.x_jk[mission][player_id] = self.bids[mission][player_id] / self.price_current
                 else:
                     self.x_jk[mission][player_id] = 0
