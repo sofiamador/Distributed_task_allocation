@@ -208,12 +208,10 @@ class Mailer(threading.Thread):
 
         self.kill_agents()
 
-        for aa in self.agents_algorithm:
-            aa.join()
+        #for aa in self.agents_algorithm:
+            #aa.join()
 
     def create_measurements(self):
-
-
         current_clock = self.time_mailer.get_clock()  # TODO check if immutable
 
         if debug_fisher_market:
@@ -422,27 +420,32 @@ class Mailer(threading.Thread):
         print()
         print()
 
-        print("-----R dict-----")
+        #print("-----R dict-----")
 
-        for p in  self.agents_algorithm:
-            if isinstance(p,PlayerAlgorithm):
-                print()
-                with p.cond:
-                    print(p.simulation_entity.id_,p.simulation_entity.abilities[0].ability_type)
-                    for task, dict in p.r_i.items():
-                        for mission,util in dict.items():
-                            print("Task:",task,"Mission:",mission, "r_ijk:",round(util.linear_utility,2))
-        print()
-        print()
+        # for p in  self.agents_algorithm:
+        #     if isinstance(p,PlayerAlgorithm):
+        #         print()
+        #         with p.cond:
+        #             print(p.simulation_entity.id_,p.simulation_entity.abilities[0].ability_type)
+        #             for task, dict in p.r_i.items():
+        #                 for mission,util in dict.items():
+        #                     print("Task:",task,"Mission:",mission, "r_ijk:",round(util.linear_utility,2))
+        # print()
+        # print()
 
     def print_fisher_x(self):
 
         print("-----X-----")
+
+
+
+
         for p in self.agents_algorithm:
             if isinstance(p, TaskAlgorithm):
-                print()
+
                 with p.cond:
                     for mission, dict in p.x_jk.items():
+                        print()
                         for n_id,x in dict.items():
                             if x is None:
                                 print("None", end=" ")
@@ -1061,7 +1064,6 @@ class AllocationSolverDistributed(AllocationSolver):
         self.connect_entities()
         self.agents_initialize()
         self.start_all_threads()
-
         self.mailer.start()
         self.mailer.join()
         return self.mailer.get_allocation_dictionary()  # TODO

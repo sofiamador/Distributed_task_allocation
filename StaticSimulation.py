@@ -86,7 +86,7 @@ class SimulationStatic():
         for task in self.tasks:
             self.solver.add_task_to_solver(task)
 
-        self.solver.solve(0)
+        #self.solver.solve(0)
 
     def create_tasks(self):
         total_number_of_tasks = self.tasks_per_center * len(self.map.centers_location)
