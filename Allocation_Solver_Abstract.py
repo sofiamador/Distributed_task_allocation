@@ -217,8 +217,9 @@ class Mailer(threading.Thread):
         current_clock = self.time_mailer.get_clock()  # TODO check if immutable
 
         if debug_fisher_market:
+            print("******MAILER CLOCK", self.time_mailer.clock,"******")
             self.print_fisher_input()
-            #self.print_fisher_market()
+            self.print_fisher_x()
 
         for measurement_name, measurement_function in self.f_global_measurements.items():
 
@@ -408,6 +409,7 @@ class Mailer(threading.Thread):
         return True
 
     def print_fisher_input(self):
+        print("-----R-----")
 
         for p in  self.agents_algorithm:
             if isinstance(p,PlayerAlgorithm):
@@ -416,7 +418,39 @@ class Mailer(threading.Thread):
                     for task, dict in p.r_i.items():
                         for mission,util in dict.items():
                             print(round(util.linear_utility,2),end=" ")
+
         print()
+        print()
+
+        print("-----R dict-----")
+
+        for p in  self.agents_algorithm:
+            if isinstance(p,PlayerAlgorithm):
+                print()
+                with p.cond:
+                    print(p.simulation_entity.id_,p.simulation_entity.abilities[0].ability_type)
+                    for task, dict in p.r_i.items():
+                        for mission,util in dict.items():
+                            print("Task:",task,"Mission:",mission, "r_ijk:",round(util.linear_utility,2))
+        print()
+        print()
+
+    def print_fisher_x(self):
+
+        print("-----X-----")
+        for p in self.agents_algorithm:
+            if isinstance(p, TaskAlgorithm):
+                print()
+                with p.cond:
+                    for mission, dict in p.x_jk.items():
+                        for n_id,x in dict.items():
+                            if x is None:
+                                print("None", end=" ")
+                            else:
+                                print(round(x,4), end=" ")
+        print()
+
+
 
 class AgentAlgorithm(threading.Thread, ABC):
     """
@@ -780,7 +814,7 @@ class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
                         if task_in_log.last_time_updated<msg.task_entity.last_time_updated:
                             self.tasks_log.remove(task_in_log)
                             self.tasks_log.append(msg.task_entity)
-                            print(msg.task_entity+"is updated, Allocation_Solver_Abstract")
+                            #print(msg.task_entity+"is updated, Allocation_Solver_Abstract")
 
 
     def send_msgs(self):

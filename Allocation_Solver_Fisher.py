@@ -5,7 +5,9 @@ from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, Allocatio
     default_communication_disturbance
 from Simulation import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg, MsgTaskEntity
+
 fisher_player_debug = False
+
 
 class Utility:
     def __init__(self, player_entity, mission_entity, task_entity, t_now, future_utility_function, ro=1, util=-1):
@@ -161,19 +163,18 @@ class FisherPlayerASY(PlayerAlgorithm):
         for mission, x_ij in dict_missions_xi.items():
             if x_ij is None:
                 self.x_i[task_simulation][mission] = x_ij
-            elif x_ij> 0.001:
+            elif x_ij > 0.001:
                 self.x_i[task_simulation][mission] = x_ij
             else:
                 self.x_i[task_simulation][mission] = 0
 
-            if fisher_player_debug and self.simulation_entity.id_== "QDPV68R5J2":
-                self.debug_print_received_xij(task_simulation,mission,x_ij)
+            if fisher_player_debug and self.simulation_entity.id_ == "QDPV68R5J2":
+                self.debug_print_received_xij(task_simulation, mission, x_ij)
 
-    def debug_print_received_xij(self, task_simulation,mission,x_ij):
+    def debug_print_received_xij(self, task_simulation, mission, x_ij):
         print("RIJ = ", self.r_i[task_simulation][mission].linear_utility)
-        print("task:",task_simulation.id_,mission,"type:",mission.abilities[0].ability_type,"XIJ=",x_ij)
+        print("task:", task_simulation.id_, mission, "type:", mission.abilities[0].ability_type, "XIJ=", x_ij)
         print("_________")
-
 
     def is_task_entity_new_in_log(self, task_entity: TaskSimple):
         for task_in_log in self.tasks_log:
@@ -289,10 +290,13 @@ class FisherTaskASY(TaskAlgorithm):
         self.reset_msgs_from_players()
 
         self.calculate_xjk_flag = False
-
-        self.price_t_minus = 0
-        self.price_current = 0
-        self.price_delta = 0
+        self.price_t_minus = {}
+        self.price_current = {}
+        self.price_delta = {}
+        for mission in self.simulation_entity.missions_list:
+            self.price_t_minus[mission] = 0
+            self.price_current[mission] = 0
+            self.price_delta[mission] = 0
 
     def reset_additional_fields(self):
         self.reset_potential_players_ids_list()
@@ -300,9 +304,10 @@ class FisherTaskASY(TaskAlgorithm):
         self.reset_x_jk()
         self.reset_msgs_from_players()
         self.calculate_xjk_flag = False
-        self.price_t_minus = 0
-        self.price_current = 0
-        self.price_delta = 0
+        for mission in self.simulation_entity.missions_list:
+            self.price_t_minus[mission] = 0
+            self.price_current[mission] = 0
+            self.price_delta[mission] = 0
 
     def reset_msgs_from_players(self):
         self.msgs_from_players = {}
@@ -357,23 +362,46 @@ class FisherTaskASY(TaskAlgorithm):
 
         self.price_t_minus = self.price_current
         self.price_current = self.calculate_price()
-        self.price_delta = math.fabs(self.price_t_minus - self.price_current)
+        for mission in self.simulation_entity.missions_list:
+            self.price_delta[mission] = math.fabs(self.price_t_minus[mission] - self.price_current[mission])
         for mission in self.simulation_entity.missions_list:
             for player_id, bid in self.bids[mission].items():
                 self.atomic_counter = self.atomic_counter + 1
-                if self.bids[mission][player_id] is not None and self.price_current != 0:
-                    self.x_jk[mission][player_id] = self.bids[mission][player_id] / self.price_current
+                if self.bids[mission][player_id] is not None and self.price_current[mission] != 0:
+                    self.x_jk[mission][player_id] = bid / self.price_current[mission]
                 else:
                     self.x_jk[mission][player_id] = 0
+        self.check_if_x_jk_per_mission_is_one()
+        #print(self.x_jk)
+
+    def check_if_x_jk_per_mission_is_one(self):
+        ans = {}
+        for mission in self.simulation_entity.missions_list:
+            ans[mission] = 0
+        for mission in self.simulation_entity.missions_list:
+            for player_id, bid in self.bids[mission].items():
+                self.atomic_counter = self.atomic_counter + 1
+                if self.bids[mission][player_id] is not None and self.price_current[mission] != 0:
+                    ans[mission] = ans[mission]+ self.x_jk[mission][player_id]
+                else:
+                    pass
+        for mission, sum_x_jk in ans.items():
+            if  not 0.999<sum_x_jk <= 1.001:
+                if sum_x_jk!=0:
+                    raise Exception("mistake in calculating x_jk for task", self.simulation_entity)
 
     def calculate_price(self):
-        ans = 0
+        ans = {}
         for mission in self.simulation_entity.missions_list:
             for bid in self.bids[mission].values():
                 # self.atomic_counter = self.atomic_counter+1
+
                 if bid is None:
                     bid = 0
-                ans = ans + bid
+                temp_price = 0
+                if mission in ans.keys():
+                    temp_price = ans[mission]
+                ans[mission] = temp_price + bid
         return ans
 
     def get_list_of_msgs_to_send(self):

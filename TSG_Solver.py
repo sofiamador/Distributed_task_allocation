@@ -194,7 +194,7 @@ class TSGMission(MissionSimple):
         return self.mission_id.__hash__()
 
     def __str__(self):
-        return "Mission id: " + str(self.mission_id) + ", max agents: " + str(self.max_players)
+        return"Max agents: " + str(self.max_players)+", Ability: " + str(self.abilities[0].ability_type) #"Mission id: " + str(self.mission_id) + ", max agents: " + str(self.max_players)
 
         # f"Event id:{self.event_id}, required workload:{self.required_workload}," \
         #   f" remaining workload:{self.remaining_workload}" \
@@ -420,8 +420,8 @@ class TSGEvent(TaskSimple):
         return False
 
     def __str__(self):
-        return f"Event id:{self.event_id}, creation time: {self.event_creation_time}, " \
-               f"importance: {self.event_importance}, event location:{self.point}.\n"
+        return self.id_#f"Event id:{self.id_}, creation time: {self.event_creation_time}, " \
+               #f"importance: {self.importance}, event location:{self.point}.\n"
 
     # ##------------------------------Getters--------------------------------------------------##
 
