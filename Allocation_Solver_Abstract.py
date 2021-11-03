@@ -208,8 +208,8 @@ class Mailer(threading.Thread):
 
         self.kill_agents()
 
-        #for aa in self.agents_algorithm:
-            #aa.join()
+        for aa in self.agents_algorithm:
+            aa.join()
 
     def create_measurements(self):
         current_clock = self.time_mailer.get_clock()  # TODO check if immutable
