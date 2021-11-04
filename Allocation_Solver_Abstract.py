@@ -6,12 +6,12 @@ from abc import ABC
 
 from enum import Enum
 
-debug_fisher_market = True
+debug_fisher_market = False
 
 from Simulation import PlayerSimple,TaskSimple,Entity
 
 
-def default_communication_disturbance(msg):
+def default_communication_disturbance(msg,entity1,entity2):
     return 0
 
 
@@ -116,7 +116,7 @@ class ClockObject():
 class Mailer(threading.Thread):
 
     def __init__(self, f_termination_condition, f_global_measurements,
-                 f_communication_disturbance=default_communication_disturbance):
+                 f_communication_disturbance):
         threading.Thread.__init__(self)
 
         self.id_ = 0
@@ -306,7 +306,9 @@ class Mailer(threading.Thread):
 
     def place_single_msg_from_inbox_in_msgs_box(self,msg):
         self.update_clock_upon_msg_received(msg)
-        communication_disturbance_output = self.f_communication_disturbance(msg)
+        e1 = self.get_simulation_entity(msg.sender)
+        e2 = msg.receiver
+        communication_disturbance_output = self.f_communication_disturbance(e1,e2)
         if not msg.is_with_perfect_communication:
             if communication_disturbance_output is not None:
                 delay = communication_disturbance_output
@@ -453,6 +455,10 @@ class Mailer(threading.Thread):
                                 print(round(x,4), end=" ")
         print()
 
+    def get_simulation_entity(self, id_looking_for):
+        for a in self.agents_algorithm:
+            if a.simulation_entity.id_ == id_looking_for:
+                return a.simulation_entity
 
 
 class AgentAlgorithm(threading.Thread, ABC):
@@ -970,6 +976,9 @@ class AllocationSolverDistributed(AllocationSolver):
         self.imply_mailer(mailer=mailer, f_termination_condition=f_termination_condition,
                           f_global_measurements=f_global_measurements,
                           f_communication_disturbance=f_communication_disturbance)
+
+    def get_measurements(self):
+        return self.mailer.measurements
 
     def add_player_to_solver(self, player: PlayerSimple):
         self.players_simulation.append(player)

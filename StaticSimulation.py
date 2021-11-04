@@ -4,28 +4,25 @@ import random
 import matplotlib.pyplot as plt
 
 from Allocation_Solver_Fisher import FisherAsynchronousSolver
+from Communication_Protocols import CommunicationProtocol, default_communication_disturbance
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
-from TaskStaticGenerator import SingleTaskStaticPoliceGenerator, SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
+from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
 
 plt.style.use('seaborn-whitegrid')
-import numpy as np
 import pandas as pd
-from Simulation import MapHubs, TaskArrivalEvent, TaskGenerator, find_responsible_agent, MissionSimple, TaskSimple, \
-    AbilitySimple, PlayerSimple, Status
-from Allocation_Solver_Abstract import AllocationSolver, default_communication_disturbance
-
-simulation_reps = 100
-termination_time_constant = 1000
-
+from Simulation import MapHubs, TaskArrivalEvent,  find_responsible_agent, TaskSimple, AbilitySimple
+from Allocation_Solver_Abstract import AllocationSolver
 import string
+
+simulation_reps = 3
+termination_time_constant = 1000
+data_jumps = 10
 
 
 def rand_id_str(rand):
     ans = ''.join(rand.choices(string.ascii_uppercase + string.digits, k=10))
     return ans
-
-
 
 
 def create_ability_dict(ability_dict):
@@ -35,8 +32,6 @@ def create_ability_dict(ability_dict):
     ability_dict[3] = AbilitySimple(ability_type=3, ability_name="Observe")
     ability_dict[4] = AbilitySimple(ability_type=4, ability_name="Gun")
     return ability_dict
-
-
 
 
 class TaskArrivalEventStatic(TaskArrivalEvent):
@@ -63,7 +58,8 @@ class SimulationStatic():
         self.rand = random.Random(rep_number * 17)
         self.seed_number = rep_number
         self.solver = solver
-        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.05, length_y=90,width_x=90)
+        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.05,
+                           length_y=90, width_x=90)
         self.tasks_per_center = tasks_per_center
 
         self.tasks = []
@@ -71,14 +67,13 @@ class SimulationStatic():
 
         self.players = []
         self.create_players_given_ratio()
-        #self.draw_map() # show map of tasks location for debug
+        # self.draw_map() # show map of tasks location for debug
 
-
-    def add_solver (self,solver:AllocationSolver):
+    def add_solver(self, solver: AllocationSolver):
         self.solver = solver
 
         for task in self.tasks:
-            find_responsible_agent(task = task, players = self.players)
+            find_responsible_agent(task=task, players=self.players)
 
         for player in self.players:
             self.solver.add_player_to_solver(player)
@@ -86,18 +81,14 @@ class SimulationStatic():
         for task in self.tasks:
             self.solver.add_task_to_solver(task)
 
-        #self.solver.solve(0)
-
     def create_tasks(self):
         total_number_of_tasks = self.tasks_per_center * len(self.map.centers_location)
         for _ in range(total_number_of_tasks):
-            task = SingleTaskGeneratorTSG(rand= self.rand, map_=self.map).random_task
+            task = SingleTaskGeneratorTSG(rand=self.rand, map_=self.map).random_task
             self.tasks.append(task)
 
-
-            #SingleTaskStaticPoliceGenerator(rand=self.rand, map=self.map,
-                   #                                create_ability_dict=self.create_ability_dict).random_task
-
+            # SingleTaskStaticPoliceGenerator(rand=self.rand, map=self.map,
+            #                                create_ability_dict=self.create_ability_dict).random_task
 
     def draw_map(self):
         x = []
@@ -125,7 +116,7 @@ class SimulationStatic():
 
         fig, ax = plt.subplots()
 
-        colors = {'center': 'red', 'task': 'blue','player':'green'}
+        colors = {'center': 'red', 'task': 'blue', 'player': 'green'}
 
         ax.scatter(df['x'], df['y'], c=df['type_'].map(colors))
 
@@ -147,24 +138,27 @@ class SimulationStatic():
             ids_.append(player.id_)
         for task in self.tasks:
             task.create_neighbours_list(ids_)
-    def create_players(self,number_of_players,dict_input = {1:14,4:6,8:1}):
+
+    def create_players(self, number_of_players, dict_input={1: 14, 4: 6, 8: 1}):
         dict_copy = copy.deepcopy(dict_input)
-        while number_of_players!=0:
+        while number_of_players != 0:
 
             if self.all_values_are_zero(dict_copy.values()):
                 dict_copy = copy.deepcopy(dict_input)
             else:
-                for k,v in dict_copy.items():
-                    if v!=0:
-                        player = SinglePlayerGeneratorTSG( rand = self.rand , map_=self.map, ability_number = k,is_static_simulation=True).rnd_player
+                for k, v in dict_copy.items():
+                    if v != 0:
+                        player = SinglePlayerGeneratorTSG(rand=self.rand, map_=self.map, ability_number=k,
+                                                          is_static_simulation=True).rnd_player
                         self.players.append(player)
-                        dict_copy[k]=v-1
-                        number_of_players-=1
-                        if number_of_players==0:
+                        dict_copy[k] = v - 1
+                        number_of_players -= 1
+                        if number_of_players == 0:
                             break
-    def all_values_are_zero(self,values):
+
+    def all_values_are_zero(self, values):
         for v in values:
-            if v!=0:
+            if v != 0:
                 return False
         return True
 
@@ -176,26 +170,64 @@ class SimulationStatic():
         return ans
 
 
-
-
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
                                                  termination_time_constant_input=termination_time_constant):
     if mailer.time_mailer.get_clock() < termination_time_constant_input:
         return False
     return True
 
+def find_relevant_measure_from_dict(nclo,data_map_of_measure):
+
+    while nclo!= 0:
+        if nclo in data_map_of_measure.keys():
+            return data_map_of_measure[nclo]
+        else:
+            nclo = nclo-1
+    return 0
+
+def get_data_prior_statistic(data_):
+    data_keys = get_data_fisher().keys()
+    data_prior_statistic = {}
+    for measure_name in data_keys:
+        data_prior_statistic[measure_name] = {}
+        for nclo in range(0, termination_time_constant, data_jumps):
+            data_prior_statistic[measure_name][nclo] = []
+            for rep in range(simulation_reps):
+                data_of_rep = data_[rep]
+                data_map_of_measure = data_of_rep[measure_name]
+                the_measure = find_relevant_measure_from_dict(nclo, data_map_of_measure)
+                data_prior_statistic[measure_name][nclo].append(the_measure)
+    return data_prior_statistic
+
+
+def calc_avg(data_prior_statistic):
+    data_keys = get_data_fisher().keys()
+    ans = {}
+    for key in data_keys:
+       ans[key]={}
+       data_per_nclo = data_prior_statistic[key]
+       for nclo,measure_list in data_per_nclo:
+           ans[key][nclo] = sum(measure_list)/len(measure_list)
+
 
 if __name__ == '__main__':
 
+    data_ = {}
+    communication_protocol = CommunicationProtocol(communication_function=default_communication_disturbance,
+                                                   name="Perfect Communication", is_with_timestamp=True)
 
 
     for i in range(simulation_reps):
         ss = SimulationStatic(rep_number=i, solver=None)
         fisher_solver = FisherAsynchronousSolver(f_termination_condition=f_termination_condition_constant_mailer_nclo,
                                                  f_global_measurements=get_data_fisher(),
-                                                 f_communication_disturbance=default_communication_disturbance,
-                                                 future_utility_function=calculate_rij_tsg)
+                                                 f_communication_disturbance=communication_protocol.communication_function,
+                                                 future_utility_function=calculate_rij_tsg,
+                                                 is_with_timestamp = communication_protocol.is_with_timestamp)
 
         ss.add_solver(fisher_solver)
         fisher_solver.solve()
-        print(3)
+        data_[i] = fisher_solver.get_measurements()
+
+    data_prior_statistic = get_data_prior_statistic(data_)
+    data_avg = calc_avg(data_prior_statistic,)

@@ -46,8 +46,8 @@ def calculate_distance(entity1: Entity, entity2: Entity):
 
 
 class FisherPlayerASY(PlayerAlgorithm):
-    def __init__(self, agent_simulator, t_now, future_utility_function):
-        PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=True)
+    def __init__(self, agent_simulator, t_now, future_utility_function, is_with_timestamp):
+        PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
 
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
         self.bids = {}
@@ -272,8 +272,8 @@ class FisherPlayerASY(PlayerAlgorithm):
 
 
 class FisherTaskASY(TaskAlgorithm):
-    def __init__(self, agent_simulator: TaskSimple, t_now):
-        TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now)
+    def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp):
+        TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now,is_with_timestamp=is_with_timestamp)
         if not isinstance(agent_simulator, TaskSimple):
             raise Exception("wrong type of simulation entity")
 
@@ -453,14 +453,16 @@ class FisherTaskASY(TaskAlgorithm):
 
 class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
-                 f_communication_disturbance=default_communication_disturbance, future_utility_function=None):
+                 f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
+                 is_with_timestamp = True):
         AllocationSolverTasksPlayersSemi.__init__(self, mailer, f_termination_condition, f_global_measurements,
                                                   f_communication_disturbance)
         self.future_utility_function = future_utility_function
+        self.is_with_timestamp = True
 
     def create_algorithm_task(self, task: TaskSimple):
-        return FisherTaskASY(agent_simulator=task, t_now=self.tnow)
+        return FisherTaskASY(agent_simulator=task, t_now=self.tnow,is_with_timestamp = self.is_with_timestamp)
 
     def create_algorithm_player(self, player: PlayerSimple):
         return FisherPlayerASY(agent_simulator=player, t_now=self.tnow,
-                               future_utility_function=self.future_utility_function)
+                               future_utility_function=self.future_utility_function,is_with_timestamp = self.is_with_timestamp)
