@@ -16,7 +16,9 @@ from Allocation_Solver_Abstract import AllocationSolver
 import string
 
 simulation_reps = None
-termination_time_constant = 10000
+termination_time_constant = 50000
+map_width = None
+map_length = None
 data_jumps = None
 process_debug = True
 current_ro = None
@@ -52,7 +54,7 @@ def get_task_importance(task: TaskSimple):
 
 
 class SimulationStatic():
-    def __init__(self, rep_number, solver: AllocationSolver, players_required_ratio=0.5,
+    def __init__(self, rep_number, solver: AllocationSolver,map_length, map_width, players_required_ratio=0.5,
                  create_ability_dict=create_ability_dict, tasks_per_center=2, number_of_centers=2):
         self.create_ability_dict = create_ability_dict
         self.players_required_ratio = players_required_ratio
@@ -60,7 +62,9 @@ class SimulationStatic():
         self.seed_number = rep_number
         self.solver = solver
         self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.05,
-                           length_y=90, width_x=90)
+                           length_y=map_length, width_x=map_width)
+
+
         self.tasks_per_center = tasks_per_center
 
         self.tasks = []
@@ -277,10 +281,10 @@ def create_data_communication(amount_of_lines):
     return ans
 
 
-def run_single_simulation(rep_num,players_required_ratio,tasks_per_center,number_of_centers,ro):
+def run_single_simulation(rep_num,players_required_ratio,tasks_per_center,number_of_centers,map_length,map_width,ro=1):
     communication_protocol.set_seed(rep_num)
 
-    ss = SimulationStatic(rep_number=rep_num, solver=None, players_required_ratio=players_required_ratio
+    ss = SimulationStatic(rep_number=rep_num, solver=None,map_length=map_length, map_width=map_width, players_required_ratio=players_required_ratio
                           , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
 
     fisher_solver = FisherAsynchronousSolver(
@@ -335,25 +339,28 @@ def get_data_single_output_dict():
 
 
 if __name__ == '__main__':
+    players_required_ratios = [0.5, 1]
+    tasks_per_center = 3
+    number_of_centers = 4
+    simulation_reps = 100
+    data_jumps = 100
+    map_width = 90
+    map_length = 90
+    algo_name = "FMC_ASY"
+    ros = [1]
 
-    ubs = [0,100,500,1000]
+    ubs = [100,500,1000,0]
     communication_protocols = []
     for ub in ubs:
         name = "U(0," + str(ub) + ")"
         if ub!=0:
             for bool in [True,False]:
-                communication_protocols.append(CommunicationProtocolUniform(name="Perfect Communication", is_with_timestamp=bool,UB=ub))
+                communication_protocols.append(CommunicationProtocolUniform(name=name, is_with_timestamp=bool,UB=ub))
         else:
                 communication_protocols.append(
-                    CommunicationProtocolUniform(name="Perfect Communication", is_with_timestamp=False, UB=ub))
+                    CommunicationProtocolUniform(name=name, is_with_timestamp=False, UB=ub))
 
-    players_required_ratios = [0.5,1]
-    tasks_per_center = 3
-    number_of_centers = 4
-    simulation_reps = 100
-    data_jumps = 100
-    algo_name = "FMC_ASY"
-    ros = [1]
+
 
     data_output_list = []
 
@@ -370,7 +377,7 @@ if __name__ == '__main__':
 
                         print(i)
 
-                    data_[i] = run_single_simulation(i,players_required_ratio,tasks_per_center,number_of_centers,ro)
+                    data_[i] = run_single_simulation(i,players_required_ratio,tasks_per_center,number_of_centers,map_length,map_width,ro)
 
                 data_single_output_dict = get_data_single_output_dict()
                 data_frame =  pd.DataFrame.from_dict(data_single_output_dict)

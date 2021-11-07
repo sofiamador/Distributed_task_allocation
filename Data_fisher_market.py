@@ -25,9 +25,17 @@ def calculate_sum_R_X(agents_algorithm):
         for task_simulation in player.tasks_log:
             task_algo = get_algo_task(tasks,task_simulation)
             for mission in task_simulation.missions_list:
-                r_ijk_util = player.r_i[task_simulation][mission]
-                r_ijk = r_ijk_util.get_utility()
-                x_ijk = task_algo.x_jk[mission][player.simulation_entity.id_]
+                try:
+                    with player.cond:
+                        r_ijk_util = player.r_i[task_simulation][mission]
+                        r_ijk = r_ijk_util.get_utility()
+                        x_ijk = task_algo.x_jk[mission][player.simulation_entity.id_]
+                except:
+                    with player.cond:
+                        r_ijk_util = player.r_i[task_simulation][mission]
+                        r_ijk = r_ijk_util.get_utility()
+                        x_ijk = task_algo.x_jk[mission][player.simulation_entity.id_]
+
                 try: ri_xi+=r_ijk*x_ijk
                 except: pass
         ri_xi_list.append(ri_xi)
@@ -41,11 +49,15 @@ def calculate_sum_R_X_pov(agents_algorithm):
         for task in player.tasks_log:
             for mission in task.missions_list:
                 try:
-                    r_ijk_util = player.r_i[task][mission]
-                    r_ijk = r_ijk_util.get_utility()
-                    x_ijk = player.x_i[task][mission]
+                    with player.cond:
+                        r_ijk_util = player.r_i[task][mission]
+                        r_ijk = r_ijk_util.get_utility()
+                        x_ijk = player.x_i[task][mission]
                 except:
-                    print("AAAAAAAAAAAAAA")
+                    with player.cond:
+                        r_ijk_util = player.r_i[task][mission]
+                        r_ijk = r_ijk_util.get_utility()
+                        x_ijk = player.x_i[task][mission]
                 try:
                     ri_xi += r_ijk * x_ijk
                 except:
@@ -103,6 +115,7 @@ def calculate_single_R_X_player_pov(agents_algorithm):
             except:
                 pass
     return ri_xi
+
 
 
 def get_data_fisher():

@@ -186,10 +186,10 @@ class TSGMission(MissionSimple):
 
     # ##------------------------------Methods for strings and equal---------------------------------##
     def __eq__(self, other):
-        if type(other) is TSGMission:
-            return self.abilities.ability_type == other.agent_type and self.event_id == other.event_id
-        return False
-
+        #if type(other) is TSGMission:
+        #    return self.abilities.ability_type == other.agent_type and self.event_id == other.event_id
+        #return False
+        return self.mission_id.__hash__() == other.mission_id.__hash__()
     def __hash__(self):
         return self.mission_id.__hash__()
 
