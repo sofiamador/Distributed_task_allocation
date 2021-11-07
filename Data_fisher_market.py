@@ -40,9 +40,12 @@ def calculate_sum_R_X_pov(agents_algorithm):
     for player in players:
         for task in player.tasks_log:
             for mission in task.missions_list:
-                r_ijk_util = player.r_i[task][mission]
-                r_ijk = r_ijk_util.get_utility()
-                x_ijk = player.x_i[task][mission]
+                try:
+                    r_ijk_util = player.r_i[task][mission]
+                    r_ijk = r_ijk_util.get_utility()
+                    x_ijk = player.x_i[task][mission]
+                except:
+                    print("AAAAAAAAAAAAAA")
                 try:
                     ri_xi += r_ijk * x_ijk
                 except:

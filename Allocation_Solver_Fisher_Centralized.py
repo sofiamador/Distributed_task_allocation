@@ -24,18 +24,18 @@ class FisherCentralizedImplementation:
             for j in range(self.nofGoods):
                 if utilities[i][j] is not None:
                     self.utilities_[i][j] = utilities[i][j]
-                    valuation_sums[i] += utilities[i][j].getUtility(1)
-                    NCLO = NCLO+1
+                    valuation_sums[i] += utilities[i][j].get_utility(1)
+                    self.NCLO = self.NCLO+1
             for j in range(self.nofGoods):
                 if utilities[i][j] is not None:
-                    self.bids[i][j] = utilities[i][j].getUtility(1) / valuation_sums[i]
-                    NCLO = NCLO+1
+                    self.bids[i][j] = utilities[i][j].get_utility(1) / valuation_sums[i]
+                    self.NCLO = self.NCLO+1
 
         self.generateAllocations()
 
     # generates allocation according to current bids and prices
     def generateAllocations(self):
-        self.calculate_prices()
+        self.calculate_prices_initial()
         self.calculate_x_ij()
 
     def calculate_x_ij(self):
@@ -43,7 +43,10 @@ class FisherCentralizedImplementation:
         for i in range(self.nofAgents):
             for j in range(self.nofGoods):
                 if self.prices[j] != 0:
-                    self.change += abs(((self.bids[i][j] / self.prices[j]) - self.utilities_[i][j].xij))
+                    if self.utilities_[i][j].xij is None:
+                        self.change = 9999999
+                    else:
+                        self.change += abs(((self.bids[i][j] / self.prices[j]) - self.utilities_[i][j].xij))
                     if self.bids[i][j] / self.prices[j] > 1E-10:
                         self.utilities_[i][j].xij = self.bids[i][j] / self.prices[j]
                         self.NCLO = self.NCLO + 1

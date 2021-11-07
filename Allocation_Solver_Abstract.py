@@ -307,13 +307,21 @@ class Mailer(threading.Thread):
     def place_single_msg_from_inbox_in_msgs_box(self,msg):
         self.update_clock_upon_msg_received(msg)
         e1 = self.get_simulation_entity(msg.sender)
-        e2 = msg.receiver
+        e2 = self.get_simulation_entity(msg.receiver)
         communication_disturbance_output = self.f_communication_disturbance(e1,e2)
-        if not msg.is_with_perfect_communication:
-            if communication_disturbance_output is not None:
-                delay = communication_disturbance_output
-                msg.set_time_of_msg(delay)
-        self.msg_box.append(msg)
+        flag = False
+
+        if msg.is_with_perfect_communication:
+            self.msg_box.append(msg)
+            flag = True
+
+        if not flag and communication_disturbance_output is not None:
+            delay = communication_disturbance_output
+            msg.set_time_of_msg(delay)
+            self.msg_box.append(msg)
+
+
+
 
     def update_clock_upon_msg_received(self, msg: Msg):
 

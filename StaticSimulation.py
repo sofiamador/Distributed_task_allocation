@@ -4,21 +4,22 @@ import random
 import matplotlib.pyplot as plt
 
 from Allocation_Solver_Fisher import FisherAsynchronousSolver
-from Communication_Protocols import CommunicationProtocol, default_communication_disturbance
+from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
 from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
-from Simulation import MapHubs, TaskArrivalEvent,  find_responsible_agent, TaskSimple, AbilitySimple
+from Simulation import MapHubs, TaskArrivalEvent, find_responsible_agent, TaskSimple, AbilitySimple
 from Allocation_Solver_Abstract import AllocationSolver
 import string
 
-simulation_reps = 3
-termination_time_constant = 1000
-data_jumps = 10
-
+simulation_reps = None
+termination_time_constant = 10000
+data_jumps = None
+process_debug = True
+current_ro = None
 
 def rand_id_str(rand):
     ans = ''.join(rand.choices(string.ascii_uppercase + string.digits, k=10))
@@ -171,19 +172,20 @@ class SimulationStatic():
 
 
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
-                                                 termination_time_constant_input=termination_time_constant):
-    if mailer.time_mailer.get_clock() < termination_time_constant_input:
+                                                 termination_time_constant=termination_time_constant):
+    if mailer.time_mailer.get_clock() < termination_time_constant:
         return False
     return True
 
-def find_relevant_measure_from_dict(nclo,data_map_of_measure):
 
-    while nclo!= 0:
+def find_relevant_measure_from_dict(nclo, data_map_of_measure):
+    while nclo != 0:
         if nclo in data_map_of_measure.keys():
             return data_map_of_measure[nclo]
         else:
-            nclo = nclo-1
+            nclo = nclo - 1
     return 0
+
 
 def get_data_prior_statistic(data_):
     data_keys = get_data_fisher().keys()
@@ -204,30 +206,177 @@ def calc_avg(data_prior_statistic):
     data_keys = get_data_fisher().keys()
     ans = {}
     for key in data_keys:
-       ans[key]={}
-       data_per_nclo = data_prior_statistic[key]
-       for nclo,measure_list in data_per_nclo:
-           ans[key][nclo] = sum(measure_list)/len(measure_list)
+        ans[key] = {}
+        data_per_nclo = data_prior_statistic[key]
+        for nclo, measure_list in data_per_nclo.items():
+            ans[key][nclo] = sum(measure_list) / len(measure_list)
+    return ans
+
+
+def organize_data_to_dict(data_prior_statistic):
+    ans = {}
+
+    for title, nclo_dict in data_prior_statistic.items():
+        nclo_list = []
+        for nclo, single_measure in nclo_dict.items():
+            nclo_list.append(nclo)
+        ans["NCLO"] = nclo_list
+        break
+
+    for title, nclo_dict in data_prior_statistic.items():
+        measure_list = []
+        for nclo, single_measure in nclo_dict.items():
+            measure_list.append(single_measure)
+        ans[title] = measure_list
+
+    return ans
+
+
+def organize_data_to_dict_for_avg(data_avg):
+    ans = {}
+
+    for title, nclo_dict in data_avg.items():
+        nclo_list = []
+        for nclo, single_measure in nclo_dict.items():
+            nclo_list.append(nclo)
+        ans["NCLO"] = nclo_list
+        break
+
+    for title, nclo_dict in data_avg.items():
+        measure_list = []
+        for nclo, single_measure in nclo_dict.items():
+            measure_list.append(single_measure)
+        ans[title] = measure_list
+
+    return ans
+
+
+def create_data_statistics(data_):
+    #data_prior_statistic = get_data_prior_statistic(data_)
+    #return organize_data_to_dict(data_prior_statistic)
+
+    data_prior_statistic = get_data_prior_statistic(data_)
+    data_avg = calc_avg(data_prior_statistic)
+    return organize_data_to_dict_for_avg(data_avg)
+
+
+def create_data_communication(amount_of_lines):
+    protocol_name_list = []
+    timestamp_list = []
+
+    for _ in range(amount_of_lines):
+        protocol_name_list.append(communication_protocol.name)
+        if communication_protocol.is_with_timestamp:
+            timestamp_list.append("TS")
+        else:
+            timestamp_list.append("No_TS")
+
+    ans = {}
+    ans["Communication Protocol"] = protocol_name_list
+    ans["timestamp"] = timestamp_list
+    return ans
+
+
+def run_single_simulation(rep_num,players_required_ratio,tasks_per_center,number_of_centers,ro):
+    communication_protocol.set_seed(rep_num)
+
+    ss = SimulationStatic(rep_number=rep_num, solver=None, players_required_ratio=players_required_ratio
+                          , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
+
+    fisher_solver = FisherAsynchronousSolver(
+        f_termination_condition=f_termination_condition_constant_mailer_nclo,
+        f_global_measurements=get_data_fisher(),
+        f_communication_disturbance=communication_protocol.get_communication_disturbance,
+        future_utility_function=calculate_rij_tsg,
+        is_with_timestamp=communication_protocol.is_with_timestamp,
+        ro = ro)
+
+    ss.add_solver(fisher_solver)
+    fisher_solver.solve()
+    return fisher_solver.get_measurements()
+
+
+def create_data_simulation(amount_of_lines,players_required_ratio,tasks_per_center,number_of_centers,algo_name):
+    algo_name_list = []
+    players_required_ratio_list = []
+    tasks_per_center_list = []
+    number_of_centers_list = []
+
+    for _ in range(amount_of_lines):
+        algo_name_list.append(algo_name)
+        players_required_ratio_list.append(players_required_ratio)
+        tasks_per_center_list.append(tasks_per_center)
+        number_of_centers_list.append(number_of_centers)
+    ans = {}
+    ans["Algorithm"] = algo_name_list
+    ans["Players Required Ratio"] = players_required_ratio_list
+    ans["Tasks Per Center"] = tasks_per_center_list
+    ans["Number Of Centers"] = number_of_centers_list
+    return ans
+
+
+def get_data_single_output_dict():
+    data_statistics = create_data_statistics(data_)
+    amount_of_lines = len(data_statistics["NCLO"])
+    data_communication = create_data_communication(amount_of_lines)
+    data_simulation = create_data_simulation(amount_of_lines, players_required_ratio, tasks_per_center,
+                                             number_of_centers, algo_name)
+    data_output = {}
+    for k, v in data_simulation.items():
+        data_output[k] = v
+
+    for k, v in data_communication.items():
+        data_output[k] = v
+
+    for k, v in data_statistics.items():
+        data_output[k] = v
+
+    return  data_output
 
 
 if __name__ == '__main__':
 
-    data_ = {}
-    communication_protocol = CommunicationProtocol(communication_function=default_communication_disturbance,
-                                                   name="Perfect Communication", is_with_timestamp=True)
+    ubs = [0,100,500,1000]
+    communication_protocols = []
+    for ub in ubs:
+        name = "U(0," + str(ub) + ")"
+        if ub!=0:
+            for bool in [True,False]:
+                communication_protocols.append(CommunicationProtocolUniform(name="Perfect Communication", is_with_timestamp=bool,UB=ub))
+        else:
+                communication_protocols.append(
+                    CommunicationProtocolUniform(name="Perfect Communication", is_with_timestamp=False, UB=ub))
+
+    players_required_ratios = [0.5,1]
+    tasks_per_center = 3
+    number_of_centers = 4
+    simulation_reps = 100
+    data_jumps = 100
+    algo_name = "FMC_ASY"
+    ros = [1]
+
+    data_output_list = []
+
+    for communication_protocol in communication_protocols:
+        data_ = {}
+        for ro in ros:
+            current_ro = ro
+            for players_required_ratio in players_required_ratios:
+                if process_debug:
+                    print("players_required_ratios =",players_required_ratio,";", "communication protocol =",communication_protocol.name)
+
+                for i in range(simulation_reps):
+                    if process_debug:
+
+                        print(i)
+
+                    data_[i] = run_single_simulation(i,players_required_ratio,tasks_per_center,number_of_centers,ro)
+
+                data_single_output_dict = get_data_single_output_dict()
+                data_frame =  pd.DataFrame.from_dict(data_single_output_dict)
+                data_output_list.append(data_frame)
+
+    data_output = pd.concat(data_output_list)
+    data_output.to_csv(algo_name+".csv", sep=',')
 
 
-    for i in range(simulation_reps):
-        ss = SimulationStatic(rep_number=i, solver=None)
-        fisher_solver = FisherAsynchronousSolver(f_termination_condition=f_termination_condition_constant_mailer_nclo,
-                                                 f_global_measurements=get_data_fisher(),
-                                                 f_communication_disturbance=communication_protocol.communication_function,
-                                                 future_utility_function=calculate_rij_tsg,
-                                                 is_with_timestamp = communication_protocol.is_with_timestamp)
-
-        ss.add_solver(fisher_solver)
-        fisher_solver.solve()
-        data_[i] = fisher_solver.get_measurements()
-
-    data_prior_statistic = get_data_prior_statistic(data_)
-    data_avg = calc_avg(data_prior_statistic,)
