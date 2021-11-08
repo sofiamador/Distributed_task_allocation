@@ -4,7 +4,9 @@ import random
 import matplotlib.pyplot as plt
 
 from Allocation_Solver_Fisher import FisherAsynchronousSolver
-from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform
+from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform, CommunicationProtocolDefault, \
+    CommunicationProtocolDistanceBaseDelayPois, CommunicationProtocolMessageLossConstant, \
+    CommunicationProtocolDistanceBaseMessageLoss, CommunicationProtocolDistanceBaseDelayPoisAndLoss
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
 from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
@@ -22,6 +24,7 @@ map_length = None
 data_jumps = None
 process_debug = True
 current_ro = None
+
 
 def rand_id_str(rand):
     ans = ''.join(rand.choices(string.ascii_uppercase + string.digits, k=10))
@@ -54,7 +57,7 @@ def get_task_importance(task: TaskSimple):
 
 
 class SimulationStatic():
-    def __init__(self, rep_number, solver: AllocationSolver,map_length, map_width, players_required_ratio=0.5,
+    def __init__(self, rep_number, solver: AllocationSolver, map_length, map_width, players_required_ratio=0.5,
                  create_ability_dict=create_ability_dict, tasks_per_center=2, number_of_centers=2):
         self.create_ability_dict = create_ability_dict
         self.players_required_ratio = players_required_ratio
@@ -63,7 +66,6 @@ class SimulationStatic():
         self.solver = solver
         self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.05,
                            length_y=map_length, width_x=map_width)
-
 
         self.tasks_per_center = tasks_per_center
 
@@ -256,8 +258,8 @@ def organize_data_to_dict_for_avg(data_avg):
 
 
 def create_data_statistics(data_):
-    #data_prior_statistic = get_data_prior_statistic(data_)
-    #return organize_data_to_dict(data_prior_statistic)
+    # data_prior_statistic = get_data_prior_statistic(data_)
+    # return organize_data_to_dict(data_prior_statistic)
 
     data_prior_statistic = get_data_prior_statistic(data_)
     data_avg = calc_avg(data_prior_statistic)
@@ -281,10 +283,12 @@ def create_data_communication(amount_of_lines):
     return ans
 
 
-def run_single_simulation(rep_num,players_required_ratio,tasks_per_center,number_of_centers,map_length,map_width,ro=1):
+def run_single_simulation(rep_num, players_required_ratio, tasks_per_center, number_of_centers, map_length, map_width,
+                          ro=1):
     communication_protocol.set_seed(rep_num)
 
-    ss = SimulationStatic(rep_number=rep_num, solver=None,map_length=map_length, map_width=map_width, players_required_ratio=players_required_ratio
+    ss = SimulationStatic(rep_number=rep_num, solver=None, map_length=map_length, map_width=map_width,
+                          players_required_ratio=players_required_ratio
                           , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
 
     fisher_solver = FisherAsynchronousSolver(
@@ -293,14 +297,14 @@ def run_single_simulation(rep_num,players_required_ratio,tasks_per_center,number
         f_communication_disturbance=communication_protocol.get_communication_disturbance,
         future_utility_function=calculate_rij_tsg,
         is_with_timestamp=communication_protocol.is_with_timestamp,
-        ro = ro)
+        ro=ro)
 
     ss.add_solver(fisher_solver)
     fisher_solver.solve()
     return fisher_solver.get_measurements()
 
 
-def create_data_simulation(amount_of_lines,players_required_ratio,tasks_per_center,number_of_centers,algo_name):
+def create_data_simulation(amount_of_lines, players_required_ratio, tasks_per_center, number_of_centers, algo_name):
     algo_name_list = []
     players_required_ratio_list = []
     tasks_per_center_list = []
@@ -335,55 +339,99 @@ def get_data_single_output_dict():
     for k, v in data_statistics.items():
         data_output[k] = v
 
-    return  data_output
+    return data_output
 
+
+def create_communication_protocols(ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool):
+    ans = []
+
+    ans.append(CommunicationProtocolDefault(name="Perfect Communication"))
+
+    for ub in ubs:
+        name = "U(0," + str(ub) + ")"
+        if ub != 0:
+            for bool in [True, False]:
+                ans.append(CommunicationProtocolUniform(name=name, is_with_timestamp=bool, UB=ub))
+        else:
+            ans.append(
+                CommunicationProtocolUniform(name=name, is_with_timestamp=False, UB=ub))
+
+    for constant_ in constants_for_distances:
+        name = "Pois(T*" + str(constant_) + ")"
+        if constant_ != 0:
+            for bool in [True, False]:
+                ans.append(
+                    CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=bool, name=name, length=map_length,
+                                                               width=map_width, constant_=constant_))
+        else:
+            ans.append(CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=False, name=name, length=map_length,
+                                                                  width=map_width, constant_=constant_))
+
+    for constant_ in constants_for_distances_and_loss:
+        name = "Pois(T*" + str(constant_) + ") + Distance Loss"
+        if constant_ != 0:
+            for bool in [True, False]:
+                ans.append(
+                    CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=bool, name=name,
+                                                                      length=map_length,
+                                                                      width=map_width, constant_=constant_))
+        else:
+            ans.append(
+                CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=False, name=name, length=map_length,
+                                                                  width=map_width, constant_=constant_))
+    for p_loss in p_losses:
+        name = "p loss = " + str(p_loss)
+        ans.append(CommunicationProtocolMessageLossConstant(name=name, is_with_timestamp=False, p_loss=p_loss))
+
+    if distance_loss_bool:
+        ans.append(CommunicationProtocolDistanceBaseMessageLoss(name="Distance Loss", is_with_timestamp=False,length=map_length,
+                                                                  width=map_width))
+
+    return ans
 
 if __name__ == '__main__':
-    players_required_ratios = [0.5, 1]
+    players_required_ratios = [0.5]
     tasks_per_center = 3
     number_of_centers = 4
-    simulation_reps = 100
+    simulation_reps = 5  #100
     data_jumps = 100
     map_width = 90
     map_length = 90
     algo_name = "FMC_ASY"
     ros = [1]
 
-    ubs = [100,500,1000,0]
-    communication_protocols = []
-    for ub in ubs:
-        name = "U(0," + str(ub) + ")"
-        if ub!=0:
-            for bool in [True,False]:
-                communication_protocols.append(CommunicationProtocolUniform(name=name, is_with_timestamp=bool,UB=ub))
-        else:
-                communication_protocols.append(
-                    CommunicationProtocolUniform(name=name, is_with_timestamp=False, UB=ub))
-
-
+    ubs = [500, 1000, 5000]
+    p_losses = [0.1, 0.5, 0.9]
+    constants_for_distances = [500, 1000, 5000]
+    constants_for_distances_and_loss = [500, 1000, 5000]
+    distance_loss_bool = True
+    communication_protocols = create_communication_protocols(ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool)
 
     data_output_list = []
-
-    for communication_protocol in communication_protocols:
-        data_ = {}
-        for ro in ros:
-            current_ro = ro
-            for players_required_ratio in players_required_ratios:
+    for players_required_ratio in players_required_ratios:
+        for communication_protocol in communication_protocols:
+            data_ = {}
+            for ro in ros:
+                current_ro = ro
                 if process_debug:
-                    print("players_required_ratios =",players_required_ratio,";", "communication protocol =",communication_protocol.name)
+                    print("players_required_ratios =", players_required_ratio, ";", "communication protocol =",
+                          communication_protocol.name)
 
                 for i in range(simulation_reps):
                     if process_debug:
-
                         print(i)
 
-                    data_[i] = run_single_simulation(i,players_required_ratio,tasks_per_center,number_of_centers,map_length,map_width,ro)
+                    data_[i] = run_single_simulation(i, players_required_ratio, tasks_per_center, number_of_centers,
+                                                     map_length, map_width, ro)
 
                 data_single_output_dict = get_data_single_output_dict()
-                data_frame =  pd.DataFrame.from_dict(data_single_output_dict)
+                data_frame = pd.DataFrame.from_dict(data_single_output_dict)
+                if communication_protocol.is_with_timestamp:
+                    data_frame.to_csv(algo_name +","+communication_protocol.name+" TS.csv", sep=',')
+                else:
+                    data_frame.to_csv(algo_name +","+communication_protocol.name+" no_TS.csv", sep=',')
+
                 data_output_list.append(data_frame)
 
     data_output = pd.concat(data_output_list)
-    data_output.to_csv(algo_name+".csv", sep=',')
-
-
+    data_output.to_csv(algo_name + ".csv", sep=',')
