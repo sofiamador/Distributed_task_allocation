@@ -713,17 +713,17 @@ class AgentAlgorithm(threading.Thread, ABC):
 
             msgs_list = self.inbox.extract()  # TODO when finish mailer
 
+            with self.cond:
+                if msgs_list is None:
+                    break
 
-            if msgs_list is None:
-                break
-
-            msgs = []
-            for msg_list in msgs_list:
-                for msg in msg_list:
-                    msgs.append(msg)
-            self.set_idle_to_false()
-            self.receive_msgs(msgs)
-            self.reaction_to_msgs()
+                msgs = []
+                for msg_list in msgs_list:
+                    for msg in msg_list:
+                        msgs.append(msg)
+                self.set_idle_to_false()
+                self.receive_msgs(msgs)
+                self.reaction_to_msgs()
 
 
     def set_idle_to_true(self):
