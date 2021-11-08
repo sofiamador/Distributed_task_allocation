@@ -345,7 +345,6 @@ def get_data_single_output_dict():
 def create_communication_protocols(ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool):
     ans = []
 
-    ans.append(CommunicationProtocolDefault(name="Perfect Communication"))
 
     for ub in ubs:
         name = "U(0," + str(ub) + ")"
@@ -357,7 +356,7 @@ def create_communication_protocols(ubs, constants_for_distances, constants_for_d
                 CommunicationProtocolUniform(name=name, is_with_timestamp=False, UB=ub))
 
     for constant_ in constants_for_distances:
-        name = "Pois(T*" + str(constant_) + ")"
+        name = "Pois(Tx" + str(constant_) + ")"
         if constant_ != 0:
             for bool in [True, False]:
                 ans.append(
@@ -368,7 +367,7 @@ def create_communication_protocols(ubs, constants_for_distances, constants_for_d
                                                                   width=map_width, constant_=constant_))
 
     for constant_ in constants_for_distances_and_loss:
-        name = "Pois(T*" + str(constant_) + ") + Distance Loss"
+        name = "Pois(Tx" + str(constant_) + ") + Distance Loss"
         if constant_ != 0:
             for bool in [True, False]:
                 ans.append(
@@ -387,13 +386,15 @@ def create_communication_protocols(ubs, constants_for_distances, constants_for_d
         ans.append(CommunicationProtocolDistanceBaseMessageLoss(name="Distance Loss", is_with_timestamp=False,length=map_length,
                                                                   width=map_width))
 
+    ans.append(CommunicationProtocolDefault(name="Perfect Communication"))
+
     return ans
 
 if __name__ == '__main__':
     players_required_ratios = [0.5]
     tasks_per_center = 3
     number_of_centers = 4
-    simulation_reps = 5  #100
+    simulation_reps = 100
     data_jumps = 100
     map_width = 90
     map_length = 90
@@ -426,10 +427,11 @@ if __name__ == '__main__':
 
                 data_single_output_dict = get_data_single_output_dict()
                 data_frame = pd.DataFrame.from_dict(data_single_output_dict)
+                file_name = "reps_"+str(simulation_reps)+"_",algo_name +"_ro_"+str(current_ro)+"_ratio_"+str(players_required_ratio)+"_"+communication_protocol.name
                 if communication_protocol.is_with_timestamp:
-                    data_frame.to_csv(algo_name +","+communication_protocol.name+" TS.csv", sep=',')
+                    data_frame.to_csv(file_name+"TS.csv", sep=',')
                 else:
-                    data_frame.to_csv(algo_name +","+communication_protocol.name+" no_TS.csv", sep=',')
+                    data_frame.to_csv(file_name+"no_TS.csv", sep=',')
 
                 data_output_list.append(data_frame)
 

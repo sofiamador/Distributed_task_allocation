@@ -107,7 +107,7 @@ class CommunicationProtocolDistanceBaseDelayPois(CommunicationProtocolDistanceBa
         self.constant_ = constant_
 
     def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
-        ratio = self.calculate_ratio(self, entity1, entity2)
+        ratio = self.calculate_ratio(entity1, entity2)
         param = ratio * self.constant_
         return self.rnd_numpy.poisson(param, 1)[0]
 
@@ -117,7 +117,7 @@ class CommunicationProtocolDistanceBaseMessageLoss(CommunicationProtocolDistance
         CommunicationProtocolDistanceBase.__init__(self, is_with_timestamp, name, length, width)
 
     def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
-        P = self.calculate_ratio(self, entity1, entity2)
+        P = self.calculate_ratio(entity1, entity2)
         p = self.rnd.random()
         if p < P:
             return None
@@ -131,7 +131,7 @@ class CommunicationProtocolDistanceBaseDelayPoisAndLoss(CommunicationProtocolDis
         self.constant_ = constant_
 
     def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
-        ratio = self.calculate_ratio(self, entity1, entity2)
+        ratio = self.calculate_ratio(entity1, entity2)
         p = self.rnd.random()
         if p < ratio:
             return None
