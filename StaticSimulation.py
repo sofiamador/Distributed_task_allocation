@@ -394,7 +394,7 @@ if __name__ == '__main__':
     players_required_ratios = [0.5]
     tasks_per_center = 3
     number_of_centers = 4
-    simulation_reps = 100
+    simulation_reps = 90
     data_jumps = 100
     map_width = 90
     map_length = 90
