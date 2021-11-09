@@ -554,6 +554,15 @@ class TSGPlayer(PlayerSimple):
 
     # ##------------------------Methods for change status--------------------------------------------##
 
+    def __eq__(self, other):
+        # if type(other) is TSGMission:
+        #    return self.abilities.ability_type == other.agent_type and self.event_id == other.event_id
+        # return False
+        return self.id_.__hash__() == other.id_.__hash__()
+
+    def __hash__(self):
+        return self.id_.__hash__()
+
     def check_if_agent_is_idle(self):
         if self.status is Status.IDLE:
             return 1

@@ -195,7 +195,7 @@ class Mailer(threading.Thread):
 
         """
 
-        self.create_measurements()  # TODO
+        self.create_measurements()
 
         self.mailer_iteration(with_update_clock_for_empty_msg_to_send=True)
 

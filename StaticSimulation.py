@@ -18,7 +18,7 @@ from Allocation_Solver_Abstract import AllocationSolver
 import string
 
 simulation_reps = None
-termination_time_constant = 50000
+termination_time_constant = 40000
 map_width = None
 map_length = None
 data_jumps = None
@@ -356,7 +356,7 @@ def create_communication_protocols(ubs, constants_for_distances, constants_for_d
                 CommunicationProtocolUniform(name=name, is_with_timestamp=False, UB=ub))
 
     for constant_ in constants_for_distances:
-        name = "Pois(Tx" + str(constant_) + ")"
+        name = "Pois(Dij_x" + str(constant_) + ")"
         if constant_ != 0:
             for bool in [True, False]:
                 ans.append(
@@ -367,7 +367,7 @@ def create_communication_protocols(ubs, constants_for_distances, constants_for_d
                                                                   width=map_width, constant_=constant_))
 
     for constant_ in constants_for_distances_and_loss:
-        name = "Pois(Tx" + str(constant_) + ") + Distance Loss"
+        name = "Pois(Dij_x" + str(constant_) + ") + Distance Loss"
         if constant_ != 0:
             for bool in [True, False]:
                 ans.append(
@@ -392,20 +392,20 @@ def create_communication_protocols(ubs, constants_for_distances, constants_for_d
 
 if __name__ == '__main__':
     players_required_ratios = [0.5]
-    tasks_per_center = 3
+    tasks_per_center = 2
     number_of_centers = 4
-    simulation_reps = 100
+    simulation_reps = 5
     data_jumps = 100
     map_width = 90
     map_length = 90
     algo_name = "FMC_ASY"
     ros = [1]
 
-    ubs = [500, 1000, 5000]
-    p_losses = [0.1, 0.5, 0.9]
-    constants_for_distances = [500, 1000, 5000]
-    constants_for_distances_and_loss = [500, 1000, 5000]
-    distance_loss_bool = True
+    ubs = []#[500, 1000, 5000]
+    p_losses = []#[0.1, 0.5, 0.9]
+    constants_for_distances = []#[500, 1000, 5000]
+    constants_for_distances_and_loss = []#[500, 1000, 5000]
+    distance_loss_bool = False
     communication_protocols = create_communication_protocols(ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool)
 
     data_output_list = []
@@ -427,11 +427,13 @@ if __name__ == '__main__':
 
                 data_single_output_dict = get_data_single_output_dict()
                 data_frame = pd.DataFrame.from_dict(data_single_output_dict)
-                file_name = "reps_"+str(simulation_reps)+"_",algo_name +"_ro_"+str(current_ro)+"_ratio_"+str(players_required_ratio)+"_"+communication_protocol.name
+                file_name = "reps_"+str(simulation_reps)+"_"+algo_name +"_ro_"+str(current_ro)+"_ratio_"+str(players_required_ratio)+"_"+communication_protocol.name
+
                 if communication_protocol.is_with_timestamp:
-                    data_frame.to_csv(file_name+"TS.csv", sep=',')
+                    file_name = file_name+"TS.csv"
                 else:
-                    data_frame.to_csv(file_name+"no_TS.csv", sep=',')
+                    file_name = file_name+"no_TS.csv"
+                data_frame.to_csv(file_name, sep=',')
 
                 data_output_list.append(data_frame)
 
