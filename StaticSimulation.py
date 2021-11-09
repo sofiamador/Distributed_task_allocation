@@ -428,7 +428,7 @@ if __name__ == '__main__':
     constants_for_distances = [2000]#[500, 1000, 5000]
     constants_for_distances_and_loss = [2000]#[500, 1000, 5000]
     distance_loss_bool = False
-    communication_protocols = create_communication_protocols(only_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool)
+    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool)
 
     data_output_list = []
     for players_required_ratio in players_required_ratios:
