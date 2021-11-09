@@ -7,7 +7,7 @@ import Simulation
 
 import numpy as np
 
-
+debug_print_for_distribution = True
 class CommunicationProtocol(ABC):
     def __init__(self, is_with_timestamp, name):
 
@@ -109,7 +109,9 @@ class CommunicationProtocolDistanceBaseDelayPois(CommunicationProtocolDistanceBa
     def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
         ratio = self.calculate_ratio(entity1, entity2)
         param = ratio * self.constant_
-        return self.rnd_numpy.poisson(param, 1)[0]
+        delay = self.rnd_numpy.poisson(param, 1)[0]
+
+        return delay
 
 
 class CommunicationProtocolDistanceBaseMessageLoss(CommunicationProtocolDistanceBase):

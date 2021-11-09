@@ -18,7 +18,7 @@ from Allocation_Solver_Abstract import AllocationSolver
 import string
 
 simulation_reps = None
-termination_time_constant = 40000
+termination_time_constant = 50000
 map_width = None
 map_length = None
 data_jumps = None
@@ -342,58 +342,61 @@ def get_data_single_output_dict():
     return data_output
 
 
-def create_communication_protocols(only_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool):
+def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool):
     ans = []
 
 
     for ub in ubs:
         name = "U(0," + str(ub) + ")"
-        if only_with_timestamp:
-            ans.append(CommunicationProtocolUniform(name=name, is_with_timestamp=True, UB=ub))
-        else:
-            if ub != 0:
-                for bool in [True, False]:
-                    ans.append(CommunicationProtocolUniform(name=name, is_with_timestamp=bool, UB=ub))
-            else:
-                ans.append(
-                    CommunicationProtocolUniform(name=name, is_with_timestamp=False, UB=ub))
+        ans.append(CommunicationProtocolUniform(name=name, is_with_timestamp=is_with_timestamp, UB=ub))
+
+        # if only_with_timestamp:
+        #     ans.append(CommunicationProtocolUniform(name=name, is_with_timestamp=True, UB=ub))
+        # else:
+        #     if ub != 0:
+        #         for bool in [True, False]:
+        #             ans.append(CommunicationProtocolUniform(name=name, is_with_timestamp=bool, UB=ub))
+        #     else:
+        #         ans.append(
+        #             CommunicationProtocolUniform(name=name, is_with_timestamp=False, UB=ub))
 
     for constant_ in constants_for_distances:
         name = "Pois(Dij_x" + str(constant_) + ")"
-
-        if only_with_timestamp:
-            ans.append( CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=True, name=name, length=map_length,
-                                                                   width=map_width, constant_=constant_))
-        else:
-            if constant_ != 0:
-                for bool in [True, False]:
-                    ans.append(
-                        CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=bool, name=name, length=map_length,
-                                                                   width=map_width, constant_=constant_))
-            else:
-                ans.append(CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=False, name=name, length=map_length,
-                                                                      width=map_width, constant_=constant_))
+        ans.append(CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=is_with_timestamp, name=name, length=map_length, width=map_width, constant_=constant_))
+        # if only_with_timestamp:
+        #     ans.append( CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=True, name=name, length=map_length,
+        #                                                            width=map_width, constant_=constant_))
+        # else:
+        #     if constant_ != 0:
+        #         for bool in [True, False]:
+        #             ans.append(
+        #                 CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=bool, name=name, length=map_length,
+        #                                                            width=map_width, constant_=constant_))
+        #     else:
+        #         ans.append(CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=False, name=name, length=map_length,
+        #                                                               width=map_width, constant_=constant_))
 
     for constant_ in constants_for_distances_and_loss:
         name = "Pois(Dij_x" + str(constant_) + ") + Distance Loss"
-        if constant_ != 0:
-
-            if only_with_timestamp:
-                ans.append(
-                    CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=True, name=name,
-                                                                      length=map_length,
-                                                                      width=map_width, constant_=constant_))
-            else:
-
-                for bool in [True, False]:
-                    ans.append(
-                        CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=bool, name=name,
-                                                                          length=map_length,
-                                                                          width=map_width, constant_=constant_))
-        else:
-            ans.append(
-                CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=False, name=name, length=map_length,
-                                                                  width=map_width, constant_=constant_))
+        ans.append(CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=is_with_timestamp, name=name, length=map_length,width=map_width, constant_=constant_))
+        # if constant_ != 0:
+        #
+        #     if only_with_timestamp:
+        #         ans.append(
+        #             CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=True, name=name,
+        #                                                               length=map_length,
+        #                                                               width=map_width, constant_=constant_))
+        #     else:
+        #
+        #         for bool in [True, False]:
+        #             ans.append(
+        #                 CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=bool, name=name,
+        #                                                                   length=map_length,
+        #                                                                   width=map_width, constant_=constant_))
+        # else:
+        #     ans.append(
+        #         CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=False, name=name, length=map_length,
+        #                                                           width=map_width, constant_=constant_))
     for p_loss in p_losses:
         name = "p loss = " + str(p_loss)
         ans.append(CommunicationProtocolMessageLossConstant(name=name, is_with_timestamp=False, p_loss=p_loss))
@@ -411,19 +414,19 @@ if __name__ == '__main__':
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
-    simulation_reps = 50
+    simulation_reps = 100
     data_jumps = 100
     map_width = 90
     map_length = 90
     algo_name = "FMC_ASY"
     ros = [1]
 
-    only_with_timestamp = True
+    is_with_timestamp = True
     perfect_communication = False
-    ubs = []#[500, 1000, 5000]
+    ubs = [1000]#[500, 1000, 5000]
     p_losses = []#[0.1, 0.5, 0.9]
-    constants_for_distances = []#[500, 1000, 5000]
-    constants_for_distances_and_loss = []#[500, 1000, 5000]
+    constants_for_distances = [2000]#[500, 1000, 5000]
+    constants_for_distances_and_loss = [2000]#[500, 1000, 5000]
     distance_loss_bool = False
     communication_protocols = create_communication_protocols(only_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool)
 
@@ -449,9 +452,9 @@ if __name__ == '__main__':
                 file_name = "reps_"+str(simulation_reps)+"_"+algo_name +"_ro_"+str(current_ro)+"_ratio_"+str(players_required_ratio)+"_"+communication_protocol.name
 
                 if communication_protocol.is_with_timestamp:
-                    file_name = file_name+"TS.csv"
+                    file_name = file_name+"_TS.csv"
                 else:
-                    file_name = file_name+"no_TS.csv"
+                    file_name = file_name+"_no_TS.csv"
                 data_frame.to_csv(file_name, sep=',')
 
                 data_output_list.append(data_frame)

@@ -314,14 +314,14 @@ def get_data_fisher():
     ans["Single Sigma RiXi pov"] = calculate_single_R_X_player_pov
 
     # ---Envy---
-    #ans["Sigma_Envy_Player View"] = calculate_sum_envy_other_player_view
-    #ans["Max_Envy_Player View"] = calculate_max_envy_other_player_view
+    ans["Sigma_Envy_Player View"] = calculate_sum_envy_other_player_view
+    ans["Max_Envy_Player View"] = calculate_max_envy_other_player_view
     #ans["Single_Sigma_Envy_Player View"] = calculate_sum_envy_other_player_view_single
     #ans["Single_Max_Envy_Player View"] = calculate_max_envy_other_player_view_single
     ans["Sigma_Envy_Task View"] = calculate_sum_envy_other_task_view
     ans["Max_Envy_Task View"] = calculate_max_envy_other_task_view
-    ans["Single_Sigma_Envy_Task View"] = calculate_sum_envy_other_task_view_single
-    ans["Single_Max_Envy_Task View"] = calculate_max_envy_other_task_view_single
+    #ans["Single_Sigma_Envy_Task View"] = calculate_sum_envy_other_task_view_single
+    #ans["Single_Max_Envy_Task View"] = calculate_max_envy_other_task_view_single
 
     # ---Price---
 

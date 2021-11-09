@@ -3,7 +3,7 @@ import math
 import threading
 import copy
 from abc import ABC
-
+debug_print_for_distribution = True
 from enum import Enum
 
 debug_fisher_market = False
@@ -318,6 +318,8 @@ class Mailer(threading.Thread):
         if not flag and communication_disturbance_output is not None:
             delay = communication_disturbance_output
             msg.set_time_of_msg(delay)
+            if debug_print_for_distribution:
+                print(delay)
             self.msg_box.append(msg)
 
 
