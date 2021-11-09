@@ -3,7 +3,7 @@ import math
 import threading
 import copy
 from abc import ABC
-debug_print_for_distribution = True
+debug_print_for_distribution = False
 from enum import Enum
 
 debug_fisher_market = False

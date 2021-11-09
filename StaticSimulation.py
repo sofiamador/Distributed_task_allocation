@@ -421,13 +421,13 @@ if __name__ == '__main__':
     algo_name = "FMC_ASY"
     ros = [1]
 
-    is_with_timestamp = True
+    is_with_timestamp = False
     perfect_communication = False
-    ubs = [1000]#[500, 1000, 5000]
+    ubs = []#[500, 1000, 5000]
     p_losses = []#[0.1, 0.5, 0.9]
-    constants_for_distances = [2000]#[500, 1000, 5000]
-    constants_for_distances_and_loss = [2000]#[500, 1000, 5000]
-    distance_loss_bool = False
+    constants_for_distances = []#[500, 1000, 5000]
+    constants_for_distances_and_loss = []#[500, 1000, 5000]
+    distance_loss_bool = True
     communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool)
 
     data_output_list = []
