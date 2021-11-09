@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from Allocation_Solver_Fisher import FisherAsynchronousSolver
 from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform, CommunicationProtocolDefault, \
     CommunicationProtocolDistanceBaseDelayPois, CommunicationProtocolMessageLossConstant, \
-    CommunicationProtocolDistanceBaseMessageLoss, CommunicationProtocolDistanceBaseDelayPoisAndLoss
+    CommunicationProtocolDistanceBaseMessageLoss, CommunicationProtocolDistanceBaseDelayPoisAndLoss, \
+    CommunicationProtocolMessageLossConstantAndUniform
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
 from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
@@ -342,8 +343,16 @@ def get_data_single_output_dict():
     return data_output
 
 
-def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool):
+def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool,p_loss_and_ubs):
     ans = []
+
+
+
+    for p_ub in p_loss_and_ubs:
+        p = p_ub[0]
+        ub = p_ub[1]
+        name = "U(0," + str(ub) + "),p_loss"+str(p)
+        ans.append(CommunicationProtocolMessageLossConstantAndUniform(name=name, is_with_timestamp=is_with_timestamp, p_loss=p,UB=ub))
 
 
     for ub in ubs:
@@ -425,10 +434,11 @@ if __name__ == '__main__':
     perfect_communication = False
     ubs = []#[500, 1000, 5000]
     p_losses = []#[0.1, 0.5, 0.9]
+    p_loss_and_ubs = [[0.25,1000]]
     constants_for_distances = []#[500, 1000, 5000]
     constants_for_distances_and_loss = []#[500, 1000, 5000]
     distance_loss_bool = True
-    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool)
+    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool,p_loss_and_ubs)
 
     data_output_list = []
     for players_required_ratio in players_required_ratios:

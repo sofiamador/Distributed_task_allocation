@@ -161,3 +161,17 @@ class CommunicationProtocolMessageLossConstant(CommunicationProtocol):
             return None
         else:
             return 0
+
+
+class CommunicationProtocolMessageLossConstantAndUniform(CommunicationProtocol):
+    def __init__(self, name, is_with_timestamp, p_loss,UB):
+        CommunicationProtocol.__init__(self, is_with_timestamp, name)
+        self.p_loss = p_loss
+        self.UB = UB
+
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+        p = self.rnd.random()
+        if p < self.p_loss:
+            return None
+        else:
+            return self.rnd.uniform(0, self.UB)
