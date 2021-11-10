@@ -7,7 +7,7 @@ from Allocation_Solver_Fisher import FisherAsynchronousSolver
 from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform, CommunicationProtocolDefault, \
     CommunicationProtocolDistanceBaseDelayPois, CommunicationProtocolMessageLossConstant, \
     CommunicationProtocolDistanceBaseMessageLoss, CommunicationProtocolDistanceBaseDelayPoisAndLoss, \
-    CommunicationProtocolMessageLossConstantAndUniform
+    CommunicationProtocolMessageLossConstantAndUniform, CommunicationProtocolPois
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
 from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
@@ -23,7 +23,7 @@ termination_time_constant = 50000
 map_width = None
 map_length = None
 data_jumps = None
-process_debug = True
+process_debug = False
 current_ro = None
 
 
@@ -343,7 +343,7 @@ def get_data_single_output_dict():
     return data_output
 
 
-def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool,p_loss_and_ubs):
+def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool,p_loss_and_ubs,poises):
     ans = []
 
 
@@ -354,6 +354,9 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
         name = "U(0," + str(ub) + "),p_loss"+str(p)
         ans.append(CommunicationProtocolMessageLossConstantAndUniform(name=name, is_with_timestamp=is_with_timestamp, p_loss=p,UB=ub))
 
+    for pois in poises:
+        name = "pois(" + str(pois) + ")"
+        ans.append(CommunicationProtocolPois(name=name, is_with_timestamp=is_with_timestamp, pois = pois))
 
     for ub in ubs:
         name = "U(0," + str(ub) + ")"
@@ -423,7 +426,7 @@ if __name__ == '__main__':
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
-    simulation_reps = 100
+    simulation_reps = 5
     data_jumps = 100
     map_width = 90
     map_length = 90
@@ -434,11 +437,12 @@ if __name__ == '__main__':
     perfect_communication = False
     ubs = []#[500, 1000, 5000]
     p_losses = []#[0.1, 0.5, 0.9]
-    p_loss_and_ubs = [[0.25,1000]]
+    p_loss_and_ubs = []#[[0.25,1000]]
     constants_for_distances = []#[500, 1000, 5000]
     constants_for_distances_and_loss = []#[500, 1000, 5000]
-    distance_loss_bool = True
-    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool,p_loss_and_ubs)
+    distance_loss_bool = False
+    poises = [500]
+    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool,p_loss_and_ubs,poises)
 
     data_output_list = []
     for players_required_ratio in players_required_ratios:

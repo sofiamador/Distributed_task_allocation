@@ -7,7 +7,7 @@ import Simulation
 
 import numpy as np
 
-debug_print_for_distribution = True
+debug_print_for_distribution = False
 class CommunicationProtocol(ABC):
     def __init__(self, is_with_timestamp, name):
 
@@ -56,6 +56,18 @@ class CommunicationProtocolUniform(CommunicationProtocol):
         if self.UB == 0:
             return 0
         return self.rnd.uniform(0, self.UB)
+
+class CommunicationProtocolPois(CommunicationProtocol):
+    def __init__(self, is_with_timestamp, name, pois):
+        CommunicationProtocol.__init__(self, is_with_timestamp, name)
+        self.pois = pois
+
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+        if self.pois == 0:
+            return 0
+
+
+        return self.rnd_numpy.poisson(self.pois)
 
 
 class CommunicationProtocolDistanceBase(CommunicationProtocol, ABC):
@@ -110,7 +122,8 @@ class CommunicationProtocolDistanceBaseDelayPois(CommunicationProtocolDistanceBa
         ratio = self.calculate_ratio(entity1, entity2)
         param = ratio * self.constant_
         delay = self.rnd_numpy.poisson(param, 1)[0]
-
+        if debug_print_for_distribution:
+            print(delay)
         return delay
 
 
