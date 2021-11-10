@@ -356,7 +356,7 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
 
     for pois in poises:
         name = "pois(" + str(pois) + ")"
-        ans.append(CommunicationProtocolPois(name=name, is_with_timestamp=is_with_timestamp, pois = pois))
+        ans.append(CommunicationProtocolPois(name=name, is_with_timestamp=is_with_timestamp, lambda_ = pois))
 
     for ub in ubs:
         name = "U(0," + str(ub) + ")"

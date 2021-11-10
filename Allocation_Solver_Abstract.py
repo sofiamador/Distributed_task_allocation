@@ -413,7 +413,7 @@ class Mailer(threading.Thread):
 
         for a in self.agents_algorithm:
 
-            if a.get_is_idle():
+            if not a.get_is_idle():
                 return False
 
         return True
