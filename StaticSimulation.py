@@ -23,9 +23,9 @@ termination_time_constant = 50000
 map_width = None
 map_length = None
 data_jumps = None
-process_debug = False
 current_ro = None
 
+process_debug = True
 
 def rand_id_str(rand):
     ans = ''.join(rand.choices(string.ascii_uppercase + string.digits, k=10))
@@ -343,7 +343,7 @@ def get_data_single_output_dict():
     return data_output
 
 
-def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool,p_loss_and_ubs,poises):
+def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises):
     ans = []
 
 
@@ -413,9 +413,12 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
         name = "p loss = " + str(p_loss)
         ans.append(CommunicationProtocolMessageLossConstant(name=name, is_with_timestamp=False, p_loss=p_loss))
 
-    if distance_loss_bool:
-        ans.append(CommunicationProtocolDistanceBaseMessageLoss(name="Distance Loss", is_with_timestamp=False,length=map_length,
-                                                                  width=map_width))
+
+    for distance_loss_ratio in distance_loss_ratios:
+        name = "Distance Loss "+str(distance_loss_ratio)
+
+        ans.append(CommunicationProtocolDistanceBaseMessageLoss(name=name, is_with_timestamp=False,length=map_length,
+                                                                  width=map_width,distance_loss_ratio=distance_loss_ratio))
 
     if perfect_communication:
         ans.append(CommunicationProtocolDefault(name="Perfect Communication"))
@@ -426,7 +429,7 @@ if __name__ == '__main__':
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
-    simulation_reps = 5
+    simulation_reps = 100
     data_jumps = 100
     map_width = 90
     map_length = 90
@@ -440,9 +443,9 @@ if __name__ == '__main__':
     p_loss_and_ubs = []#[[0.25,1000]]
     constants_for_distances = []#[500, 1000, 5000]
     constants_for_distances_and_loss = []#[500, 1000, 5000]
-    distance_loss_bool = False
-    poises = [500]
-    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_bool,p_loss_and_ubs,poises)
+    distance_loss_ratios = [1,0.9,0.7,0.5,0.3,0.2]
+    poises = []
+    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises)
 
     data_output_list = []
     for players_required_ratio in players_required_ratios:
