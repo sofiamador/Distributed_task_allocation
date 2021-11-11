@@ -19,7 +19,7 @@ from Allocation_Solver_Abstract import AllocationSolver
 import string
 
 simulation_reps = None
-termination_time_constant = 50000
+termination_time_constant = 300#50000
 map_width = None
 map_length = None
 data_jumps = None
