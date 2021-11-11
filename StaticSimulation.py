@@ -19,7 +19,7 @@ from Allocation_Solver_Abstract import AllocationSolver
 import string
 
 simulation_reps = None
-termination_time_constant = 50000
+termination_time_constant = 300#50000
 map_width = None
 map_length = None
 data_jumps = None
@@ -257,6 +257,13 @@ def organize_data_to_dict_for_avg(data_avg):
 
     return ans
 
+def get_data_last(data_):
+    ans = {}
+    for measure_name,nclo_dict in data_.items():
+        max_nclo = max(nclo_dict.keys())
+        ans[measure_name] = nclo_dict[max_nclo]
+    return ans
+
 
 def create_data_statistics(data_):
     # data_prior_statistic = get_data_prior_statistic(data_)
@@ -264,7 +271,10 @@ def create_data_statistics(data_):
 
     data_prior_statistic = get_data_prior_statistic(data_)
     data_avg = calc_avg(data_prior_statistic)
-    return organize_data_to_dict_for_avg(data_avg)
+    ans1 = organize_data_to_dict_for_avg(data_avg)
+    ans2 = get_data_last(data_prior_statistic)
+
+    return ans1,ans2
 
 
 def create_data_communication(amount_of_lines):
@@ -323,24 +333,46 @@ def create_data_simulation(amount_of_lines, players_required_ratio, tasks_per_ce
     ans["Number Of Centers"] = number_of_centers_list
     return ans
 
+def get_num_reps(ans2):
+    for k, v in ans2.items():
+        return len(v)
 
 def get_data_single_output_dict():
-    data_statistics = create_data_statistics(data_)
-    amount_of_lines = len(data_statistics["NCLO"])
-    data_communication = create_data_communication(amount_of_lines)
-    data_simulation = create_data_simulation(amount_of_lines, players_required_ratio, tasks_per_center,
+    ans_avg,ans_last = create_data_statistics(data_)
+    amount_of_lines1 = len(ans_avg["NCLO"])
+    data_communication1 = create_data_communication(amount_of_lines1)
+    data_simulation1 = create_data_simulation(amount_of_lines1, players_required_ratio, tasks_per_center,
                                              number_of_centers, algo_name)
-    data_output = {}
-    for k, v in data_simulation.items():
-        data_output[k] = v
 
-    for k, v in data_communication.items():
-        data_output[k] = v
 
-    for k, v in data_statistics.items():
-        data_output[k] = v
 
-    return data_output
+    amount_of_lines2 = get_num_reps(ans_last)
+    data_communication2 = create_data_communication(amount_of_lines2)
+    data_simulation2 = create_data_simulation(amount_of_lines2, players_required_ratio, tasks_per_center,
+                                              number_of_centers, algo_name)
+
+    data_output1 = {}
+    data_output2 = {}
+
+    for k, v in data_simulation1.items():
+        data_output1[k] = v
+
+    for k, v in data_communication1.items():
+        data_output1[k] = v
+
+    for k, v in ans_avg.items():
+        data_output1[k] = v
+
+    for k, v in data_simulation2.items():
+        data_output2[k] = v
+
+    for k, v in data_communication2.items():
+        data_output2[k] = v
+
+    for k, v in ans_last.items():
+        data_output2[k] = v
+
+    return data_output1,data_output2
 
 
 def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises):
@@ -429,7 +461,7 @@ if __name__ == '__main__':
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
-    simulation_reps = 100
+    simulation_reps = 2
     data_jumps = 100
     map_width = 90
     map_length = 90
@@ -447,7 +479,9 @@ if __name__ == '__main__':
     poises = []
     communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises)
 
-    data_output_list = []
+    data_output_list_avg = []
+    data_output_list_last = []
+
     for players_required_ratio in players_required_ratios:
         for communication_protocol in communication_protocols:
             data_ = {}
@@ -464,17 +498,32 @@ if __name__ == '__main__':
                     data_[i] = run_single_simulation(i, players_required_ratio, tasks_per_center, number_of_centers,
                                                      map_length, map_width, ro)
 
-                data_single_output_dict = get_data_single_output_dict()
-                data_frame = pd.DataFrame.from_dict(data_single_output_dict)
-                file_name = "reps_"+str(simulation_reps)+"_"+algo_name +"_ro_"+str(current_ro)+"_ratio_"+str(players_required_ratio)+"_"+communication_protocol.name
+                data_single_output_dict1,data_single_output_dict2  = get_data_single_output_dict()
+
+                data_frame1 = pd.DataFrame.from_dict(data_single_output_dict1)
+                file_name1 = "AVG_reps_"+str(simulation_reps)+"_"+algo_name +"_ro_"+str(current_ro)+"_ratio_"+str(players_required_ratio)+"_"+communication_protocol.name
+
+                data_frame2 = pd.DataFrame.from_dict(data_single_output_dict2)
+                file_name2 = "Last_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(
+                    current_ro) + "_ratio_" + str(players_required_ratio) + "_" + communication_protocol.name
+
+
 
                 if communication_protocol.is_with_timestamp:
-                    file_name = file_name+"_TS.csv"
+                    file_name1 = file_name1+"_TS.csv"
+                    file_name2 = file_name2+"_TS.csv"
                 else:
-                    file_name = file_name+"_no_TS.csv"
-                data_frame.to_csv(file_name, sep=',')
+                    file_name1 = file_name1+"_no_TS.csv"
+                    file_name2 = file_name2+"_no_TS.csv"
 
-                data_output_list.append(data_frame)
+                data_frame1.to_csv(file_name1, sep=',')
+                data_frame2.to_csv(file_name2, sep=',')
 
-    data_output = pd.concat(data_output_list)
-    data_output.to_csv(algo_name + ".csv", sep=',')
+                data_output_list_avg.append(data_frame1)
+                data_output_list_last.append(data_frame2)
+
+    data_output1 = pd.concat(data_output_list_avg)
+    data_output2 = pd.concat(data_output_list_last)
+
+    data_output1.to_csv("avg_"+algo_name + ".csv", sep=',')
+    data_output2.to_csv("last_"+algo_name + ".csv", sep=',')
