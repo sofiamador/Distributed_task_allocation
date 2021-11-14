@@ -7,7 +7,8 @@ from Allocation_Solver_Fisher import FisherAsynchronousSolver
 from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform, CommunicationProtocolDefault, \
     CommunicationProtocolDistanceBaseDelayPois, CommunicationProtocolMessageLossConstant, \
     CommunicationProtocolDistanceBaseMessageLoss, CommunicationProtocolDistanceBaseDelayPoisAndLoss, \
-    CommunicationProtocolMessageLossConstantAndUniform, CommunicationProtocolPois
+    CommunicationProtocolMessageLossConstantAndUniform, CommunicationProtocolPois, \
+    CommunicationProtocolDistanceBaseDelayExp, CommunicationProtocolExp
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
 from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
@@ -19,7 +20,7 @@ from Allocation_Solver_Abstract import AllocationSolver
 import string
 
 simulation_reps = None
-termination_time_constant = 300#50000
+termination_time_constant = 50000
 map_width = None
 map_length = None
 data_jumps = None
@@ -375,7 +376,7 @@ def get_data_single_output_dict():
     return data_output1,data_output2
 
 
-def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises):
+def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances_pois, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises,constants_for_distances_exp,exps):
     ans = []
 
 
@@ -389,6 +390,11 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
     for pois in poises:
         name = "pois(" + str(pois) + ")"
         ans.append(CommunicationProtocolPois(name=name, is_with_timestamp=is_with_timestamp, lambda_ = pois))
+
+    for exp in exps:
+        name = "exp(" + str(exp) + ")"
+        ans.append(CommunicationProtocolExp(name=name, is_with_timestamp=is_with_timestamp, lambda_=exp))
+
 
     for ub in ubs:
         name = "U(0," + str(ub) + ")"
@@ -404,7 +410,7 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
         #         ans.append(
         #             CommunicationProtocolUniform(name=name, is_with_timestamp=False, UB=ub))
 
-    for constant_ in constants_for_distances:
+    for constant_ in constants_for_distances_pois:
         name = "Pois(Dij_x" + str(constant_) + ")"
         ans.append(CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=is_with_timestamp, name=name, length=map_length, width=map_width, constant_=constant_))
         # if only_with_timestamp:
@@ -419,6 +425,11 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
         #     else:
         #         ans.append(CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=False, name=name, length=map_length,
         #                                                               width=map_width, constant_=constant_))
+
+    for constant_ in constants_for_distances_exp:
+        name = "Exp(Dij_x" + str(constant_) + ")"
+        ans.append(CommunicationProtocolDistanceBaseDelayExp(is_with_timestamp=is_with_timestamp, name=name,
+                                                              length=map_length, width=map_width, constant_=constant_))
 
     for constant_ in constants_for_distances_and_loss:
         name = "Pois(Dij_x" + str(constant_) + ") + Distance Loss"
@@ -470,14 +481,17 @@ if __name__ == '__main__':
 
     is_with_timestamp = False
     perfect_communication = False
-    ubs = []#[500, 1000, 5000]
-    p_losses = []#[0.1, 0.5, 0.9]
-    p_loss_and_ubs = []#[[0.25,1000]]
-    constants_for_distances = []#[500, 1000, 5000]
-    constants_for_distances_and_loss = []#[500, 1000, 5000]
-    distance_loss_ratios = [1,0.9,0.7,0.5,0.3,0.2]
-    poises = []
-    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises)
+    ubs = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+    p_losses = []  # [0.3,0.4,0.5,0.6,0.7]#[0.05,0.1,0.15,0.2]#
+    p_loss_and_ubs = []  # [[0.25,1000]]
+    constants_for_distances_pois = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+    constants_for_distances_and_loss = []  # [500, 1000, 5000]
+    distance_loss_ratios = []  # [1,0.5,0.4,0.3,0.2,0.1]#[0.9,0.8,0.7,0.6]
+    poises = []# [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+
+    constants_for_distances_exp = [1000,2000,2500,3000]# [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+    exps=[]# [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances_pois, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises,constants_for_distances_exp,exps)
 
     data_output_list_avg = []
     data_output_list_last = []

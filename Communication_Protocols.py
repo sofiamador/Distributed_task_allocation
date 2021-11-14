@@ -72,6 +72,21 @@ class CommunicationProtocolPois(CommunicationProtocol):
         return delay
 
 
+class CommunicationProtocolExp(CommunicationProtocol):
+    def __init__(self, is_with_timestamp, name, lambda_):
+        CommunicationProtocol.__init__(self, is_with_timestamp, name)
+        self.lambda_ = lambda_
+
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+        if self.lambda_ == 0:
+            return 0
+
+        delay = self.rnd_numpy.exponential(scale=self.lambda_, size=1)[0]
+        if debug_print_for_distribution:
+            print(delay)
+        return delay
+
+
 class CommunicationProtocolDistanceBase(CommunicationProtocol, ABC):
     def __init__(self, is_with_timestamp, name, length, width):
         CommunicationProtocol.__init__(self, is_with_timestamp, name)
@@ -124,6 +139,21 @@ class CommunicationProtocolDistanceBaseDelayPois(CommunicationProtocolDistanceBa
         ratio = self.calculate_ratio(entity1, entity2)
         param = ratio * self.constant_
         delay = self.rnd_numpy.poisson(param, 1)[0]
+        if debug_print_for_distribution:
+            print(delay)
+        return delay
+
+
+class CommunicationProtocolDistanceBaseDelayExp(CommunicationProtocolDistanceBase):
+    def __init__(self, is_with_timestamp, name, length, width, constant_):
+        CommunicationProtocolDistanceBase.__init__(self, is_with_timestamp, name, length, width)
+        self.constant_ = constant_
+
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+        ratio = self.calculate_ratio(entity1, entity2)
+        param = ratio * self.constant_
+        #delay = self.rnd_numpy.poisson(param, 1)[0]
+        delay = self.rnd_numpy.exponential(scale=param, size=1)[0]
         if debug_print_for_distribution:
             print(delay)
         return delay
