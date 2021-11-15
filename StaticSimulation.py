@@ -198,9 +198,10 @@ def find_relevant_measure_from_dict(nclo, data_map_of_measure):
     return 0
 
 
-def get_data_prior_statistic(data_):
+def get_data_prior_statistic(data_,market_number):
     data_keys = get_data_fisher().keys()
     data_prior_statistic = {}
+    flag=False
     for measure_name in data_keys:
         data_prior_statistic[measure_name] = {}
         for nclo in range(0, termination_time_constant, data_jumps):
@@ -210,12 +211,21 @@ def get_data_prior_statistic(data_):
                 range_measure = simulation_reps
             else:
                 range_measure = same_protocol_reps_number
+                if isinstance(communication_protocol,  CommunicationProtocolDefault):
+                    flag = True
 
-            for rep in range(range_measure):
-                data_of_rep = data_[rep]
+            if not flag:
+                for rep in range(range_measure):
+                    data_of_rep = data_[rep]
+                    data_map_of_measure = data_of_rep[measure_name]
+                    the_measure = find_relevant_measure_from_dict(nclo, data_map_of_measure)
+                    data_prior_statistic[measure_name][nclo].append(the_measure)
+            else:
+                data_of_rep = data_[market_number]
                 data_map_of_measure = data_of_rep[measure_name]
                 the_measure = find_relevant_measure_from_dict(nclo, data_map_of_measure)
                 data_prior_statistic[measure_name][nclo].append(the_measure)
+
     return data_prior_statistic
 
 
@@ -275,11 +285,11 @@ def get_data_last(data_):
     return ans
 
 
-def create_data_statistics(data_):
+def create_data_statistics(data_,market_number):
     # data_prior_statistic = get_data_prior_statistic(data_)
     # return organize_data_to_dict(data_prior_statistic)
 
-    data_prior_statistic = get_data_prior_statistic(data_)
+    data_prior_statistic = get_data_prior_statistic(data_,market_number)
     data_avg = calc_avg(data_prior_statistic)
     ans1 = organize_data_to_dict_for_avg(data_avg)
     ans2 = get_data_last(data_prior_statistic)
@@ -352,7 +362,7 @@ def create_data_market_number(amount_of_lines1, market_number):
     return ans
 
 def get_data_single_output_dict(data_,market_number = None):
-    ans_avg,ans_last = create_data_statistics(data_)
+    ans_avg,ans_last = create_data_statistics(data_, market_number)
     amount_of_lines1 = len(ans_avg["NCLO"])
     data_communication1 = create_data_communication(amount_of_lines1)
     data_simulation1 = create_data_simulation(amount_of_lines1, players_required_ratio, tasks_per_center,
@@ -536,11 +546,10 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
                                         players_required_ratio=players_required_ratio
                                         , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
 
-            communication_protocol.set_seed(i)
             fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, ro=ro)
             scenario.add_solver(fisher_solver)
             fisher_solver.solve()
-            data_[i] = fisher_solver.get_measurements()
+            data_[market_number] = fisher_solver.get_measurements()
 
         else:
             for i in range(same_protocol_reps_number):
@@ -585,7 +594,7 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
-    different_reps_market_bool = True
+    different_reps_market_bool = False
     same_protocol_reps_number = 4
     which_markets = [8]
     simulation_reps = 100
@@ -601,8 +610,8 @@ if __name__ == '__main__':
     algo_name = "FMC_ASY"
     ros = [1]
     is_with_timestamp = False
-    perfect_communication = False
-    ubs = [100,250,500, 750]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+    perfect_communication = True
+    ubs = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     p_losses = []  # [0.3,0.4,0.5,0.6,0.7]#[0.05,0.1,0.15,0.2]#
     p_loss_and_ubs = []  # [[0.25,1000]]
     constants_for_distances_pois = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
