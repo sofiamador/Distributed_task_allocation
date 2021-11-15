@@ -528,22 +528,37 @@ def run_different_markets(communication_protocol,ro):
 def run_same_market_diff_communication_experiment(communication_protocol,ro):
     data_ = {}
     for market_number in which_markets:
-        for i in range(same_protocol_reps_number):
+
+
+        if isinstance(communication_protocol,CommunicationProtocolDefault):
             scenario = SimulationStatic(rep_number=market_number, solver=None, map_length=map_length,
                                         map_width=map_width,
                                         players_required_ratio=players_required_ratio
                                         , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
 
-            if process_debug:
-                print(i)
-
             communication_protocol.set_seed(i)
-
             fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, ro=ro)
-
             scenario.add_solver(fisher_solver)
             fisher_solver.solve()
             data_[i] = fisher_solver.get_measurements()
+
+        else:
+            for i in range(same_protocol_reps_number):
+                scenario = SimulationStatic(rep_number=market_number, solver=None, map_length=map_length,
+                                            map_width=map_width,
+                                            players_required_ratio=players_required_ratio
+                                            , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
+
+                if process_debug:
+                    print(i)
+
+                communication_protocol.set_seed(i)
+
+                fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, ro=ro)
+
+                scenario.add_solver(fisher_solver)
+                fisher_solver.solve()
+                data_[i] = fisher_solver.get_measurements()
 
         data_single_output_dict1, data_single_output_dict2 = get_data_single_output_dict(data_,market_number)
 
