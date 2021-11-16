@@ -515,11 +515,11 @@ def run_different_markets(communication_protocol,ro):
 
     data_frame1 = pd.DataFrame.from_dict(data_single_output_dict1)
     file_name1 = "AVG_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
-        players_required_ratio) + "_" + communication_protocol.name
+        players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
 
     data_frame2 = pd.DataFrame.from_dict(data_single_output_dict2)
     file_name2 = "Last_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(
-        current_ro) + "_ratio_" + str(players_required_ratio) + "_" + communication_protocol.name
+        current_ro) + "_ratio_" + str(players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
 
     if communication_protocol.is_with_timestamp:
         file_name1 = file_name1 + "_TS.csv"
@@ -572,12 +572,12 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
         data_single_output_dict1, data_single_output_dict2 = get_data_single_output_dict(data_,market_number)
 
         data_frame1 = pd.DataFrame.from_dict(data_single_output_dict1)
-        file_name1 = "AVG_same_market_" + str(market_number) +  " reps_" + str(same_protocol_reps_number) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
-            players_required_ratio) + "_" + communication_protocol.name
+        file_name1 = "AVG_same_market_" + str(market_number) +  "_reps_" + str(same_protocol_reps_number) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
+            players_required_ratio) + "_" + communication_protocol.name + "_termination_"+str(termination_time_constant)
 
         data_frame2 = pd.DataFrame.from_dict(data_single_output_dict2)
-        file_name2 = "Last_same_market_" + str(market_number) +  "reps_" + str(same_protocol_reps_number) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
-            players_required_ratio) + "_" + communication_protocol.name
+        file_name2 = "Last_same_market_" + str(market_number) +  "_reps_" + str(same_protocol_reps_number) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
+            players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
 
         if communication_protocol.is_with_timestamp:
             file_name1 = file_name1 + "_TS.csv"
@@ -595,8 +595,8 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 if __name__ == '__main__':
     different_reps_market_bool = False
-    same_protocol_reps_number = 4
-    which_markets = [8]
+    same_protocol_reps_number = 100
+    which_markets = [0,1,2,3]
     simulation_reps = 100
 
 
