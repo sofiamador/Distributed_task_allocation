@@ -13,11 +13,12 @@ def input_from_file(file_name):
         lst[i] += "]"
         lst[i] = ast.literal_eval(lst[i])
         print(lst[i])
+    lst[-1] =lst[-1][0]
     return lst
 
 
 if __name__ == '__main__':
-    file_name = "RUN1.1_input.txt"
+    file_name = "input.txt"
     host_name = "צוות_חילוץ_1"
     agent_list, event_list, allocation_list, event_params, force_type_data, discrete_params = input_from_file(file_name)
 

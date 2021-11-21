@@ -4,6 +4,7 @@ import copy
 import random
 import uuid
 
+import TSG_Solver
 from TSG_Solver import TSGPlayer, TSGMission, TSGEvent, Allocations, Status
 
 remaining_working_time_threshold = 0.25
@@ -90,7 +91,7 @@ def create_agents(agents_list, force_data_map, t_now, host_agent):
                           extra_hours_allowed=force_data_map[type_]["extra_hours_allowed"],
                           min_competence_time=force_data_map[type_]["min_competence_time"],
                           competence_length=force_data_map[type_]["competence_length"], status=status,
-                          is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now)
+                          is_working_extra_hours=is_working_extra_hours, address=address)
 
             agents_obj_list.append(a)
     return agents_obj_list, agents_id_list
@@ -112,7 +113,7 @@ def create_event_params_data_map(event_params):
 def create_events(events_list, event_params_map, agent_ids_list, t_now, host_agent):
     event_obj_list = []
     for t in events_list:
-        e = TSGEvent(event_id=t[0], event_type=t[1], damage_level=t[2], life_saving_potential=t[3],importance = t[4],
+        e = TSGEvent(event_id=t[0], event_type=t[1], damage_level=t[2], life_saving_potential=t[3], importance=t[4],
                      event_creation_time=t[5] / 3600, event_update_time=t[6] / 3600,
                      point=[t[7], t[8]], workload=event_params_map[(t[1], t[2], t[3])]["total_workload"],
                      mission_params=event_params_map[(t[1], t[2], t[3])]["mission_params"], tnow=t_now)
@@ -127,15 +128,14 @@ def update_agents_status_and_missions_workload(agents_obj_list, events_obj_list,
     for a in allocation_list_:
         agent = get_agent_by_id(agents_list=agents_obj_list, id_=a.agent_id)
         event = get_event_by_id(events_list=events_obj_list, id_=a.event_id)
-        mission = event.get_mission(a.agent_type)
+        mission = event.get_mission(agent.abilities[0].ability_type)
         work_done = 0
         if a.working_starting_time <= t_now <= a.working_ending_time:
-            if a.agent_type != agent.agent_type:
+            if mission.abilities[0].ability_type != agent.abilities[0].ability_type:
                 raise Exception
             agent.current_mission = mission
             if agent.status != Status.TOTAL_RESTING:
                 agent.status = Status.HANDLING_WITH_A_MISSION
-            mission.players_allocated_to_the_mission.append(agent)
             mission.players_allocated_to_the_mission.append(agent)
             work_done = t_now - a.working_starting_time
         elif t_now > a.working_ending_time:
@@ -146,6 +146,11 @@ def update_agents_status_and_missions_workload(agents_obj_list, events_obj_list,
 
 def solve(agent_obj_list, event_obj_list, t_now):
     allocations = []
+    for e in event_obj_list:
+        for m in e.missions_list:
+            m.players_allocated_to_the_mission.clear()
+    for a in agent_obj_list:
+        a.current_mission = None
     for i in range(len(agent_obj_list)):
         agent = agent_obj_list[i]
         event = event_obj_list[i % len(event_obj_list)]
@@ -156,7 +161,8 @@ def solve(agent_obj_list, event_obj_list, t_now):
                         working_ending_time=t_now + 3600 * random.random())
         for m in event.missions_list:
             if m.abilities[0] == agent.abilities[0]:
-                m.add_player(agent,t_now)
+                m.add_player(agent, t_now)
+                agent.current_mission = m
 
         allocations.append(a)
     return allocations
@@ -169,7 +175,7 @@ def merge_new_and_prev_allocations(new_obj_allocations, old_obj_alloctions):
         for old_a in old_obj_alloctions:
             if a == old_a:
                 a.allocation_id = old_a.allocation_id
-                a.initial_workload = old_a.initial_workload
+                a.working_starting_time = old_a.working_starting_time
 
 
 def create_list_of_tuples_allocations(new_obj_allocations):
@@ -188,8 +194,9 @@ def calcAllocations(*args, **kwargs):
     try:
         return calcAllocationsInternal(*args, **kwargs)
     except Exception as e:
-        f = open("error.txt","r")
+        f = open("error.txt", "w")
         f.write(e)
+        f.write(e.__traceback__())
 
 
 def print_allocations(event_obj_list):
@@ -209,6 +216,10 @@ def print_allocations(event_obj_list):
 def calcAllocationsInternal(host_agent, agent_list, event_list, allocations_list, event_params, force_type_data,
                             discrete_params):
     # t_now = time.time()/3600
+    TSG_Solver.optimal_time = discrete_params[0]
+    TSG_Solver.time_of_abandonment = discrete_params[1]
+    TSG_Solver.interruption_coefficient = discrete_params[2]
+    TSG_Solver.penalty_team_ratio_weight = discrete_params[3]
     t_now = event_list[-1][6] / 3600
     # agents creation#
     force_data_map = create_force_type_data_map(force_type_data)  # ok

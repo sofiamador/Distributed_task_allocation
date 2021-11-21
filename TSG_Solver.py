@@ -15,6 +15,7 @@ ro_for_fisher = 0.9
 remaining_working_time_threshold = 0.25
 distance_penalty = 1
 time_of_abandonment = 0.55
+optimal_time = 0.5
 
 
 class Status(enum.Enum):
@@ -368,7 +369,7 @@ class TSGEvent(TaskSimple):
 
         self.event_ended = False
         self.penalty_for_late_arrival = 1
-        self.optimal_time = 0.5
+        self.optimal_time = optimal_time
         if self.first_agent_arrival_time is not None:
             self.calculate_penalty_for_late_arrival(self.first_agent_arrival_time)
         self.initial_ro_coefficient = penalty_team_ratio_weight
@@ -526,12 +527,12 @@ class TSGPlayer(PlayerSimple):
 
     def __init__(self, agent_id, agent_type, last_update_time, point, start_activity_time,
                  start_resting_time, max_activity_time, extra_hours_allowed, min_competence_time, competence_length,
-                 is_working_extra_hours, address, status=Status.IDLE, productivity = 1, tnow=0):
+                 is_working_extra_hours, address, status=Status.IDLE, productivity=1):
 
         # ##------------------------Parameters received from TSG during simulation run-------------------------##
 
         PlayerSimple.__init__(self, id_=agent_id, location=point, speed=50, status=Status.IDLE,
-                              abilities=[AbilitySimple(ability_type=agent_type)], tnow=tnow)
+                              abilities=[AbilitySimple(ability_type=agent_type)], tnow=last_update_time)
         self.start_activity_time = start_activity_time
         self.start_resting_time = start_resting_time
         self.max_activity_time = max_activity_time
