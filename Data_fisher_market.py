@@ -309,9 +309,9 @@ def get_data_fisher():
 
     # ---RiXi---
     ans["Sigma RiXi"] = calculate_sum_R_X
-    #ans["Sigma RiXi pov"] = calculate_sum_R_X_pov
+    ans["Sigma RiXi pov"] = calculate_sum_R_X_pov
     ans["Single Sigma RiXi"] = calculate_single_R_X_player
-    #ans["Single Sigma RiXi pov"] = calculate_single_R_X_player_pov
+    ans["Single Sigma RiXi pov"] = calculate_single_R_X_player_pov
 
     # ---Envy---
     #ans["Sigma_Envy_Player View"] = calculate_sum_envy_other_player_view
