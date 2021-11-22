@@ -271,6 +271,14 @@ class FisherPlayerASY(PlayerAlgorithm):
         self.calculate_bids_flag = False
 
 
+class PhaseTwoPlayer(PlayerAlgorithm):
+    def __init__(self, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):
+        PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
+        self.fisher_entity = FisherPlayerASY(agent_simulator, t_now, future_utility_function, is_with_timestamp,ro)
+        self.is_phase_2 = False
+
+
+
 class FisherTaskASY(TaskAlgorithm):
     def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp):
         TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now,is_with_timestamp=is_with_timestamp)
@@ -370,7 +378,7 @@ class FisherTaskASY(TaskAlgorithm):
                 if self.bids[mission][player_id] is not None and self.price_current[mission] != 0:
                     self.x_jk[mission][player_id] = bid / self.price_current[mission]
                 else:
-                    self.x_jk[mission][player_id] = 0
+                    self.x_jk[mission][player_id] = None
         self.check_if_x_jk_per_mission_is_one()
         #print(self.x_jk)
 

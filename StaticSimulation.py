@@ -24,7 +24,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant = 50000#100000
+termination_time_constant = 4000#100000
 map_width = None
 map_length = None
 data_jumps = None
@@ -216,14 +216,14 @@ def get_data_prior_statistic(data_,market_number):
             data_prior_statistic[measure_name][nclo] = []
             range_measure = None
             if different_reps_market_bool:
-                range_measure = simulation_reps
+                range_measure = len(simulation_reps)
             else:
                 range_measure = same_protocol_reps_number
                 if isinstance(communication_protocol,  CommunicationProtocolDefault):
                     flag = True
 
             if not flag:
-                for rep in range(range_measure):
+                for rep in simulation_reps:
                     data_of_rep = data_[rep]
                     data_map_of_measure = data_of_rep[measure_name]
                     the_measure = find_relevant_measure_from_dict(nclo, data_map_of_measure)
@@ -473,7 +473,7 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
 
 def run_different_markets(communication_protocol,ro):
     data_ = {}
-    for i in range(simulation_reps):
+    for i in simulation_reps:#range(simulation_reps):
         if process_debug:
             print(i)
 
@@ -575,22 +575,22 @@ if __name__ == '__main__':
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
-    simulation_reps = 100
+    simulation_reps = range(100)
 
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
 
-    data_jumps = 100
+    data_jumps = 1
     map_width = 90
     map_length = 90
     algo_name = "FMC_ASY"
     ros = [1]
     is_with_timestamp = False
-    perfect_communication = True
+    perfect_communication = False
     ubs = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
-    p_losses = []  # [0.3,0.4,0.5,0.6,0.7]#[0.05,0.1,0.15,0.2]#
-    p_loss_and_ubs = [[0.05,1000]]  # [[0.25,1000]]
+    p_losses = [0.05]  # [0.3,0.4,0.5,0.6,0.7]#[0.05,0.1,0.15,0.2]#
+    p_loss_and_ubs = []  # [[0.25,1000]]
     constants_for_distances_pois = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     constants_for_distances_and_loss = []  # [500, 1000, 5000]
     distance_loss_ratios = []  # [1,0.5,0.4,0.3,0.2,0.1]#[0.9,0.8,0.7,0.6]
