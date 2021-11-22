@@ -197,8 +197,11 @@ class FisherPlayerASY(PlayerAlgorithm):
                     else:
                         self.bids[task][mission] = (r_ij / sum_util_nones) * w_none
                 else:
-                    r_ij_times_x_ij = self.r_i[task][mission].get_utility(ratio=x_ij)
-                    self.bids[task][mission] = (r_ij_times_x_ij / sum_of_bids) * w_not_none
+                    if sum_of_bids == 0:
+                        self.bids[task][mission] = 0
+                    else:
+                        r_ij_times_x_ij = self.r_i[task][mission].get_utility(ratio=x_ij)
+                        self.bids[task][mission] = (r_ij_times_x_ij / sum_of_bids) * w_not_none
                 atomic_counter = atomic_counter + 1
         self.check_bids()
 
