@@ -3,6 +3,7 @@ import math
 import random
 import matplotlib.pyplot as plt
 
+from Allocation_Solver_Abstract import Mailer
 from Allocation_Solver_Fisher import FisherAsynchronousSolver
 from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform, CommunicationProtocolDefault, \
     CommunicationProtocolDistanceBaseDelayPois, CommunicationProtocolMessageLossConstant, \
@@ -23,7 +24,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant = 100000
+termination_time_constant = 50000#100000
 map_width = None
 map_length = None
 data_jumps = None
@@ -197,9 +198,16 @@ def find_relevant_measure_from_dict(nclo, data_map_of_measure):
             nclo = nclo - 1
     return 0
 
-
 def get_data_prior_statistic(data_,market_number):
-    data_keys = get_data_fisher().keys()
+    data_keys = []
+    data_keys_t = get_data_fisher().keys()
+    for k in data_keys_t:
+        data_keys.append(k)
+
+    mailer_keys = Mailer.get_data_keys()
+    for k in mailer_keys:
+        data_keys.append(k)
+
     data_prior_statistic = {}
     flag=False
     for measure_name in data_keys:
@@ -412,8 +420,6 @@ def get_data_single_output_dict(data_,market_number = None):
 def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, constants_for_distances_pois, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises,constants_for_distances_exp,exps):
     ans = []
 
-
-
     for p_ub in p_loss_and_ubs:
         p = p_ub[0]
         ub = p_ub[1]
@@ -437,18 +443,7 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
     for constant_ in constants_for_distances_pois:
         name = "Pois(Dij_x" + str(constant_) + ")"
         ans.append(CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=is_with_timestamp, name=name, length=map_length, width=map_width, constant_=constant_))
-        # if only_with_timestamp:
-        #     ans.append( CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=True, name=name, length=map_length,
-        #                                                            width=map_width, constant_=constant_))
-        # else:
-        #     if constant_ != 0:
-        #         for bool in [True, False]:
-        #             ans.append(
-        #                 CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=bool, name=name, length=map_length,
-        #                                                            width=map_width, constant_=constant_))
-        #     else:
-        #         ans.append(CommunicationProtocolDistanceBaseDelayPois(is_with_timestamp=False, name=name, length=map_length,
-        #                                                               width=map_width, constant_=constant_))
+
 
     for constant_ in constants_for_distances_exp:
         name = "Exp(Dij_x" + str(constant_) + ")"
@@ -458,24 +453,7 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
     for constant_ in constants_for_distances_and_loss:
         name = "Pois(Dij_x" + str(constant_) + ") + Distance Loss"
         ans.append(CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=is_with_timestamp, name=name, length=map_length,width=map_width, constant_=constant_))
-        # if constant_ != 0:
-        #
-        #     if only_with_timestamp:
-        #         ans.append(
-        #             CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=True, name=name,
-        #                                                               length=map_length,
-        #                                                               width=map_width, constant_=constant_))
-        #     else:
-        #
-        #         for bool in [True, False]:
-        #             ans.append(
-        #                 CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=bool, name=name,
-        #                                                                   length=map_length,
-        #                                                                   width=map_width, constant_=constant_))
-        # else:
-        #     ans.append(
-        #         CommunicationProtocolDistanceBaseDelayPoisAndLoss(is_with_timestamp=False, name=name, length=map_length,
-        #                                                           width=map_width, constant_=constant_))
+
     for p_loss in p_losses:
         name = "p loss = " + str(p_loss)
         ans.append(CommunicationProtocolMessageLossConstant(name=name, is_with_timestamp=False, p_loss=p_loss))
@@ -505,7 +483,7 @@ def run_different_markets(communication_protocol,ro):
 
         communication_protocol.set_seed(i)
 
-        fisher_solver = create_fisher_solver(  communication_protocol=communication_protocol,ro=ro)
+        fisher_solver = create_fisher_solver( communication_protocol=communication_protocol,ro=ro)
 
         scenario.add_solver(fisher_solver)
         fisher_solver.solve()
@@ -594,11 +572,10 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
-    different_reps_market_bool = False
+    different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
     simulation_reps = 100
-
 
     players_required_ratios = [0.5]
     tasks_per_center = 2
@@ -613,7 +590,7 @@ if __name__ == '__main__':
     perfect_communication = True
     ubs = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     p_losses = []  # [0.3,0.4,0.5,0.6,0.7]#[0.05,0.1,0.15,0.2]#
-    p_loss_and_ubs = []  # [[0.25,1000]]
+    p_loss_and_ubs = [[0.05,1000]]  # [[0.25,1000]]
     constants_for_distances_pois = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     constants_for_distances_and_loss = []  # [500, 1000, 5000]
     distance_loss_ratios = []  # [1,0.5,0.4,0.3,0.2,0.1]#[0.9,0.8,0.7,0.6]
@@ -625,7 +602,6 @@ if __name__ == '__main__':
 
     data_output_list_avg = []
     data_output_list_last = []
-
 
     for players_required_ratio in players_required_ratios:
         for ro in ros:

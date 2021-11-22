@@ -144,6 +144,18 @@ class Mailer(threading.Thread):
 
         self.measurements = {}
 
+        # message loss due to communication protocol
+        self.msg_not_delivered_loss_counter = 0
+
+        # message loss due to timestamp policy
+        self.msg_not_delivered_loss_timestamp_counter = 0
+
+        # message sent by players regardless to communication protocol
+        self.msg_sent_counter = 0
+
+        # messages that arrive to their destination
+        self.msg_received_counter = 0
+
     def get_allocation_dictionary(self):
         pass
 
@@ -156,9 +168,17 @@ class Mailer(threading.Thread):
         self.inbox = None  # TODO update in solver
         self.time_mailer = ClockObject()
         self.measurements = {}
+        self.msg_not_delivered_loss_counter = 0
+        self.msg_not_delivered_loss_timestamp_counter = 0
+        self.msg_sent_counter = 0
+        self.msg_received_counter = 0
 
         for key in self.f_global_measurements.keys():
             self.measurements[key] = {}
+        self.measurements["Loss Counter"] = {}
+        self.measurements["Loss Timestamp Counter"] = {}
+        self.measurements["Message Sent Counter"] = {}
+        self.measurements["Message Received Counter"] = {}
 
         for aa in self.agents_algorithm:
             aa.reset_fields(tnow)
@@ -224,6 +244,29 @@ class Mailer(threading.Thread):
             measured_value = measurement_function(self.agents_algorithm)
 
             self.measurements[measurement_name][current_clock] = measured_value
+
+
+
+        self.measurements["Loss Counter"][current_clock] = self.msg_not_delivered_loss_counter
+        self.measurements["Loss Timestamp Counter"][current_clock] = self.get_counter_sum_of_timestamp_loss_msgs_from_agents()
+        self.measurements["Message Sent Counter"][current_clock] = self.msg_sent_counter
+        self.measurements["Message Received Counter"][current_clock] = self.get_counter_sum_msg_received_counter_from_agents()
+
+    @staticmethod
+    def get_data_keys():
+        return ["Loss Counter","Loss Timestamp Counter","Message Sent Counter","Message Received Counter"]
+
+    def get_counter_sum_of_timestamp_loss_msgs_from_agents(self):
+        ans = 0
+        for aa in self.agents_algorithm:
+            ans+=aa.msg_not_delivered_loss_timestamp_counter
+        return ans
+
+    def get_counter_sum_msg_received_counter_from_agents(self):
+        ans = 0
+        for aa in self.agents_algorithm:
+            ans += aa.msg_received_counter
+        return ans
 
     def kill_agents(self):
 
@@ -310,7 +353,7 @@ class Mailer(threading.Thread):
         e2 = self.get_simulation_entity(msg.receiver)
         communication_disturbance_output = self.f_communication_disturbance(e1,e2)
         flag = False
-
+        self.msg_sent_counter += 1
         if msg.is_with_perfect_communication:
             self.msg_box.append(msg)
             flag = True
@@ -322,6 +365,9 @@ class Mailer(threading.Thread):
             if debug_print_for_distribution:
                 print(delay)
             self.msg_box.append(msg)
+
+        if communication_disturbance_output is None:
+            self.msg_not_delivered_loss_counter +=1
 
 
 
@@ -518,6 +564,8 @@ class AgentAlgorithm(threading.Thread, ABC):
         self.cond = threading.Condition(threading.RLock())  # TODO update in solver
         self.inbox = None  # DONE TODO update in solver
         self.outbox = None
+        self.msg_not_delivered_loss_timestamp_counter = 0
+        self.msg_received_counter = 0
 
     def reset_fields(self,t_now):
         self.t_now = t_now
@@ -531,6 +579,8 @@ class AgentAlgorithm(threading.Thread, ABC):
         self.inbox = None  # DONE
         self.outbox = None
         self.reset_additional_fields()
+        self.msg_not_delivered_loss_timestamp_counter = 0
+        self.msg_received_counter = 0
 
 
     def update_cond_for_responsible(self, condition_input: threading.Condition):
@@ -588,9 +638,14 @@ class AgentAlgorithm(threading.Thread, ABC):
                 if msg.timestamp > current_timestamp_from_context:
                     self.set_receive_flag_to_true_given_msg(msg)
                     self.update_message_in_context(msg)
+                    self.msg_received_counter += 1
+
+                else:
+                    self.msg_not_delivered_loss_timestamp_counter += 1
             else:
                 self.set_receive_flag_to_true_given_msg(msg)
                 self.update_message_in_context(msg)
+                self.msg_received_counter += 1
 
         self.update_agent_time(msgs)
 

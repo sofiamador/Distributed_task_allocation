@@ -81,7 +81,7 @@ class SinglePlayerGeneratorTSG():
                       extra_hours_allowed=force_data_dict[type_]["extra_hours_allowed"],
                       min_competence_time=force_data_dict[type_]["min_competence_time"],
                       competence_length=force_data_dict[type_]["competence_length"], status=status,
-                      is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now,productivity=productivity
+                      is_working_extra_hours=is_working_extra_hours, address=address,productivity=productivity
                          )
 
 

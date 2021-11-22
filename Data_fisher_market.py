@@ -331,3 +331,5 @@ def get_data_fisher():
     ans["Price_Single_Mission_Players_View"] = calculate_price_single_player_view
 
     return ans
+
+
