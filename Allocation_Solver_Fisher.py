@@ -2,7 +2,7 @@ import math
 from abc import ABC
 
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
-    default_communication_disturbance
+    default_communication_disturbance,AllocationSolverTasksPlayersFull
 from Simulation import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg, MsgTaskEntity
 
@@ -463,6 +463,24 @@ class FisherTaskASY(TaskAlgorithm):
 
 
 class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
+    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+                 f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
+                 is_with_timestamp = True, ro = 1):
+        AllocationSolverTasksPlayersSemi.__init__(self, mailer, f_termination_condition, f_global_measurements,
+                                                  f_communication_disturbance)
+        self.ro = ro
+        self.future_utility_function = future_utility_function
+        self.is_with_timestamp = is_with_timestamp
+
+    def create_algorithm_task(self, task: TaskSimple):
+        return FisherTaskASY(agent_simulator=task, t_now=self.tnow,is_with_timestamp = self.is_with_timestamp)
+
+    def create_algorithm_player(self, player: PlayerSimple):
+        return FisherPlayerASY(agent_simulator=player, t_now=self.tnow,
+                               future_utility_function=self.future_utility_function,is_with_timestamp = self.is_with_timestamp, ro = self.ro)
+
+
+class FisherAsynchronousSolverFullDistributed(AllocationSolverTasksPlayersFull):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
                  is_with_timestamp = True, ro = 1):

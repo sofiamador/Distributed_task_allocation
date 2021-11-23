@@ -1077,6 +1077,7 @@ class AllocationSolverDistributed(AllocationSolver):
     @abc.abstractmethod
     def what_solver_does_when_task_is_removed(self, task: TaskSimple):
         raise NotImplementedError
+
     def imply_mailer(self, mailer, f_termination_condition, f_global_measurements, f_communication_disturbance):
         """
         if mailer is received in constructor then use it,
@@ -1275,7 +1276,6 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
     def create_algorithm_task(self, task: TaskSimple):
         raise NotImplementedError
 
-
     def update_log_of_players_current_task(self):
         """
         the specified scenario suggests that players are aware of the current information of the tasks they are currently at
@@ -1293,7 +1293,6 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         for task_algo in self.tasks_algorithm:
             if task_algo.simulation_entity.id_ == current_task.id_:
                 return task_algo.simulation_entity
-
 
     def connect_neighbors(self):
         """
@@ -1317,5 +1316,17 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
             task_algo.initiate_algorithm()
 
 
+def task_by_id(task_algo:TaskAlgorithm):
+    return task_algo.simulation_entity.id_
+
+class AllocationSolverTasksPlayersFull(AllocationSolverTasksPlayersSemi):
+    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+                 f_communication_disturbance=default_communication_disturbance):
+        AllocationSolverTasksPlayersSemi.__init__(self,mailer, f_termination_condition, f_global_measurements,
+                                             f_communication_disturbance)
 
 
+
+    def agents_initialize(self):
+        max_task = max(self.tasks_algorithm,key = task_by_id)
+        max_task.initiate_algorithm()
