@@ -296,6 +296,12 @@ class TaskSimple(Entity):
                 if f_is_agent_can_be_allocated_to_mission(self, a):
                     self.neighbours.append(a)
 
+    def update_workload_for_missions(self,tnow):
+        for m in self.missions_list:
+            m.update_workload()
+
+
+
 def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: PlayerSimple):
     """
     Function that checks if the agent can be allocated to an task according to agent's abilities and required abilities
@@ -462,10 +468,9 @@ class TaskArrivalEvent(SimulationEvent):
         SimulationEvent.__init__(time=time, task=task)
 
     def handle_event(self, simulation):
-        find_responsible_agent()
+        find_responsible_agent(task=self.task, players=simulation.players_list)
         simulation.solver.add_task_to_solver(self.task)
         simulation.solve()
-        simulation.check_new_allocation()  # TODO can be a part of the solve method in simulation
         simulation.generate_new_event()
 
 
@@ -488,7 +493,7 @@ class AgentArriveToEMissionEvent(SimulationEvent):
         SimulationEvent.__init__(time=time, event=event, mission=mission, agent=agent)
 
     def handle_event(self, simulation):
-        simulation.create_agent_finiish_handle_mission_event()
+        simulation.create_agent_finish_handle_mission_event()
 
 
 class AgentFinishHandleMissionEvent(SimulationEvent):
@@ -511,30 +516,58 @@ class AgentFinishHandleMissionEvent(SimulationEvent):
 
     def handle_event(self, simulation):
         simulation.solve()
-        simulation.check_new_allocation()  # TODO can be a part of the solve method in simulation
 
 
 class Simulation:
-    def __init__(self, name, players_list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
-                 events_generator, first_event, f_calculate_distance=calculate_distance):
+    def __init__(self, name:str, players_list:list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
+                 events_generator, first_event, running_events=[], f_calculate_distance=calculate_distance):
+        """
+
+        :param name: The name of simulation
+        :param players_list: The list of the players(agents) that are participate
+        :param solver: The algorithm that solve the task allocation problem
+        :param f_are_agents_neighbours: functions that checks if the players are agent
+        :param f_is_agent_can_be_allocated_to_mission: The function checks if the agent can be allocated to mission
+        :param events_generator:
+        :param first_events :list of events that are ready in the system (it can be a new a events or events in process)
+        :param f_calculate_distance: calculate the distance
+        """
         self.tnow = 0
+        self.prev_time = 0
         self.last_event = None
         self.name = name
-        self.agent_list = players_list
+        self.players_list = players_list
         self.solver = solver
         self.solver.add_players_list()
         self.f_are_agents_neighbours = f_are_agents_neighbours
         self.f_is_agent_can_be_allocated_to_mission = f_is_agent_can_be_allocated_to_mission
         self.events_generator = events_generator
         self.f_calculate_distance = calculate_distance
-        self.event_list = []
-        self.diary = []
+        self.events_list = running_events
+        self.diary = [first_event]
+        self.new_allocation = None
+
 
     def run_simulation(self):
-        pass
+        while not self.diary:
+            self.last_event = self.diary.pop(0)
+            self.prev_time = self.tnow
+            self.tnow = self.last_event.time
+            self.update_workload()
+            self.last_event.handle_event(self)
 
     def solve(self):
-        self.solver.solve(self.last_event)
+
+        self.new_allocation = self.solver.solve(self.last_event) #{player:[task,mission]}
+        self.check_new_allocation() 
 
     def generate_new_event(self):
         self.events_generator.get_event()
+
+    def check_new_allocation(self):
+        pass
+
+    def update_workload(self):
+        for e in self.events_list:
+            e.update_workload_for_missions(self.tnow)
+
