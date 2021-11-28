@@ -24,7 +24,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant = 4000#100000
+termination_time_constant = 1000000#100000
 map_width = None
 map_length = None
 data_jumps = None
@@ -322,23 +322,25 @@ def create_data_communication(amount_of_lines):
     return ans
 
 
-def create_fisher_solver(communication_protocol,ro=1):
-    # FisherAsynchronousSolver(
-    # f_termination_condition=f_termination_condition_constant_mailer_nclo,
-    # f_global_measurements=get_data_fisher(),
-    # f_communication_disturbance=communication_protocol.get_communication_disturbance,
-    # future_utility_function=calculate_rij_tsg,
-    # is_with_timestamp=communication_protocol.is_with_timestamp,
-    # ro=ro)
+def create_fisher_solver(communication_protocol,ro=1, fisher_solver_distribution_level = None):
+    if fisher_solver_distribution_level == 1:
 
+        return FisherAsynchronousSolver(
+        f_termination_condition=f_termination_condition_constant_mailer_nclo,
+        f_global_measurements=get_data_fisher(),
+        f_communication_disturbance=communication_protocol.get_communication_disturbance,
+        future_utility_function=calculate_rij_tsg,
+        is_with_timestamp=communication_protocol.is_with_timestamp,
+        ro=ro)
 
-    return FisherAsynchronousSolverFullDistributed(
-     f_termination_condition=f_termination_condition_constant_mailer_nclo,
-     f_global_measurements=get_data_fisher(),
-     f_communication_disturbance=communication_protocol.get_communication_disturbance,
-     future_utility_function=calculate_rij_tsg,
-     is_with_timestamp=communication_protocol.is_with_timestamp,
-     ro=ro)
+    if fisher_solver_distribution_level == 2:
+        return FisherAsynchronousSolverFullDistributed(
+         f_termination_condition=f_termination_condition_constant_mailer_nclo,
+         f_global_measurements=get_data_fisher(),
+         f_communication_disturbance=communication_protocol.get_communication_disturbance,
+         future_utility_function=calculate_rij_tsg,
+         is_with_timestamp=communication_protocol.is_with_timestamp,
+         ro=ro)
 
 
 
@@ -379,29 +381,55 @@ def create_data_market_number(amount_of_lines1, market_number):
         ans["Market_number"] = temp_list
     return ans
 
-def get_data_single_output_dict(data_,market_number = None):
+
+def create_type_solver(amount_of_lines1, type_solver):
+    ans = {}
+    temp_list = []
+    if type_solver is not None:
+
+        if type_solver == 1:
+            name_solver = "semi distributed"
+        if type_solver == 2:
+            name_solver = "full distributed"
+
+        for _ in range(amount_of_lines1):
+            temp_list.append(name_solver)
+
+    if type_solver is not None:
+        ans["Type_Solver"] = temp_list
+    return ans
+
+
+def get_data_single_output_dict(data_,market_number = None,type_solver = None):
     ans_avg,ans_last = create_data_statistics(data_, market_number)
     amount_of_lines1 = len(ans_avg["NCLO"])
     data_communication1 = create_data_communication(amount_of_lines1)
     data_simulation1 = create_data_simulation(amount_of_lines1, players_required_ratio, tasks_per_center,
                                              number_of_centers, algo_name)
     data_market_number1 = create_data_market_number(amount_of_lines1,market_number)
+    type_solver1 = create_type_solver(amount_of_lines1,type_solver)
+
+
 
     amount_of_lines2 = get_num_reps(ans_last)
     data_communication2 = create_data_communication(amount_of_lines2)
     data_simulation2 = create_data_simulation(amount_of_lines2, players_required_ratio, tasks_per_center,
                                               number_of_centers, algo_name)
     data_market_number2 = create_data_market_number(amount_of_lines2,market_number)
+    type_solver2 = create_type_solver(amount_of_lines2,type_solver)
 
     data_output1 = {}
     data_output2 = {}
 
+    for k, v in type_solver1.items():
+        data_output1[k] = v
+
+    for k, v in type_solver2.items():
+        data_output2[k] = v
 
 
     for k, v in data_market_number1.items():
         data_output1[k] = v
-
-
 
     for k, v in data_simulation1.items():
         data_output1[k] = v
@@ -481,7 +509,24 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,ubs, 
     return ans
 
 
-def run_different_markets(communication_protocol,ro):
+def additions_to_names(file_name1,file_name2, fisher_solver_distribution_level, communication_protocol):
+    if fisher_solver_distribution_level == 1:
+        file_name1 = file_name1 + "_semi_dist"
+        file_name2 = file_name2 + "_semi_dist"
+    if fisher_solver_distribution_level == 2:
+        file_name1 = file_name1 + "_fully_dist"
+        file_name2 = file_name2 + "_fully_dist"
+
+    if communication_protocol.is_with_timestamp:
+        file_name1 = file_name1 + "_TS.csv"
+        file_name2 = file_name2 + "_TS.csv"
+    else:
+        file_name1 = file_name1 + "_no_TS.csv"
+        file_name2 = file_name2 + "_no_TS.csv"
+
+    return file_name1,file_name2
+
+def run_different_markets(communication_protocol,ro,fisher_solver_distribution_level):
     data_ = {}
     for i in simulation_reps:#range(simulation_reps):
         if process_debug:
@@ -493,28 +538,25 @@ def run_different_markets(communication_protocol,ro):
 
         communication_protocol.set_seed(i)
 
-        fisher_solver = create_fisher_solver( communication_protocol=communication_protocol,ro=ro)
+        fisher_solver = create_fisher_solver( communication_protocol=communication_protocol,ro=ro, fisher_solver_distribution_level = fisher_solver_distribution_level)
 
         scenario.add_solver(fisher_solver)
         fisher_solver.solve()
         data_[i]= fisher_solver.get_measurements()
 
-    data_single_output_dict1, data_single_output_dict2 = get_data_single_output_dict(data_)
+    data_single_output_dict1, data_single_output_dict2 = get_data_single_output_dict(data_, type_solver = fisher_solver_distribution_level)
 
     data_frame1 = pd.DataFrame.from_dict(data_single_output_dict1)
+
     file_name1 = "AVG_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
         players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
 
     data_frame2 = pd.DataFrame.from_dict(data_single_output_dict2)
+
     file_name2 = "Last_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(
         current_ro) + "_ratio_" + str(players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
 
-    if communication_protocol.is_with_timestamp:
-        file_name1 = file_name1 + "_TS.csv"
-        file_name2 = file_name2 + "_TS.csv"
-    else:
-        file_name1 = file_name1 + "_no_TS.csv"
-        file_name2 = file_name2 + "_no_TS.csv"
+    file_name1,file_name2 = additions_to_names ( file_name1,file_name2,fisher_solver_distribution_level,communication_protocol)
 
     data_frame1.to_csv(file_name1, sep=',')
     data_frame2.to_csv(file_name2, sep=',')
@@ -523,7 +565,7 @@ def run_different_markets(communication_protocol,ro):
     data_output_list_last.append(data_frame2)
 
 
-def run_same_market_diff_communication_experiment(communication_protocol,ro):
+def run_same_market_diff_communication_experiment(communication_protocol,ro,fisher_solver_distribution_level):
     data_ = {}
     for market_number in which_markets:
 
@@ -534,7 +576,7 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
                                         players_required_ratio=players_required_ratio
                                         , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
 
-            fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, ro=ro)
+            fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, ro=ro, fisher_solver_distribution_level =fisher_solver_distribution_level)
             scenario.add_solver(fisher_solver)
             fisher_solver.solve()
             data_[market_number] = fisher_solver.get_measurements()
@@ -557,7 +599,8 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
                 fisher_solver.solve()
                 data_[i] = fisher_solver.get_measurements()
 
-        data_single_output_dict1, data_single_output_dict2 = get_data_single_output_dict(data_,market_number)
+        data_single_output_dict1, data_single_output_dict2 = get_data_single_output_dict(data_,
+                                                                                         type_solver=fisher_solver_distribution_level)
 
         data_frame1 = pd.DataFrame.from_dict(data_single_output_dict1)
         file_name1 = "AVG_same_market_" + str(market_number) +  "_reps_" + str(same_protocol_reps_number) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
@@ -567,12 +610,8 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
         file_name2 = "Last_same_market_" + str(market_number) +  "_reps_" + str(same_protocol_reps_number) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
             players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
 
-        if communication_protocol.is_with_timestamp:
-            file_name1 = file_name1 + "_TS.csv"
-            file_name2 = file_name2 + "_TS.csv"
-        else:
-            file_name1 = file_name1 + "_no_TS.csv"
-            file_name2 = file_name2 + "_no_TS.csv"
+        file_name1, file_name2 = additions_to_names(file_name1, file_name2, fisher_solver_distribution_level,
+                                                    communication_protocol)
 
         data_frame1.to_csv(file_name1, sep=',')
         data_frame2.to_csv(file_name2, sep=',')
@@ -582,6 +621,8 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
+    fisher_solver_distribution_level = 2 # 1 = semi distributed, 2 = one task distributed
+
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
@@ -591,7 +632,7 @@ if __name__ == '__main__':
     tasks_per_center = 2
     number_of_centers = 4
 
-    data_jumps = 1
+    data_jumps = 100
     map_width = 90
     map_length = 90
     algo_name = "FMC_ASY"
@@ -622,9 +663,9 @@ if __name__ == '__main__':
                           communication_protocol.name)
 
                 if different_reps_market_bool:
-                    run_different_markets(communication_protocol,ro)
+                    run_different_markets(communication_protocol,ro,fisher_solver_distribution_level)
                 else:
-                    run_same_market_diff_communication_experiment(communication_protocol,ro)
+                    run_same_market_diff_communication_experiment(communication_protocol,ro,fisher_solver_distribution_level)
 
 
     data_output1 = pd.concat(data_output_list_avg)
