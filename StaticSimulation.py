@@ -24,7 +24,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant = 1000000#100000
+termination_time_constant = 100000#100000
 map_width = None
 map_length = None
 data_jumps = None
@@ -639,7 +639,7 @@ if __name__ == '__main__':
     ros = [1]
     is_with_timestamp = False
     perfect_communication = False
-    ubs = [1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+    ubs = [250]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     p_losses = []  # [0.3,0.4,0.5,0.6,0.7]#[0.05,0.1,0.15,0.2]#
     p_loss_and_ubs = []  # [[0.25,1000]]
     constants_for_distances_pois = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]

@@ -274,7 +274,7 @@ class FisherPlayerASY(PlayerAlgorithm):
         self.calculate_bids_flag = False
 
 class FisherTaskASY(TaskAlgorithm):
-    def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges = 5, Threshold = 0.0001):
+    def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges = 2, Threshold = 0.001):
 
         TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now,is_with_timestamp=is_with_timestamp)
         if not isinstance(agent_simulator, TaskSimple):
@@ -283,7 +283,7 @@ class FisherTaskASY(TaskAlgorithm):
         self.counter_of_converges = counter_of_converges
         self.counter_of_converges_dict = {}
 
-        self.is_finish_phase_I = False
+        self.is_finish_phase_II = False
 
         self.potential_players_ids_list = []
         self.reset_potential_players_ids_list()
@@ -311,7 +311,7 @@ class FisherTaskASY(TaskAlgorithm):
 
 
     def reset_additional_fields(self):
-        self.is_finish_phase_I = False
+        self.is_finish_phase_II = False
         self.reset_potential_players_ids_list()
         self.reset_bids()
         self.reset_x_jk()
@@ -384,7 +384,7 @@ class FisherTaskASY(TaskAlgorithm):
                 self.update_converges_conditions(mission)
 
         if self.task_phase_I_over():
-            self.is_finish_phase_I = True
+            self.is_finish_phase_II = True
             return True
 
         for mission in self.simulation_entity.missions_list:
@@ -485,9 +485,24 @@ class FisherTaskASY(TaskAlgorithm):
     def task_phase_I_over(self):
         for mission,counter in self.counter_of_converges_dict.items():
             if counter>0:
+                if not self.allocation_all_zero(mission) and not self.allocation_single_one(mission):
+                    return False
+
+        return True
+
+    def allocation_all_zero(self,mission):
+        if len(self.x_jk[mission].keys())== 0:
+            return False
+        for player_id,xjk in self.x_jk[mission].items():
+            if xjk!=0:
                 return False
         return True
 
+    def allocation_single_one(self, mission):
+        for player_id, xjk in self.x_jk[mission].items():
+            if xjk == 1:
+                return True
+        return False
 
 class FisherPhaseTwoPlayerABS (PlayerAlgorithm,ABC):
     def __init__(self, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):

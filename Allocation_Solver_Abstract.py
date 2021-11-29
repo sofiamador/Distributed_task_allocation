@@ -156,6 +156,8 @@ class Mailer(threading.Thread):
         # messages that arrive to their destination
         self.msg_received_counter = 0
 
+
+
     def get_allocation_dictionary(self):
         pass
 
@@ -291,6 +293,9 @@ class Mailer(threading.Thread):
                 self.agents_receive_msgs(msgs_to_send)
 
     def mailer_iteration(self, with_update_clock_for_empty_msg_to_send):
+
+        #if self.all_tasks_finish():
+            #print(self.time_mailer.clock)
 
         msgs_from_inbox = self.inbox.extract()
 
@@ -517,6 +522,12 @@ class Mailer(threading.Thread):
             if a.simulation_entity.id_ == id_looking_for:
                 return a.simulation_entity
 
+    def all_tasks_finish(self):
+        for aa in self.agents_algorithm:
+            if isinstance(aa,TaskAlgorithm):
+                if not aa.is_finish_phase_II:
+                    return False
+        return True
 
 class AgentAlgorithm(threading.Thread, ABC):
     """
