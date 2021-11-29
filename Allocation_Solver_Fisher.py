@@ -1,3 +1,4 @@
+import abc
 import math
 from abc import ABC
 
@@ -7,7 +8,7 @@ from Simulation import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg, MsgTaskEntity
 
 fisher_player_debug = False
-
+print_price_delta_debug = True
 
 class Utility:
     def __init__(self, player_entity, mission_entity, task_entity, t_now, future_utility_function, ro=1, util=-1):
@@ -28,7 +29,6 @@ class Utility:
 
     def get_utility(self, ratio=1):
         return (ratio * self.linear_utility) ** self.ro
-
 
 def calculate_distance(entity1: Entity, entity2: Entity):
     """
@@ -273,25 +273,24 @@ class FisherPlayerASY(PlayerAlgorithm):
     def set_receive_flag_to_false(self):
         self.calculate_bids_flag = False
 
-
-class PhaseTwoPlayer(PlayerAlgorithm):
-    def __init__(self, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):
-        PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
-        self.fisher_entity = FisherPlayerASY(agent_simulator, t_now, future_utility_function, is_with_timestamp,ro)
-        self.is_phase_2 = False
-
-
-
 class FisherTaskASY(TaskAlgorithm):
-    def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp):
+    def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges = 5, Threshold = 0.0001):
+
         TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now,is_with_timestamp=is_with_timestamp)
         if not isinstance(agent_simulator, TaskSimple):
             raise Exception("wrong type of simulation entity")
+        self.Threshold = Threshold
+        self.counter_of_converges = counter_of_converges
+        self.counter_of_converges_dict = {}
+
+        self.is_finish_phase_I = False
 
         self.potential_players_ids_list = []
         self.reset_potential_players_ids_list()
 
         self.bids = {}
+        self.missions_converged = {}
+
         self.reset_bids()
 
         self.x_jk = {}
@@ -305,20 +304,24 @@ class FisherTaskASY(TaskAlgorithm):
         self.price_current = {}
         self.price_delta = {}
         for mission in self.simulation_entity.missions_list:
-            self.price_t_minus[mission] = 0
+            self.price_t_minus[mission] = 9999999
             self.price_current[mission] = 0
-            self.price_delta[mission] = 0
+            self.price_delta[mission] = 9999999
+            self.counter_of_converges_dict[mission] = self.counter_of_converges
+
 
     def reset_additional_fields(self):
+        self.is_finish_phase_I = False
         self.reset_potential_players_ids_list()
         self.reset_bids()
         self.reset_x_jk()
         self.reset_msgs_from_players()
         self.calculate_xjk_flag = False
         for mission in self.simulation_entity.missions_list:
-            self.price_t_minus[mission] = 0
+            self.price_t_minus[mission] = 9999999
             self.price_current[mission] = 0
-            self.price_delta[mission] = 0
+            self.price_delta[mission] = 9999999
+            self.counter_of_converges_dict[mission] = self.counter_of_converges
 
     def reset_msgs_from_players(self):
         self.msgs_from_players = {}
@@ -338,6 +341,7 @@ class FisherTaskASY(TaskAlgorithm):
             self.bids[mission] = {}
             for n_id in self.potential_players_ids_list:
                 self.bids[mission][n_id] = None
+
 
     def reset_potential_players_ids_list(self):
         self.potential_players_ids_list = []
@@ -373,8 +377,16 @@ class FisherTaskASY(TaskAlgorithm):
 
         self.price_t_minus = self.price_current
         self.price_current = self.calculate_price()
+
         for mission in self.simulation_entity.missions_list:
             self.price_delta[mission] = math.fabs(self.price_t_minus[mission] - self.price_current[mission])
+            if self.price_delta[mission] != 0:
+                self.update_converges_conditions(mission)
+
+        if self.task_phase_I_over():
+            self.is_finish_phase_I = True
+            return True
+
         for mission in self.simulation_entity.missions_list:
             for player_id, bid in self.bids[mission].items():
                 self.atomic_counter = self.atomic_counter + 1
@@ -383,7 +395,16 @@ class FisherTaskASY(TaskAlgorithm):
                 else:
                     self.x_jk[mission][player_id] = None
         self.check_if_x_jk_per_mission_is_one()
+        return False
         #print(self.x_jk)
+
+
+    def update_converges_conditions(self,mission):
+
+        if self.price_delta[mission] < self.Threshold:
+            self.counter_of_converges_dict[mission] = self.counter_of_converges_dict[mission] - 1
+        else:
+            self.counter_of_converges_dict[mission] = self.counter_of_converges
 
     def check_if_x_jk_per_mission_is_one(self):
         ans = {}
@@ -461,6 +482,306 @@ class FisherTaskASY(TaskAlgorithm):
         # TODO
         pass
 
+    def task_phase_I_over(self):
+        for mission,counter in self.counter_of_converges_dict.items():
+            if counter>0:
+                return False
+        return True
+
+
+class FisherPhaseTwoPlayerABS (PlayerAlgorithm,ABC):
+    def __init__(self, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):
+        PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
+        self.fisher_entity = FisherPlayerASY(agent_simulator, t_now, future_utility_function, is_with_timestamp,ro)
+        self.is_phase_2 = False
+
+    def reset_additional_fields(self):
+        if not self.is_phase_2:
+            self.fisher_entity.reset_additional_fields()
+        else:
+            self.do_reset_additional_fields_phase2()
+
+    @abc.abstractmethod
+    def do_reset_additional_fields_phase2(self):
+        raise NotImplementedError
+
+
+    def set_receive_flag_to_true_given_msg_after_check(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.set_receive_flag_to_true_given_msg_after_check(msg)
+        else:
+            self.set_receive_flag_to_true_given_msg_after_check_phase2(msg)
+
+    @abc.abstractmethod
+    def set_receive_flag_to_true_given_msg_after_check_phase2(self,msg):
+        raise NotImplementedError
+
+    def get_current_timestamp_from_context(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.get_current_timestamp_from_context(msg)
+        else:
+            self.get_current_timestamp_from_context_phase2(msg)
+
+    @abc.abstractmethod
+    def  get_current_timestamp_from_context_phase2(self,msg):
+        raise NotImplementedError
+
+    def update_message_in_context(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.update_message_in_context(msg)
+        else:
+            self.update_message_in_context_phase2(msg)
+
+    @abc.abstractmethod
+    def  update_message_in_context_phase2(self,msg):
+        raise NotImplementedError
+
+
+    def get_is_going_to_compute_flag(self):
+        if not self.is_phase_2:
+            self.fisher_entity.get_is_going_to_compute_flag()
+        else:
+            self.get_is_going_to_compute_flag_phase2()
+
+    @abc.abstractmethod
+    def  get_is_going_to_compute_flag_phase2(self):
+        raise NotImplementedError
+
+    def compute(self):
+        if not self.is_phase_2:
+            self.fisher_entity.compute()
+        else:
+            self.compute_phase2()
+
+    @abc.abstractmethod
+    def compute_phase2(self):
+        raise NotImplementedError
+
+    def get_list_of_msgs_to_send(self):
+        if not self.is_phase_2:
+            self.fisher_entity.get_list_of_msgs_to_send()
+        else:
+            self.get_list_of_msgs_to_send_phase2()
+
+    @abc.abstractmethod
+    def get_list_of_msgs_to_send_phase2(self):
+        raise NotImplementedError
+
+
+    def measurements_per_agent(self):
+        self.fisher_entity.measurements_per_agent()
+
+
+    def is_identical_context(self, msg: Msg):
+        if not self.is_phase_2:
+            self.fisher_entity.is_identical_context(msg)
+        else:
+            pass
+
+    def set_receive_flag_to_false(self):
+        if not self.is_phase_2:
+            self.fisher_entity.set_receive_flag_to_false()
+        else:
+            self.set_receive_flag_to_false_phase2()
+
+    @abc.abstractmethod
+    def set_receive_flag_to_false_phase2(self):
+        raise NotImplementedError
+
+class FisherPhaseTwoTaskABS (TaskAlgorithm,ABC):
+    def __init__(self, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):
+        TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now,is_with_timestamp=is_with_timestamp)
+        self.fisher_entity = FisherTaskASY(agent_simulator, t_now, is_with_timestamp)
+        self.is_phase_2 = False
+
+
+    def reset_additional_fields(self):
+        if not self.is_phase_2:
+            self.fisher_entity.reset_additional_fields()
+        else:
+            self.do_reset_additional_fields_phase2()
+
+    @abc.abstractmethod
+    def do_reset_additional_fields_phase2(self):
+        raise NotImplementedError
+
+
+    def set_receive_flag_to_true_given_msg_after_check(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.set_receive_flag_to_true_given_msg_after_check(msg)
+        else:
+            self.set_receive_flag_to_true_given_msg_after_check_phase2(msg)
+
+    @abc.abstractmethod
+    def set_receive_flag_to_true_given_msg_after_check_phase2(self,msg):
+        raise NotImplementedError
+
+    def get_current_timestamp_from_context(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.get_current_timestamp_from_context(msg)
+        else:
+            self.get_current_timestamp_from_context_phase2(msg)
+
+    @abc.abstractmethod
+    def  get_current_timestamp_from_context_phase2(self,msg):
+        raise NotImplementedError
+
+    def update_message_in_context(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.update_message_in_context(msg)
+        else:
+            self.update_message_in_context_phase2(msg)
+
+    @abc.abstractmethod
+    def  update_message_in_context_phase2(self,msg):
+        raise NotImplementedError
+
+
+    def get_is_going_to_compute_flag(self):
+        if not self.is_phase_2:
+            self.fisher_entity.get_is_going_to_compute_flag()
+        else:
+            self.get_is_going_to_compute_flag_phase2()
+
+    @abc.abstractmethod
+    def get_is_going_to_compute_flag_phase2(self):
+        raise NotImplementedError
+
+    def compute(self):
+        if self.fisher_entity.compute() :
+            self.is_phase_2 = True
+
+        if self.is_phase_2:
+            self.compute_phase2()
+
+
+    @abc.abstractmethod
+    def compute_phase2(self):
+        raise NotImplementedError
+
+    def get_list_of_msgs_to_send(self):
+        if not self.is_phase_2:
+            self.fisher_entity.get_list_of_msgs_to_send()
+        else:
+            self.get_list_of_msgs_to_send_phase2()
+
+    @abc.abstractmethod
+    def get_list_of_msgs_to_send_phase2(self):
+        raise NotImplementedError
+
+
+    def measurements_per_agent(self):
+        self.fisher_entity.measurements_per_agent()
+
+
+    def is_identical_context(self, msg: Msg):
+        if not self.is_phase_2:
+            self.fisher_entity.is_identical_context(msg)
+        else:
+            pass
+
+    def set_receive_flag_to_false(self):
+        if not self.is_phase_2:
+            self.fisher_entity.set_receive_flag_to_false()
+        else:
+            self.set_receive_flag_to_false_phase2()
+
+    @abc.abstractmethod
+    def set_receive_flag_to_false_phase2(self):
+        raise NotImplementedError
+
+    def reset_additional_fields(self):
+        if not self.is_phase_2:
+            self.fisher_entity.reset_additional_fields()
+        else:
+            self.do_reset_additional_fields_phase2()
+
+    @abc.abstractmethod
+    def do_reset_additional_fields_phase2(self):
+        raise NotImplementedError
+
+
+    def set_receive_flag_to_true_given_msg_after_check(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.set_receive_flag_to_true_given_msg_after_check(msg)
+        else:
+            self.set_receive_flag_to_true_given_msg_after_check_phase2(msg)
+
+    @abc.abstractmethod
+    def set_receive_flag_to_true_given_msg_after_check_phase2(self,msg):
+        raise NotImplementedError
+
+    def get_current_timestamp_from_context(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.get_current_timestamp_from_context(msg)
+        else:
+            self.get_current_timestamp_from_context_phase2(msg)
+
+    @abc.abstractmethod
+    def  get_current_timestamp_from_context_phase2(self,msg):
+        raise NotImplementedError
+
+    def update_message_in_context(self, msg):
+        if not self.is_phase_2:
+            self.fisher_entity.update_message_in_context(msg)
+        else:
+            self.update_message_in_context_phase2(msg)
+
+    @abc.abstractmethod
+    def  update_message_in_context_phase2(self,msg):
+        raise NotImplementedError
+
+
+    def get_is_going_to_compute_flag(self):
+        if not self.is_phase_2:
+            self.fisher_entity.get_is_going_to_compute_flag()
+        else:
+            self.get_is_going_to_compute_flag_phase2()
+
+    @abc.abstractmethod
+    def  get_is_going_to_compute_flag_phase2(self):
+        raise NotImplementedError
+
+    def compute(self):
+        if not self.is_phase_2:
+            self.fisher_entity.compute()
+        else:
+            self.compute_phase2()
+
+    @abc.abstractmethod
+    def compute_phase2(self):
+        raise NotImplementedError
+
+    def get_list_of_msgs_to_send(self):
+        if not self.is_phase_2:
+            self.fisher_entity.get_list_of_msgs_to_send()
+        else:
+            self.get_list_of_msgs_to_send_phase2()
+
+    @abc.abstractmethod
+    def get_list_of_msgs_to_send_phase2(self):
+        raise NotImplementedError
+
+
+    def measurements_per_agent(self):
+        self.fisher_entity.measurements_per_agent()
+
+
+    def is_identical_context(self, msg: Msg):
+        if not self.is_phase_2:
+            self.fisher_entity.is_identical_context(msg)
+        else:
+            pass
+
+    def set_receive_flag_to_false(self):
+        if not self.is_phase_2:
+            self.fisher_entity.set_receive_flag_to_false()
+        else:
+            self.set_receive_flag_to_false_phase2()
+
+    @abc.abstractmethod
+    def set_receive_flag_to_false_phase2(self):
+        raise NotImplementedError
 
 class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
@@ -478,7 +799,6 @@ class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
     def create_algorithm_player(self, player: PlayerSimple):
         return FisherPlayerASY(agent_simulator=player, t_now=self.tnow,
                                future_utility_function=self.future_utility_function,is_with_timestamp = self.is_with_timestamp, ro = self.ro)
-
 
 class FisherAsynchronousSolverFullDistributed(AllocationSolverTasksPlayersFull):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,

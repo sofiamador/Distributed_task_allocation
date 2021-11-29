@@ -564,7 +564,6 @@ def run_different_markets(communication_protocol,ro,fisher_solver_distribution_l
     data_output_list_avg.append(data_frame1)
     data_output_list_last.append(data_frame2)
 
-
 def run_same_market_diff_communication_experiment(communication_protocol,ro,fisher_solver_distribution_level):
     data_ = {}
     for market_number in which_markets:
@@ -639,8 +638,8 @@ if __name__ == '__main__':
     ros = [1]
     is_with_timestamp = False
     perfect_communication = False
-    ubs = [1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
-    p_losses = []  # [0.3,0.4,0.5,0.6,0.7]#[0.05,0.1,0.15,0.2]#
+    ubs = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+    p_losses = [0.05]  # [0.3,0.4,0.5,0.6,0.7]#[0.05,0.1,0.15,0.2]#
     p_loss_and_ubs = []  # [[0.25,1000]]
     constants_for_distances_pois = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     constants_for_distances_and_loss = []  # [500, 1000, 5000]
