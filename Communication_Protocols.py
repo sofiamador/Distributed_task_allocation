@@ -165,6 +165,7 @@ class CommunicationProtocolDistanceBaseMessageLoss(CommunicationProtocolDistance
         self.max_distance = self.max_distance*distance_loss_ratio
         pass
 
+
     def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
         P = self.calculate_ratio(entity1, entity2)
         p = self.rnd.random()
