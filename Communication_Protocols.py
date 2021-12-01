@@ -163,6 +163,7 @@ class CommunicationProtocolDistanceBaseMessageLoss(CommunicationProtocolDistance
     def __init__(self, is_with_timestamp, name, length, width,distance_loss_ratio):
         CommunicationProtocolDistanceBase.__init__(self, is_with_timestamp, name, length, width)
         self.max_distance = self.max_distance*distance_loss_ratio
+        pass
 
     def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
         P = self.calculate_ratio(entity1, entity2)
