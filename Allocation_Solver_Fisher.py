@@ -1,17 +1,20 @@
 import abc
 import math
+import random
 from abc import ABC
 
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
     default_communication_disturbance,AllocationSolverTasksPlayersFull
 from Simulation import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg, MsgTaskEntity
+from TSG_rij import calculate_rij_tsg
 
 fisher_player_debug = False
 print_price_delta_debug = True
-
+simulation_rep_received =0
 class Utility:
-    def __init__(self, player_entity, mission_entity, task_entity, t_now, future_utility_function, ro=1, util=-1):
+    def __init__(self, player_entity, mission_entity, task_entity, t_now, future_utility_function,
+                  ro=1, util=-1):
         self.player_entity = player_entity
         self.mission_entity = mission_entity
         self.task_entity = task_entity
@@ -19,7 +22,6 @@ class Utility:
         self.t_now = t_now
         self.ro = ro
         if util == -1:
-
             self.linear_utility = future_utility_function(player_entity=self.player_entity,
                                                           mission_entity=self.mission_entity,
                                                           task_entity=self.task_entity,
@@ -46,7 +48,7 @@ def calculate_distance(entity1: Entity, entity2: Entity):
 
 
 class FisherPlayerASY(PlayerAlgorithm):
-    def __init__(self, agent_simulator, t_now, future_utility_function, is_with_timestamp,ro = 1):
+    def __init__(self,util_structure_level , agent_simulator, t_now, future_utility_function, is_with_timestamp,ro = 1):
         PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
         self.ro = ro
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
@@ -55,8 +57,13 @@ class FisherPlayerASY(PlayerAlgorithm):
         self.msgs_from_tasks = {}  # dict {key = task_id, value = last msg}
         self.calculate_bids_flag = False
         self.future_utility_function = future_utility_function
-
+        self.util_structure_level =util_structure_level #1-calculated rij, 2-random when importance determines, 3-random completely
+        rnd_seed = self.simulation_entity.id_.__hash__()*simulation_rep_received
+        self.rnd = random.Random(rnd_seed)
     def reset_additional_fields(self):
+        rnd_seed = self.simulation_entity.id_.__hash__() *simulation_rep_received
+        self.rnd = random.Random(rnd_seed)
+
 
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
         self.bids = {}
@@ -88,11 +95,35 @@ class FisherPlayerASY(PlayerAlgorithm):
 
     def set_single_task_in_r_i(self, task_in_log):
 
+
         self.r_i[task_in_log] = {}
         for mission_log in task_in_log.missions_list:
+            util_value = self.get_linear_util(mission_entity=mission_log,task_entity=task_in_log)
+
             util = Utility(player_entity=self.simulation_entity, mission_entity=mission_log, task_entity=task_in_log,
-                           t_now=self.t_now, future_utility_function=self.future_utility_function,ro=self.ro)
+                           t_now=self.t_now, future_utility_function=self.future_utility_function,ro=self.ro,util = util_value)
             self.r_i[task_in_log][mission_log] = util
+
+    def get_linear_util(self,mission_entity,task_entity):
+
+        calculated_util = calculate_rij_tsg(player_entity=self.simulation_entity, mission_entity=mission_entity,
+                                            task_entity=task_entity,
+                                            t_now=self.t_now)
+
+        if self.util_structure_level == 1:
+            util = calculated_util
+        if self.util_structure_level == 2:
+            if calculated_util != 0:
+                util = task_entity.importance * self.rnd.random()
+            else:
+                util = 0
+        if self.util_structure_level == 3:
+            util = self.rnd.random()
+
+
+        return util
+
+
 
     def set_initial_bids(self):
         sum_util = self.get_sum_util()
@@ -123,10 +154,13 @@ class FisherPlayerASY(PlayerAlgorithm):
                 task_ids_in_r_i.append(task_key.id_)
             if task_entity.id_ not in task_ids_in_r_i:
                 self.r_i[task_entity] = {}
+            util_value = self.get_linear_util(task_entity=task_entity,mission_entity =mission_entity)
+
             self.r_i[task_entity][mission_entity] = Utility(player_entity=self.simulation_entity,
                                                             mission_entity=mission_entity,
                                                             task_entity=task_entity, t_now=self.t_now,
-                                                            future_utility_function=self.future_utility_function)
+                                                            future_utility_function=self.future_utility_function,
+                                                            util =util_value )
 
     def initiate_algorithm(self):
         raise Exception("only tasks initiate the algorithm")
@@ -801,11 +835,13 @@ class FisherPhaseTwoTaskABS (TaskAlgorithm,ABC):
         raise NotImplementedError
 
 class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
-    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+    def __init__(self,   util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
-                 is_with_timestamp = True, ro = 1):
+                 is_with_timestamp = True, ro = 1,simulation_rep=0):
         AllocationSolverTasksPlayersSemi.__init__(self, mailer, f_termination_condition, f_global_measurements,
                                                   f_communication_disturbance)
+        simulation_rep_received = simulation_rep
+        self.util_structure_level=util_structure_level
         self.ro = ro
         self.future_utility_function = future_utility_function
         self.is_with_timestamp = is_with_timestamp
@@ -814,15 +850,17 @@ class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
         return FisherTaskASY(agent_simulator=task, t_now=self.tnow,is_with_timestamp = self.is_with_timestamp)
 
     def create_algorithm_player(self, player: PlayerSimple):
-        return FisherPlayerASY(agent_simulator=player, t_now=self.tnow,
+        return FisherPlayerASY(util_structure_level =self.util_structure_level,agent_simulator=player, t_now=self.tnow,
                                future_utility_function=self.future_utility_function,is_with_timestamp = self.is_with_timestamp, ro = self.ro)
 
 class FisherAsynchronousSolverFullDistributed(AllocationSolverTasksPlayersFull):
-    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+    def __init__(self, util_structure_level,mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
-                 is_with_timestamp = True, ro = 1):
+                 is_with_timestamp = True, ro = 1,simulation_rep=0):
         AllocationSolverTasksPlayersSemi.__init__(self, mailer, f_termination_condition, f_global_measurements,
                                                   f_communication_disturbance)
+        simulation_rep_received = simulation_rep
+        self.util_structure_level = util_structure_level
         self.ro = ro
         self.future_utility_function = future_utility_function
         self.is_with_timestamp = is_with_timestamp
@@ -831,5 +869,5 @@ class FisherAsynchronousSolverFullDistributed(AllocationSolverTasksPlayersFull):
         return FisherTaskASY(agent_simulator=task, t_now=self.tnow,is_with_timestamp = self.is_with_timestamp)
 
     def create_algorithm_player(self, player: PlayerSimple):
-        return FisherPlayerASY(agent_simulator=player, t_now=self.tnow,
+        return FisherPlayerASY(util_structure_level =self.util_structure_level,agent_simulator=player, t_now=self.tnow,
                                future_utility_function=self.future_utility_function,is_with_timestamp = self.is_with_timestamp, ro = self.ro)

@@ -299,7 +299,7 @@ class Mailer(threading.Thread):
 
         #if self.all_tasks_finish():
             #print(self.time_mailer.clock)
-        print(self.time_mailer.clock)
+        #print(self.time_mailer.clock)
 
         self.last_time = self.time_mailer.clock
         msgs_from_inbox = self.inbox.extract()

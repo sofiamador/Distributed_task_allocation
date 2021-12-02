@@ -24,12 +24,14 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant = 100000#100000
+termination_time_constant = 1000000#100000
 map_width = None
 map_length = None
 data_jumps = None
 current_ro = None
-
+fisher_solver_distribution_level = None
+util_structure_level = None
+simulation_rep = None
 process_debug = True
 
 def rand_id_str(rand):
@@ -37,13 +39,6 @@ def rand_id_str(rand):
     return ans
 
 
-def create_ability_dict(ability_dict):
-    ability_dict[0] = AbilitySimple(ability_type=0, ability_name="Basic")
-    ability_dict[1] = AbilitySimple(ability_type=1, ability_name="Interview")
-    ability_dict[2] = AbilitySimple(ability_type=2, ability_name="First-Aid")
-    ability_dict[3] = AbilitySimple(ability_type=3, ability_name="Observe")
-    ability_dict[4] = AbilitySimple(ability_type=4, ability_name="Gun")
-    return ability_dict
 
 
 class TaskArrivalEventStatic(TaskArrivalEvent):
@@ -63,11 +58,11 @@ def get_task_importance(task: TaskSimple):
 
 
 class SimulationStatic():
-    def __init__(self, rep_number, solver: AllocationSolver, map_length, map_width, players_required_ratio=0.5,
-                 create_ability_dict=create_ability_dict, tasks_per_center=2, number_of_centers=2):
-        self.create_ability_dict = create_ability_dict
+    def __init__(self, rep_number, solver: AllocationSolver, map_length, map_width,players_required_ratio=0.5,
+                  tasks_per_center=2, number_of_centers=2):
         self.players_required_ratio = players_required_ratio
         self.rand = random.Random(rep_number * 17)
+
         self.seed_number = rep_number
         self.solver = solver
         self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.05,
@@ -100,8 +95,6 @@ class SimulationStatic():
             task = SingleTaskGeneratorTSG(rand=self.rand, map_=self.map).random_task
             self.tasks.append(task)
 
-            # SingleTaskStaticPoliceGenerator(rand=self.rand, map=self.map,
-            #                                create_ability_dict=self.create_ability_dict).random_task
 
     def draw_map(self):
         x = []
@@ -322,7 +315,7 @@ def create_data_communication(amount_of_lines):
     return ans
 
 
-def create_fisher_solver(communication_protocol,ro=1, fisher_solver_distribution_level = None):
+def create_fisher_solver(simulation_rep,communication_protocol,ro=1, fisher_solver_distribution_level = None,util_structure_level = None):
     if fisher_solver_distribution_level == 1:
 
         return FisherAsynchronousSolver(
@@ -331,7 +324,7 @@ def create_fisher_solver(communication_protocol,ro=1, fisher_solver_distribution
         f_communication_disturbance=communication_protocol.get_communication_disturbance,
         future_utility_function=calculate_rij_tsg,
         is_with_timestamp=communication_protocol.is_with_timestamp,
-        ro=ro)
+        ro=ro,util_structure_level = util_structure_level,simulation_rep=simulation_rep)
 
     if fisher_solver_distribution_level == 2:
         return FisherAsynchronousSolverFullDistributed(
@@ -340,7 +333,7 @@ def create_fisher_solver(communication_protocol,ro=1, fisher_solver_distribution
          f_communication_disturbance=communication_protocol.get_communication_disturbance,
          future_utility_function=calculate_rij_tsg,
          is_with_timestamp=communication_protocol.is_with_timestamp,
-         ro=ro)
+         ro=ro, util_structure_level =util_structure_level,simulation_rep = simulation_rep)
 
 
 
@@ -400,6 +393,26 @@ def create_type_solver(amount_of_lines1, type_solver):
     return ans
 
 
+def create_type_util(amount_of_lines, util_structure_level):
+    ans = {}
+    temp_list = []
+    if util_structure_level is not None:
+
+        if util_structure_level == 1:
+            name_util = "Structure Util"
+        if util_structure_level == 2:
+            name_util = "Semi Structure Util"
+        if util_structure_level == 3:
+            name_util = "rnd Util"
+
+        for _ in range(amount_of_lines):
+            temp_list.append(name_util)
+
+    if util_structure_level is not None:
+        ans["util_structure_level"] = temp_list
+    return ans
+
+
 def get_data_single_output_dict(data_,market_number = None,type_solver = None):
     ans_avg,ans_last = create_data_statistics(data_, market_number)
     amount_of_lines1 = len(ans_avg["NCLO"])
@@ -408,6 +421,7 @@ def get_data_single_output_dict(data_,market_number = None,type_solver = None):
                                              number_of_centers, algo_name)
     data_market_number1 = create_data_market_number(amount_of_lines1,market_number)
     type_solver1 = create_type_solver(amount_of_lines1,type_solver)
+    type_util1 = create_type_util(amount_of_lines1,util_structure_level)
 
 
 
@@ -417,9 +431,17 @@ def get_data_single_output_dict(data_,market_number = None,type_solver = None):
                                               number_of_centers, algo_name)
     data_market_number2 = create_data_market_number(amount_of_lines2,market_number)
     type_solver2 = create_type_solver(amount_of_lines2,type_solver)
+    type_util2 = create_type_util(amount_of_lines2,util_structure_level)
 
     data_output1 = {}
     data_output2 = {}
+
+
+    for k, v in type_util1.items():
+        data_output1[k] = v
+
+    for k, v in type_util2.items():
+        data_output2[k] = v
 
     for k, v in type_solver1.items():
         data_output1[k] = v
@@ -517,6 +539,18 @@ def additions_to_names(file_name1,file_name2, fisher_solver_distribution_level, 
         file_name1 = file_name1 + "_fully_dist"
         file_name2 = file_name2 + "_fully_dist"
 
+    if util_structure_level ==1:
+        file_name1 = file_name1 + "_structure_util"
+        file_name2 = file_name2 + "_structure_util"
+
+    if util_structure_level ==2:
+        file_name1 = file_name1 + "_semi_structure_util"
+        file_name2 = file_name2 + "_semi_structure_util"
+
+    if util_structure_level ==3:
+        file_name1 = file_name1 + "_rnd_util"
+        file_name2 = file_name2 + "_rnd_util"
+
     if communication_protocol.is_with_timestamp:
         file_name1 = file_name1 + "_TS.csv"
         file_name2 = file_name2 + "_TS.csv"
@@ -526,9 +560,10 @@ def additions_to_names(file_name1,file_name2, fisher_solver_distribution_level, 
 
     return file_name1,file_name2
 
-def run_different_markets(communication_protocol,ro,fisher_solver_distribution_level):
+def run_different_markets(communication_protocol,ro):
     data_ = {}
     for i in simulation_reps:#range(simulation_reps):
+        simulation_rep = i
         if process_debug:
             print(i)
 
@@ -538,7 +573,7 @@ def run_different_markets(communication_protocol,ro,fisher_solver_distribution_l
 
         communication_protocol.set_seed(i)
 
-        fisher_solver = create_fisher_solver( communication_protocol=communication_protocol,ro=ro, fisher_solver_distribution_level = fisher_solver_distribution_level)
+        fisher_solver = create_fisher_solver(simulation_rep =i, communication_protocol=communication_protocol,ro=ro, fisher_solver_distribution_level = fisher_solver_distribution_level, util_structure_level = util_structure_level)
 
         scenario.add_solver(fisher_solver)
         fisher_solver.solve()
@@ -565,7 +600,7 @@ def run_different_markets(communication_protocol,ro,fisher_solver_distribution_l
     data_output_list_last.append(data_frame2)
 
 
-def run_same_market_diff_communication_experiment(communication_protocol,ro,fisher_solver_distribution_level):
+def run_same_market_diff_communication_experiment(communication_protocol,ro):
     data_ = {}
     for market_number in which_markets:
 
@@ -621,13 +656,13 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro,fish
 
 
 if __name__ == '__main__':
-    fisher_solver_distribution_level = 2 # 1 = semi distributed, 2 = one task distributed
+    fisher_solver_distribution_levels = [1,2] # 1 = semi distributed, 2 = one task distributed
+    util_structure_levels = [1,2,3] # 1-calculated rij, 2-random when importance determines, 3-random completely
 
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
     simulation_reps = range(100)
-
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
@@ -654,22 +689,26 @@ if __name__ == '__main__':
     data_output_list_avg = []
     data_output_list_last = []
 
-    for players_required_ratio in players_required_ratios:
-        for ro in ros:
-            current_ro = ro
-            for communication_protocol in communication_protocols:
-                if process_debug:
-                    print("players_required_ratios =", players_required_ratio, ";", "communication protocol =",
-                          communication_protocol.name)
+    for util_structure in util_structure_levels:
+        util_structure_level = util_structure
+        for dist_ratio in fisher_solver_distribution_levels:
+            fisher_solver_distribution_level = dist_ratio
+            for players_required_ratio in players_required_ratios:
+                for ro in ros:
+                    current_ro = ro
+                    for communication_protocol in communication_protocols:
+                        if process_debug:
+                            print("players_required_ratios =", players_required_ratio, ";", "communication protocol =",
+                                  communication_protocol.name)
 
-                if different_reps_market_bool:
-                    run_different_markets(communication_protocol,ro,fisher_solver_distribution_level)
-                else:
-                    run_same_market_diff_communication_experiment(communication_protocol,ro,fisher_solver_distribution_level)
+                        if different_reps_market_bool:
+                            run_different_markets(communication_protocol,ro)
+                        else:
+                            run_same_market_diff_communication_experiment(communication_protocol,ro)
 
 
-    data_output1 = pd.concat(data_output_list_avg)
-    data_output2 = pd.concat(data_output_list_last)
+        #data_output1 = pd.concat(data_output_list_avg)
+        #data_output2 = pd.concat(data_output_list_last)
 
-    data_output1.to_csv("avg_"+algo_name + ".csv", sep=',')
-    data_output2.to_csv("last_"+algo_name + ".csv", sep=',')
+        #data_output1.to_csv("avg_"+algo_name + ".csv", sep=',')
+        #data_output2.to_csv("last_"+algo_name + ".csv", sep=',')
