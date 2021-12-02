@@ -169,13 +169,11 @@ class CommunicationProtocolDistanceBaseMessageLoss(CommunicationProtocolDistance
     def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
         P = self.calculate_ratio(entity1, entity2)
         p = self.rnd.random()
-
         if debug_print_for_distribution:
             if p < P:
                 print(1)
             else:
                 print(0)
-
 
         if p < P:
             return None

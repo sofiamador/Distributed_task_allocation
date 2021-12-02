@@ -377,7 +377,7 @@ class FisherTaskASY(TaskAlgorithm):
 
         self.price_t_minus = self.price_current
         self.price_current = self.calculate_price()
-
+        flag = False
         for mission in self.simulation_entity.missions_list:
             self.price_delta[mission] = math.fabs(self.price_t_minus[mission] - self.price_current[mission])
             if self.price_delta[mission] != 0:
@@ -385,7 +385,7 @@ class FisherTaskASY(TaskAlgorithm):
 
         if self.task_phase_I_over():
             self.is_finish_phase_II = True
-            return True
+            flag = True
 
         for mission in self.simulation_entity.missions_list:
             for player_id, bid in self.bids[mission].items():
@@ -395,6 +395,8 @@ class FisherTaskASY(TaskAlgorithm):
                 else:
                     self.x_jk[mission][player_id] = None
         self.check_if_x_jk_per_mission_is_one()
+        if flag:
+            return True
         return False
         #print(self.x_jk)
 

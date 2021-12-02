@@ -156,7 +156,8 @@ class Mailer(threading.Thread):
         # messages that arrive to their destination
         self.msg_received_counter = 0
 
-
+        self.last_time = 0
+        self.delta_time = 9999999
 
     def get_allocation_dictionary(self):
         pass
@@ -185,6 +186,8 @@ class Mailer(threading.Thread):
         for aa in self.agents_algorithm:
             aa.reset_fields(tnow)
 
+        self.last_time = 0
+        self.delta_time = 0
     def add_out_box(self, key: str, value: UnboundedBuffer):
         self.agents_outboxes[key] = value
 
@@ -296,7 +299,9 @@ class Mailer(threading.Thread):
 
         #if self.all_tasks_finish():
             #print(self.time_mailer.clock)
+        print(self.time_mailer.clock)
 
+        self.last_time = self.time_mailer.clock
         msgs_from_inbox = self.inbox.extract()
 
         self.place_msgs_from_inbox_in_msgs_box(msgs_from_inbox)
@@ -308,6 +313,7 @@ class Mailer(threading.Thread):
 
         self.agents_receive_msgs(msgs_to_send)
 
+        self.delta_time = self.time_mailer.clock-self.last_time
     def handle_delay(self):
 
         """
