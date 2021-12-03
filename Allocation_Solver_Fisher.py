@@ -58,11 +58,9 @@ class FisherPlayerASY(PlayerAlgorithm):
         self.calculate_bids_flag = False
         self.future_utility_function = future_utility_function
         self.util_structure_level =util_structure_level #1-calculated rij, 2-random when importance determines, 3-random completely
-        rnd_seed = self.simulation_entity.id_.__hash__()*simulation_rep_received
-        self.rnd = random.Random(rnd_seed)
+
     def reset_additional_fields(self):
-        rnd_seed = self.simulation_entity.id_.__hash__() *simulation_rep_received
-        self.rnd = random.Random(rnd_seed)
+
 
 
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
@@ -106,6 +104,12 @@ class FisherPlayerASY(PlayerAlgorithm):
 
     def get_linear_util(self,mission_entity,task_entity):
 
+        me_hash =  self.simulation_entity.id_.__hash__()
+        mission_hash = mission_entity.mission_id.__hash__()
+        task_hash = task_entity.id_.__hash__()
+        rnd_seed = simulation_rep_received*17+me_hash*13+mission_hash*23+task_hash*27
+
+        rnd = random.Random(rnd_seed)
         calculated_util = calculate_rij_tsg(player_entity=self.simulation_entity, mission_entity=mission_entity,
                                             task_entity=task_entity,
                                             t_now=self.t_now)
@@ -114,11 +118,11 @@ class FisherPlayerASY(PlayerAlgorithm):
             util = calculated_util
         if self.util_structure_level == 2:
             if calculated_util != 0:
-                util = task_entity.importance * self.rnd.random()
+                util = task_entity.importance * rnd.random()
             else:
                 util = 0
         if self.util_structure_level == 3:
-            util = self.rnd.random()
+            util = rnd.random()
 
 
         return util
