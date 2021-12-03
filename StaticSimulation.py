@@ -24,7 +24,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant = 100#100000
+termination_time_constant = 1000000#100000
 map_width = None
 map_length = None
 data_jumps = None
@@ -662,7 +662,7 @@ if __name__ == '__main__':
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
-    simulation_reps = range(4)
+    simulation_reps = range(100)
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
