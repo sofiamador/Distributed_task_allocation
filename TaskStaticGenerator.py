@@ -75,13 +75,13 @@ class SinglePlayerGeneratorTSG():
                 raise Exception("something in the calc went wrong")
 
         return TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
-                      point=self.location, start_activity_time=start_activity_time,
-                      start_resting_time=start_resting_time,
-                      max_activity_time=force_data_dict[type_]["max_activity_time"],
-                      extra_hours_allowed=force_data_dict[type_]["extra_hours_allowed"],
-                      min_competence_time=force_data_dict[type_]["min_competence_time"],
-                      competence_length=force_data_dict[type_]["competence_length"], status=status,
-                      is_working_extra_hours=is_working_extra_hours, address=address,productivity=productivity
+                         current_location=self.location, start_activity_time=start_activity_time,
+                         start_resting_time=start_resting_time,
+                         max_activity_time=force_data_dict[type_]["max_activity_time"],
+                         extra_hours_allowed=force_data_dict[type_]["extra_hours_allowed"],
+                         min_competence_time=force_data_dict[type_]["min_competence_time"],
+                         competence_length=force_data_dict[type_]["competence_length"], status=status,
+                         is_working_extra_hours=is_working_extra_hours, address=address, productivity=productivity
                          )
 
 

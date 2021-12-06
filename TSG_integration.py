@@ -85,7 +85,7 @@ def create_agents(agents_list, force_data_map, t_now, host_agent):
                     is_working_extra_hours = True
 
             a = TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
-                          point=[t[3], t[4]], start_activity_time=start_activity_time,
+                          current_location=[t[3], t[4]], start_activity_time=start_activity_time,
                           start_resting_time=start_resting_time,
                           max_activity_time=force_data_map[type_]["max_activity_time"],
                           extra_hours_allowed=force_data_map[type_]["extra_hours_allowed"],

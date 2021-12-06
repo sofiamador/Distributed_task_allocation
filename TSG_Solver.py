@@ -525,13 +525,13 @@ class TSGEvent(TaskSimple):
 class TSGPlayer(PlayerSimple):
     """ Class that represents an agent"""
 
-    def __init__(self, agent_id, agent_type, last_update_time, point, start_activity_time,
+    def __init__(self, agent_id, agent_type, last_update_time, current_location, start_activity_time,
                  start_resting_time, max_activity_time, extra_hours_allowed, min_competence_time, competence_length,
                  is_working_extra_hours, address, status=Status.IDLE, productivity=1):
 
         # ##------------------------Parameters received from TSG during simulation run-------------------------##
 
-        PlayerSimple.__init__(self, id_=agent_id, location=point, speed=50, status=Status.IDLE,
+        PlayerSimple.__init__(self, id_=agent_id, current_location=current_location, speed=50, status=Status.IDLE,
                               abilities=[AbilitySimple(ability_type=agent_type)], tnow=last_update_time)
         self.start_activity_time = start_activity_time
         self.start_resting_time = start_resting_time
