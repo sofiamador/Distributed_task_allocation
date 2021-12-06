@@ -1,5 +1,5 @@
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm
-from Simulation import PlayerSimple, TaskSimple, MissionSimple
+from Simulation_Abstract import PlayerSimple, TaskSimple, MissionSimple
 
 
 ###----All is using---###

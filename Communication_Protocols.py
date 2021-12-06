@@ -3,7 +3,7 @@ import math
 import random
 from abc import ABC
 
-import Simulation
+import Simulation_Abstract
 
 import numpy as np
 
@@ -23,19 +23,19 @@ class CommunicationProtocol(ABC):
         self.rnd = random.Random(seed)
         self.rnd_numpy = np.random.default_rng(seed=seed)
 
-    def get_communication_disturbance(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
-        if isinstance(entity1, Simulation.TaskSimple) and isinstance(entity2, Simulation.PlayerSimple):
+    def get_communication_disturbance(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
+        if isinstance(entity1, Simulation_Abstract.TaskSimple) and isinstance(entity2, Simulation_Abstract.PlayerSimple):
             if entity1.player_responsible.id_ == entity2.id_:
                 return 0
 
-        if isinstance(entity2, Simulation.TaskSimple) and isinstance(entity1, Simulation.PlayerSimple):
+        if isinstance(entity2, Simulation_Abstract.TaskSimple) and isinstance(entity1, Simulation_Abstract.PlayerSimple):
             if entity2.player_responsible.id_ == entity1.id_:
                 return 0
 
         return self.get_communication_disturbance_by_protocol(entity1, entity2)
 
     @abc.abstractmethod
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         raise NotImplementedError
 
 
@@ -43,7 +43,7 @@ class CommunicationProtocolDefault(CommunicationProtocol):
     def __init__(self, name, is_with_timestamp=False):
         CommunicationProtocol.__init__(self, is_with_timestamp, name)
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         return 0
 
 
@@ -52,7 +52,7 @@ class CommunicationProtocolUniform(CommunicationProtocol):
         CommunicationProtocol.__init__(self, is_with_timestamp, name)
         self.UB = UB
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         if self.UB == 0:
             return 0
         return self.rnd.uniform(0, self.UB)
@@ -62,7 +62,7 @@ class CommunicationProtocolPois(CommunicationProtocol):
         CommunicationProtocol.__init__(self, is_with_timestamp, name)
         self.lambda_ = lambda_
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         if self.lambda_ == 0:
             return 0
 
@@ -77,7 +77,7 @@ class CommunicationProtocolExp(CommunicationProtocol):
         CommunicationProtocol.__init__(self, is_with_timestamp, name)
         self.lambda_ = lambda_
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         if self.lambda_ == 0:
             return 0
 
@@ -92,7 +92,7 @@ class CommunicationProtocolDistanceBase(CommunicationProtocol, ABC):
         CommunicationProtocol.__init__(self, is_with_timestamp, name)
         self.max_distance = math.sqrt(length ** 2 + width ** 2)
 
-    def calculate_ratio(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def calculate_ratio(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         l1, l2 = self.get_who_is_who_location(entity1, entity2)
 
         delta_x_square = (l1[0] - l2[0]) ** 2
@@ -101,30 +101,30 @@ class CommunicationProtocolDistanceBase(CommunicationProtocol, ABC):
         return quad_distance / self.max_distance
 
     def get_who_is_who_location(self, entity1, entity2):
-        if isinstance(entity1, Simulation.PlayerSimple) and isinstance(entity2, Simulation.PlayerSimple):
+        if isinstance(entity1, Simulation_Abstract.PlayerSimple) and isinstance(entity2, Simulation_Abstract.PlayerSimple):
             return entity1.location, entity2.location
 
-        if isinstance(entity1, Simulation.TaskSimple) and isinstance(entity2, Simulation.PlayerSimple):
+        if isinstance(entity1, Simulation_Abstract.TaskSimple) and isinstance(entity2, Simulation_Abstract.PlayerSimple):
             if entity1.player_responsible.id_ == entity2.id_:
                 return 0
 
             l1 = self.get_location_of_responsible_player(entity1)
             return l1, entity2.location
 
-        if isinstance(entity1, Simulation.PlayerSimple) and isinstance(entity2, Simulation.TaskSimple):
+        if isinstance(entity1, Simulation_Abstract.PlayerSimple) and isinstance(entity2, Simulation_Abstract.TaskSimple):
             if entity2.player_responsible.id_ == entity1.id_:
                 return 0
 
             l2 = self.get_location_of_responsible_player(entity2)
             return entity1.location, l2
 
-        if isinstance(entity1, Simulation.TaskSimple) and isinstance(entity2, Simulation.TaskSimple):
+        if isinstance(entity1, Simulation_Abstract.TaskSimple) and isinstance(entity2, Simulation_Abstract.TaskSimple):
             l1 = self.get_location_of_responsible_player(entity1)
             l2 = self.get_location_of_responsible_player(entity2)
             return l1, l2
 
-    def get_location_of_responsible_player(self, entity: Simulation.TaskSimple):
-        if isinstance(entity, Simulation.TaskSimple):
+    def get_location_of_responsible_player(self, entity: Simulation_Abstract.TaskSimple):
+        if isinstance(entity, Simulation_Abstract.TaskSimple):
             return entity.player_responsible.location
         else:
             raise Exception("only tasks have responsible players")
@@ -135,7 +135,7 @@ class CommunicationProtocolDistanceBaseDelayPois(CommunicationProtocolDistanceBa
         CommunicationProtocolDistanceBase.__init__(self, is_with_timestamp, name, length, width)
         self.constant_ = constant_
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         ratio = self.calculate_ratio(entity1, entity2)
         param = ratio * self.constant_
         delay = self.rnd_numpy.poisson(param, 1)[0]
@@ -149,7 +149,7 @@ class CommunicationProtocolDistanceBaseDelayExp(CommunicationProtocolDistanceBas
         CommunicationProtocolDistanceBase.__init__(self, is_with_timestamp, name, length, width)
         self.constant_ = constant_
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         ratio = self.calculate_ratio(entity1, entity2)
         param = ratio * self.constant_
         #delay = self.rnd_numpy.poisson(param, 1)[0]
@@ -166,7 +166,7 @@ class CommunicationProtocolDistanceBaseMessageLoss(CommunicationProtocolDistance
 
 
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         P = self.calculate_ratio(entity1, entity2)
         p = self.rnd.random()
         if debug_print_for_distribution:
@@ -186,7 +186,7 @@ class CommunicationProtocolDistanceBaseDelayPoisAndLoss(CommunicationProtocolDis
         CommunicationProtocolDistanceBase.__init__(self, is_with_timestamp, name, length, width)
         self.constant_ = constant_
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         ratio = self.calculate_ratio(entity1, entity2)
         p = self.rnd.random()
         if p < ratio:
@@ -201,7 +201,7 @@ class CommunicationProtocolMessageLossConstant(CommunicationProtocol):
         CommunicationProtocol.__init__(self, is_with_timestamp, name)
         self.p_loss = p_loss
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         p = self.rnd.random()
         if p < self.p_loss:
             return None
@@ -215,7 +215,7 @@ class CommunicationProtocolMessageLossConstantAndUniform(CommunicationProtocol):
         self.p_loss = p_loss
         self.UB = UB
 
-    def get_communication_disturbance_by_protocol(self, entity1: Simulation.Entity, entity2: Simulation.Entity):
+    def get_communication_disturbance_by_protocol(self, entity1: Simulation_Abstract.Entity, entity2: Simulation_Abstract.Entity):
         p = self.rnd.random()
         if p < self.p_loss:
             return None

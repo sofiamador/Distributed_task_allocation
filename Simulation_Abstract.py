@@ -289,6 +289,7 @@ class TaskSimple(Entity):
         self.player_responsible = None
         self.importance = importance
         self.arrival_time = arrival_time
+        self.done_missions = []
 
     def task_utility(self):
         """
@@ -317,6 +318,10 @@ class TaskSimple(Entity):
         for m in self.missions_list:
             m.update_workload()
 
+    def mission_finished(self, mission):
+        self.missions_list.remove(mission)
+        self.done_missions.append(mission)
+
 
 def amount_of_task_responsible(player):
     return len(player.tasks_responsible)
@@ -325,7 +330,10 @@ def amount_of_task_responsible(player):
 def find_and_allocate_responsible_player(task: TaskSimple, players):
     distances = []
     for player in players:
-        distances.append(calculate_distance(task, player))
+        for mission in task.missions_list:
+            for ability in mission.abilities:
+                if ability in player.abilities:
+                    distances.append(calculate_distance(task, player))
 
     min_distance = min(distances)
 
@@ -333,7 +341,10 @@ def find_and_allocate_responsible_player(task: TaskSimple, players):
 
     for player in players:
         if calculate_distance(task, player) == min_distance:
-            players_min_distances.append(player)
+            for mission in task.missions_list:
+                for ability in mission.abilities:
+                    if ability in player.abilities:
+                        players_min_distances.append(player)
 
     selected_player = min(players_min_distances, key=amount_of_task_responsible)
     selected_player.tasks_responsible.append(task)
@@ -519,10 +530,13 @@ class FinishHandleMissionEvent(SimulationEvent):
         :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time, task=task, mission=mission, player=player)
+        SimulationEvent.__init__(time=time, task=task, mission=mission)
 
     def handle_event(self, simulation):
-
+        for p in self.mission.players_handling_with_the_mission:
+            p.current_mission = None
+        self.mission.is_done = True
+        self.task.mission_finished(self.mission)
         simulation.solve()
 
 
@@ -545,8 +559,6 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
         SimulationEvent.__init__(time=time, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
-        for p in self.mission.players_handling_with_the_mission:
-
         simulation.solve()
 
 
@@ -636,7 +648,7 @@ class Simulation:
         self.diary.append(PlayerArriveToEMissionEvent(time=self.tnow + travel_time, task=task, mission=mission,
                                                       player=player))
 
-    def handle_abandonment_event(self, player:PlayerSimple, task:TaskSimple, mission:MissionSimple):
+    def handle_abandonment_event(self, player: PlayerSimple, task: TaskSimple, mission: MissionSimple):
         player.current_mission.players_allocated_to_the_mission.remove(player)
         player.current_mission.players_handling_with_the_mission.remove(player)
         self.generate_player_arrives_to_mission_event(player=player, task=task, mission=mission)

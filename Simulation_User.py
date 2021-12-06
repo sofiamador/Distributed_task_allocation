@@ -1,4 +1,4 @@
-from Simulation import Simulation, MapHubs
+from Simulation_Abstract import Simulation, MapHubs
 from TaskStaticGenerator import TaskGeneratorTSG
 
 

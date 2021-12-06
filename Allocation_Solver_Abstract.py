@@ -8,7 +8,7 @@ from enum import Enum
 
 debug_fisher_market = False
 
-from Simulation import PlayerSimple,TaskSimple,Entity
+from Simulation_Abstract import PlayerSimple,TaskSimple,Entity
 
 
 def default_communication_disturbance(msg,entity1,entity2):

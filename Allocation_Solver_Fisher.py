@@ -5,7 +5,7 @@ from abc import ABC
 
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
     default_communication_disturbance,AllocationSolverTasksPlayersFull
-from Simulation import Entity, TaskSimple, PlayerSimple
+from Simulation_Abstract import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg, MsgTaskEntity
 from TSG_rij import calculate_rij_tsg
 
