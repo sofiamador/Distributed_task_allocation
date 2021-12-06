@@ -329,10 +329,10 @@ class TSGMission(MissionSimple):
 
 class TSGEvent(TaskSimple):
     def __init__(self, event_id, event_type, damage_level, life_saving_potential,importance,
-                 event_creation_time, event_update_time, point, workload, mission_params, tnow):
+                 event_creation_time, point, workload, mission_params,event_update_time=None):
 
         # ##------------------------Parameters received from TSG during simulation run-------------------------##
-        TaskSimple.__init__(self, id_=event_id, location=point, importance=importance, missions_list=[], tnow=event_update_time)
+        TaskSimple.__init__(self, id_=event_id, location=point, importance=importance, missions_list=[], arrival_time=event_creation_time)
 
         self.initialRPM = 12
         self.event_type = event_type

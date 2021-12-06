@@ -1,7 +1,7 @@
 import enum
 import random
 import sys
-from builtins import function
+#from builtins import function
 from datetime import time
 
 global solver_debug
@@ -520,7 +520,7 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
 
 
 class Simulation:
-    def __init__(self, name: str, players_list: list, solver, f_are_players_neighbours: function,
+    def __init__(self, name: str, players_list: list, solver, f_are_players_neighbours,
                  f_is_player_can_be_allocated_to_mission,
                  tasks_generator, f_calculate_distance=calculate_distance):
         """

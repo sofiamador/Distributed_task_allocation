@@ -128,7 +128,7 @@ class SingleTaskGeneratorTSG():
                                  point=self.location,
                                  workload=value["total_workload"],
                                  mission_params=value["mission_params"],
-                                 tnow=self.tnow,importance=None)
+                                 importance=None)
 
     def get_parameters_input_dict(self):
         return [
