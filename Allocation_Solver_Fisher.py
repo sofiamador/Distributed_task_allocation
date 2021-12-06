@@ -858,11 +858,12 @@ class FisherAsynchronousSolver(AllocationSolverTasksPlayersSemi):
         return FisherPlayerASY(util_structure_level =self.util_structure_level,agent_simulator=player, t_now=self.tnow,
                                future_utility_function=self.future_utility_function,is_with_timestamp = self.is_with_timestamp, ro = self.ro)
 
+
 class FisherAsynchronousSolverFullDistributed(AllocationSolverTasksPlayersFull):
     def __init__(self, util_structure_level,mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
                  is_with_timestamp = True, ro = 1,simulation_rep=0):
-        AllocationSolverTasksPlayersSemi.__init__(self, mailer, f_termination_condition, f_global_measurements,
+        AllocationSolverTasksPlayersFull.__init__(self, mailer, f_termination_condition, f_global_measurements,
                                                   f_communication_disturbance)
         simulation_rep_received = simulation_rep
         self.util_structure_level = util_structure_level
