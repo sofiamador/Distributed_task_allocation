@@ -104,6 +104,7 @@ def is_player_can_be_allocated_to_task(task, player):
                 return True
     return False
 
+
 class AbilitySimple:
     """
        Class that represents a simple ability that the missions require and the players have
@@ -141,13 +142,13 @@ class PlayerSimple(Entity):
     Class that represents a basic player in the simulation
     """
 
-    def __init__(self, id_, location, speed, status=Status.IDLE,
-                 abilities=None, tnow=0):
+    def __init__(self, id_, current_location, speed, status=Status.IDLE,
+                 abilities=None, tnow=0, base_location =  None):
         """
         :param id_: The id of the player
         :type  id_: str
-        :param location: The location of the player
-        :type location: list of float
+        :param current_location: The location of the player
+        :type current_location: list of float
         :param status: The status of the player
         :type  status: Status
         :param abilities: abilities of the player
@@ -158,7 +159,7 @@ class PlayerSimple(Entity):
         :type current_mission: MissionSimple
 
         """
-        Entity.__init__(self, id_, location, tnow)
+        Entity.__init__(self, id_, current_location, tnow)
         if abilities is None:
             abilities = [AbilitySimple(ability_type=0)]
         self.speed = speed
@@ -168,6 +169,7 @@ class PlayerSimple(Entity):
         self.current_mission = None
         self.tasks_responsible = []
         self.neighbours = []
+        self.base_location = base_location
 
     def update_status(self, new_status: Status, tnow: float) -> None:
         """
@@ -335,9 +337,6 @@ def find_and_allocate_responsible_player(task: TaskSimple, players):
     selected_player = min(players_min_distances, key=amount_of_task_responsible)
     selected_player.tasks_responsible.append(task)
     task.player_responsible = selected_player
-
-
-
 
 
 class MapSimple:
@@ -575,7 +574,6 @@ class Simulation:
         self.diary.append(event)
 
     def check_new_allocation(self):
-        # TODO(@benrachmut): Please look at this.
         for player, missions in self.new_allocation:
             if player.current_mission is None:  # The agent doesn't have a current mission
                 if len(missions) == 0:  # The agent doesn't have a new allocation
@@ -584,8 +582,9 @@ class Simulation:
                     self.generate_player_arrives_to_mission_event(player=player, task=missions[0], mission=missions[1])
 
             else:  # The player has a current allocation
-                if len(missions) == 0:
+                if len(missions) == 0: # Player doesn't have a new allocation
                     player.status = Status.IDLE
+                    # TODO sent to the base
                 else:  # The player has a new allocation
                     if missions[1] == player.current_mission:  # The current allocation is similar to old allocation
                         pass
@@ -602,7 +601,7 @@ class Simulation:
         player.current_mission = mission
         player.current_task = task
         mission.players_allocated_to_the_mission.append(player)
-        travel_time = (self.f_calculate_distance(player, task) / 50) * 60
+        travel_time = self.f_calculate_distance(player, task) / player.speed
         self.diary.append(PlayerArriveToEMissionEvent(time=self.tnow + travel_time, task=task, mission=mission,
                                                       player=player))
 
