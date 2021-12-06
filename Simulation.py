@@ -88,6 +88,19 @@ def are_neighbours(entity1: Entity, entity2: Entity):
     """
     return True
 
+def is_player_can_be_allocated_to_task(task: TaskSimple, player: PlayerSimple):
+    """
+    Function that checks if the player can be allocated to an task according to player's abilities and required abilities
+    to the task.
+    :param task: The task that is checked.
+    :type task: TaskSimple
+    :param player: The player that is checked if it suitable for the task according to hos abilities.
+    :return:
+    """
+    for mission in task.missions_list:
+        for ability in mission.abilities:
+            if ability in player.abilities:
+                return True
 
 class AbilitySimple:
     """
@@ -299,19 +312,7 @@ class TaskSimple(Entity):
             m.update_workload()
 
 
-def is_player_can_be_allocated_to_task(task: TaskSimple, player: PlayerSimple):
-    """
-    Function that checks if the player can be allocated to an task according to player's abilities and required abilities
-    to the task.
-    :param task: The task that is checked.
-    :type task: TaskSimple
-    :param player: The player that is checked if it suitable for the task according to hos abilities.
-    :return:
-    """
-    for mission in task.missions_list:
-        for ability in mission.abilities:
-            if ability in player.abilities:
-                return True
+
 
 
 def amount_of_task_responsible(player):
