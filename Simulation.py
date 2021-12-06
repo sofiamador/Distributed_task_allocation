@@ -88,19 +88,6 @@ def are_neighbours(entity1: Entity, entity2: Entity):
     """
     return True
 
-def is_player_can_be_allocated_to_task(task: TaskSimple, player: PlayerSimple):
-    """
-    Function that checks if the player can be allocated to an task according to player's abilities and required abilities
-    to the task.
-    :param task: The task that is checked.
-    :type task: TaskSimple
-    :param player: The player that is checked if it suitable for the task according to hos abilities.
-    :return:
-    """
-    for mission in task.missions_list:
-        for ability in mission.abilities:
-            if ability in player.abilities:
-                return True
 
 class AbilitySimple:
     """
@@ -187,7 +174,7 @@ class PlayerSimple(Entity):
         self.location = location
         self.last_time_updated = tnow
 
-    def create_neighbours_list(self, players_list, f_are_neighbours = are_neighbours):
+    def create_neighbours_list(self, players_list, f_are_neighbours=are_neighbours):
         """
         creates neighbours list of players
         :param players_list:
@@ -296,7 +283,8 @@ class TaskSimple(Entity):
             sum_ += m.mission_utility
         return sum_
 
-    def create_neighbours_list(self, players_list, f_is_player_can_be_allocated_to_mission=is_player_can_be_allocated_to_task):
+    def create_neighbours_list(self, players_list,
+                               f_is_player_can_be_allocated_to_mission):
         """
         Creates 
         :param players_list:
@@ -310,9 +298,6 @@ class TaskSimple(Entity):
     def update_workload_for_missions(self, tnow):
         for m in self.missions_list:
             m.update_workload()
-
-
-
 
 
 def amount_of_task_responsible(player):
@@ -335,6 +320,22 @@ def find_and_allocate_responsible_player(task: TaskSimple, players):
     selected_player = min(players_min_distances, key=amount_of_task_responsible)
     selected_player.tasks_responsible.append(task)
     task.player_responsible = selected_player
+
+
+def is_player_can_be_allocated_to_task(task: TaskSimple, player: PlayerSimple):
+    """
+    Function that checks if the player can be allocated to an task according to player's abilities and required abilities
+    to the task.
+    :param task: The task that is checked.
+    :type task: TaskSimple
+    :param player: The player that is checked if it suitable for the task according to hos abilities.
+    :return:
+    """
+    for mission in task.missions_list:
+        for ability in mission.abilities:
+            if ability in player.abilities:
+                return True
+    return False
 
 
 class MapSimple:
@@ -520,8 +521,8 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
 
 
 class Simulation:
-    def __init__(self, name: str, players_list: list, solver, tasks_generator, f_are_players_neighbours = are_neighbours,
-                 f_is_player_can_be_allocated_to_mission = is_player_can_be_allocated_to_task,
+    def __init__(self, name: str, players_list: list, solver, tasks_generator, f_are_players_neighbours=are_neighbours,
+                 f_is_player_can_be_allocated_to_mission=is_player_can_be_allocated_to_task,
                  f_calculate_distance=calculate_distance):
         """
 
@@ -543,10 +544,6 @@ class Simulation:
         self.solver = solver
         self.solver.add_players_list(players_list)
         self.f_are_players_neighbours = f_are_players_neighbours
-
-        # create neighbours to players TODO(@benrachmut): Please look at this.
-        for a in self.players_list:
-            a.create_neighbours_list(self.players_list, self.f_are_players_neighbours)
 
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_mission
         self.tasks_generator = tasks_generator
