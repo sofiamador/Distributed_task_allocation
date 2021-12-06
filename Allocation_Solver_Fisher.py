@@ -110,6 +110,7 @@ class FisherPlayerASY(PlayerAlgorithm):
         rnd_seed = simulation_rep_received*17+me_hash*13+mission_hash*23+task_hash*27
 
         rnd = random.Random(rnd_seed)
+
         calculated_util = calculate_rij_tsg(player_entity=self.simulation_entity, mission_entity=mission_entity,
                                             task_entity=task_entity,
                                             t_now=self.t_now)
