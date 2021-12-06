@@ -28,5 +28,5 @@ if __name__ == '__main__':
                                                               force_type_data=force_type_data,
                                                               discrete_params=discrete_params,
                                                               event_params=event_params)
-    # print(allocation_list_updated)
+    print(allocation_list_updated)
     # print(len(allocation_list_updated))

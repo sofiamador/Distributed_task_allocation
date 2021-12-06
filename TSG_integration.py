@@ -154,7 +154,7 @@ def solve(agent_obj_list, event_obj_list, t_now):
     for i in range(len(agent_obj_list)):
         agent = agent_obj_list[i]
         event = event_obj_list[i % len(event_obj_list)]
-        a = Allocations(allocation_id=uuid.uuid1(), agent_type=agent.abilities[0].ability_type,
+        a = Allocations(allocation_id=str(uuid.uuid1()), agent_type=agent.abilities[0].ability_type,
                         mission_creation_time=t_now,
                         last_update_time=t_now, mission_status=1, event_id=event.id_,
                         agent_id=agent.id_, working_starting_time=t_now,

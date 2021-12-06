@@ -1,13 +1,15 @@
 import enum
 import random
 import sys
-
+from builtins import function
+from datetime import time
 
 global solver_debug
 
+
 class Status(enum.Enum):
     """
-    Enum that represents the status of the agent in the simulation
+    Enum that represents the status of the player in the simulation
     """
     IDLE = 0
     ON_MISSION = 1
@@ -19,7 +21,7 @@ class Entity:
     Class that represents a basic entity in the simulation
     """
 
-    def __init__(self, id_, location, tnow = 0):
+    def __init__(self, id_, location, last_time_updated=0):
         """
         :param id_: The id of the entity
         :type  id_: str
@@ -33,7 +35,7 @@ class Entity:
         self.id_ = id_
         self.location = location
         self.neighbours = []
-        self.last_time_updated = tnow
+        self.last_time_updated = last_time_updated
 
     def update_time(self, tnow):
         if tnow >= self.last_time_updated:
@@ -53,7 +55,6 @@ class Entity:
 
     def __hash__(self):
         return hash(self.id_)
-
 
     def __eq__(self, other):
         return self.id_ == other.id
@@ -79,7 +80,7 @@ def calculate_distance(entity1: Entity, entity2: Entity):
 
 def are_neighbours(entity1: Entity, entity2: Entity):
     """
-    The functions checks if the entities (agents) can be neighbours
+    The functions checks if the entities (players) can be neighbours
     :param entity1: first entity
     :type entity1: Entity
     :param entity2: second entity
@@ -91,7 +92,7 @@ def are_neighbours(entity1: Entity, entity2: Entity):
 
 class AbilitySimple:
     """
-       Class that represents a simple ability that the missions require and the agents have
+       Class that represents a simple ability that the missions require and the players have
     """
 
     def __init__(self, ability_type, ability_name=None):
@@ -123,27 +124,27 @@ class AbilitySimple:
 
 class PlayerSimple(Entity):
     """
-    Class that represents a basic agent in the simulation
+    Class that represents a basic player in the simulation
     """
 
     def __init__(self, id_, location, speed, status=Status.IDLE,
-                 abilities=None,tnow = 0):
+                 abilities=None, tnow=0):
         """
-        :param id_: The id of the agent
+        :param id_: The id of the player
         :type  id_: str
-        :param location: The location of the agent
+        :param location: The location of the player
         :type location: list of float
-        :param status: The status of the agent
+        :param status: The status of the player
         :type  status: Status
-        :param abilities: abilities of the agent
+        :param abilities: abilities of the player
         :type  abilities: set of AbilitySimple
-        :param current_task: The current task that was allocated to agent. If the the agent is idle this field will be None.
+        :param current_task: The current task that was allocated to player. If the the player is idle this field will be None.
         :type current_task: TaskSimple
-        :param current_mission: The current sub-task of the agent. If the the agent is idle this field will be None.
+        :param current_mission: The current sub-task of the player. If the the player is idle this field will be None.
         :type current_mission: MissionSimple
 
         """
-        Entity.__init__(self,id_, location,tnow)
+        Entity.__init__(self, id_, location, tnow)
         if abilities is None:
             abilities = [AbilitySimple(ability_type=0)]
         self.speed = speed
@@ -156,9 +157,9 @@ class PlayerSimple(Entity):
 
     def update_status(self, new_status: Status, tnow: float) -> None:
         """
-        Updates the status of the agent
-        :param new_status:the new status of the agent
-        :param tnow: the time when status of the agent is updated
+        Updates the status of the player
+        :param new_status:the new status of the player
+        :param tnow: the time when status of the player is updated
         :return:None
         """
         self.status = new_status
@@ -166,7 +167,7 @@ class PlayerSimple(Entity):
 
     def update_location(self, location, tnow):
         """
-        Updates the location of the agent
+        Updates the location of the player
         :param location:
         :param tnow:
         :return:
@@ -174,21 +175,21 @@ class PlayerSimple(Entity):
         self.location = location
         self.last_time_updated = tnow
 
-    def create_neighbours_list(self, agents_list, f_are_neighbours):
+    def create_neighbours_list(self, players_list, f_are_neighbours):
         """
-        creates neighbours list of agents
-        :param agents_list:
+        creates neighbours list of players
+        :param players_list:
         :param f_are_neighbours:
         :return:None
         """
-        for a in agents_list:
-            if self.id_ != a.id_ and f_are_neighbours(self, a):
-                self.neighbours.append(a)
+        for p in players_list:
+            if self.id_ != p.id_ and f_are_neighbours(self, p):
+                self.neighbours.append(p)
 
 
 class MissionSimple:
     """
-    Class that represents a simple mission (as a part of the event)
+    Class that represents a simple mission (as a part of the task)
     """
 
     def __init__(self, mission_id, initial_workload, arrival_time_to_the_system,
@@ -232,7 +233,7 @@ class MissionSimple:
         self.update_workload(tnow)
         self.players_allocated_to_the_mission.remove(new_player)
 
-    def remove_all_players(self,tnow):
+    def remove_all_players(self, tnow):
         self.update_workload(tnow)
         self.players_allocated_to_the_mission.clear()
 
@@ -249,31 +250,32 @@ class MissionSimple:
 
 class TaskSimple(Entity):
     """
-    Class that represents a simple event in the simulation
+    Class that represents a simple task in the simulation
     """
 
-    def __init__(self,  id_, location, importance, missions_list: list, tnow = 0):
+    def __init__(self, id_, location, importance, missions_list: list, arrival_time=0):
         """
-        :param id_: The id of the event
+        :param id_: The id of the task
         :type  id_: str
-        :param location: The location of the event
+        :param location: The location of the task
         :type location: list of float
-        :param importance: The importance of the event
+        :param importance: The importance of the task
         :type importance: int
         :param missions_list: the missions of the
-        :param type_: The type of the event
+        :param type_: The type of the task
         :type type_: int
         :param player_responsible, simulation will assign a responsible player to perform that algorithmic task
         computation and message delivery
         """
-        Entity.__init__(self,id_, location, tnow)
+        Entity.__init__(self, id_, location, arrival_time)
         self.missions_list = missions_list
         self.player_responsible = None
         self.importance = importance
+        self.arrival_time = arrival_time
 
-    def event_utility(self):
+    def task_utility(self):
         """
-        Calculates the total utility of the event (sum of missions' utilities)
+        Calculates the total utility of the task (sum of missions' utilities)
         :return: utility
         :rtype: float
         """
@@ -282,45 +284,42 @@ class TaskSimple(Entity):
             sum_ += m.mission_utility
         return sum_
 
-    def create_neighbours_list(self, agents_list, f_is_agent_can_be_allocated_to_mission= are_neighbours):
+    def create_neighbours_list(self, players_list, f_is_player_can_be_allocated_to_mission=are_neighbours):
         """
         Creates 
-        :param agents_list:
-        :param f_is_agent_can_be_allocated_to_mission:
+        :param players_list:
+        :param f_is_player_can_be_allocated_to_mission:
         :return:
         """
-        #for a in agents_list:
-            #if self.id_ != a.id_ and f_is_agent_can_be_allocated_to_mission(self, a):
-                #self.neighbours.append(a)
-        for a in agents_list:
-                if f_is_agent_can_be_allocated_to_mission(self, a):
-                    self.neighbours.append(a)
+        for a in players_list:
+            if f_is_player_can_be_allocated_to_mission(self, a):
+                self.neighbours.append(a.id_)
 
-    def update_workload_for_missions(self,tnow):
+    def update_workload_for_missions(self, tnow):
         for m in self.missions_list:
             m.update_workload()
 
 
-
-def is_agent_can_be_allocated_to_event(task: TaskSimple, agent: PlayerSimple):
+def is_player_can_be_allocated_to_task(task: TaskSimple, player: PlayerSimple):
     """
-    Function that checks if the agent can be allocated to an task according to agent's abilities and required abilities
+    Function that checks if the player can be allocated to an task according to player's abilities and required abilities
     to the task.
     :param task: The task that is checked.
     :type task: TaskSimple
-    :param agent: The agent that is checked if it suitable for the task according to hos abilities.
+    :param player: The player that is checked if it suitable for the task according to hos abilities.
     :return:
     """
     for mission in task.missions_list:
-        if mission.abilities in agent.abilities:
-            return True
+        for ability in mission.abilities:
+            if ability in player.abilities:
+                return True
 
 
 def amount_of_task_responsible(player):
     return len(player.tasks_responsible)
 
 
-def find_responsible_agent(task: TaskSimple, players):
+def find_and_allocate_responsible_player(task: TaskSimple, players):
     distances = []
     for player in players:
         distances.append(calculate_distance(task, player))
@@ -340,13 +339,13 @@ def find_responsible_agent(task: TaskSimple, players):
 
 class MapSimple:
     """
-    Class that represents the map for the simulation. The events and the agents must be located using generate_location
+    Class that represents the map for the simulation. The tasks and the players must be located using generate_location
     method. The simple map is in the shape of rectangle (with width and length parameters).
     """
 
     def __init__(self, number_of_centers=3, seed=1, length=9.0, width=9.0):
         """
-        :param number_of_centers: number of centers in the map. Each center represents a possible base for the agent.
+        :param number_of_centers: number of centers in the map. Each center represents a possible base for the player.
         :type: int
         :param seed: seed for random object
         :type: int
@@ -400,7 +399,7 @@ class MapHubs(MapSimple):
         return [rand_x, rand_y]
 
 
-class TaskGenerator():
+class TaskGenerator:
     def __init__(self, map_=MapSimple(seed=1), seed=1):
         """
 
@@ -410,30 +409,32 @@ class TaskGenerator():
         self.map = map_
         self.random = random.Random(seed)
 
-    def get_task(self):
+    def get_task(self, tnow):
+        """
+        :rtype: TaskSimple
+        """
         return NotImplementedError
 
 
-class SimulationEvent():
+class SimulationEvent:
     """
     Class that represents an event in the simulation log.
     """
 
-    def __init__(self, time, agent=None, task=None, mission=None):
+    def __init__(self, time, player=None, task=None, mission=None):
         """
         :param time:the time of the event
         :type: float
-        :param agent: The relevant agent for this simulation event. Can be None(depends on extension).
-        :type: AgentSimple
-        :param task: The relevant event(task) to this simulation event. Can be None(depends on extension).
-        :type: EventSimple
-        :param mission: The relevant mission (of tasl) for this simulation event. Can be None(depends on extension).
-        :type: MissionSimple
-        :param task: The relevant task for this simulation event. Can be None(depends on extension).
+        :param player: The relevant player for this simulation event. Can be None(depends on extension).
+        :type: PlayerSimple
+        :param task: The relevant task(task) to this simulation event. Can be None(depends on extension).
         :type: TaskSimple
+        :param mission: The relevant mission (of task) for this simulation event. Can be None(depends on extension).
+        :type: MissionSimple
+
         """
         self.time = time
-        self.agent = agent
+        self.player = player
         self.mission = mission
         self.task = task
 
@@ -445,8 +446,8 @@ class SimulationEvent():
 
     def handle_event(self, simulation):
         """
-        Handle with the event when it arrives in the simulation
-        :param simulation: the simulation where the the event appears
+        Handle with the task when it arrives in the simulation
+        :param simulation: the simulation where the the task appears
         :type: Simulation
         :return:
         """
@@ -455,98 +456,103 @@ class SimulationEvent():
 
 class TaskArrivalEvent(SimulationEvent):
     """
-    Class that represent an simulation event of new Event(task) arrival.
+    Class that represent an simulation event of new task arrival.
     """
 
     def __init__(self, time: float, task: TaskSimple):
         """
         :param time:the time of the event
         :type: float
-        :param event: The new event that arrives to simulation.
+        :param task: The new task that arrives to simulation.
         :type: TaskSimple
         """
         SimulationEvent.__init__(time=time, task=task)
 
     def handle_event(self, simulation):
-        find_responsible_agent(task=self.task, players=simulation.players_list)
+        find_and_allocate_responsible_player(task=self.task, players=simulation.players_list)
         simulation.solver.add_task_to_solver(self.task)
         simulation.solve()
-        simulation.generate_new_event()
+        simulation.generate_new_task_to_diary()
 
 
-class AgentArriveToEMissionEvent(SimulationEvent):
+class PlayerArriveToEMissionEvent(SimulationEvent):
     """
-    Class that represent an event of agent's arrival to the mission.
+    Class that represent an event of player's arrival to the mission.
     """
 
-    def __init__(self, time, agent, event, mission):
+    def __init__(self, time, player, task, mission):
         """
         :param time:the time of the event
         :type: float
-        :param agent: The relevant agent that arrives to the given mission on the given event.
-        :type: AgentSimple
-        :param event: The relevant event(task) that contain the given mission
-        :type: EventSimple
-        :param mission: The mission that the agent arrives to.
+        :param player: The relevant player that arrives to the given mission on the given task.
+        :type: PlayerSimple
+        :param task: The relevant task that contain the given mission
+        :type: TaskSimple
+        :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time, event=event, mission=mission, agent=agent)
+        SimulationEvent.__init__(time=time, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
-        simulation.create_agent_finish_handle_mission_event()
+        simulation.create_player_finish_handle_mission_event()
 
 
-class AgentFinishHandleMissionEvent(SimulationEvent):
+class PlayerFinishHandleMissionEvent(SimulationEvent):
     """
-    Class that represent an event of: agent finishes to handle  with the mission.
+    Class that represent an event of: player finishes to handle  with the mission.
     """
 
-    def __init__(self, time, agent, event, mission):
+    def __init__(self, time, player, task, mission):
         """
         :param time:the time of the event
         :type: float
-        :param agent: The relevant agent that arrives to the given mission on the given event.
-        :type: AgentSimple
-        :param event: The relevant event(task) that contain the given mission
-        :type: EventSimple
-        :param mission: The mission that the agent arrives to.
+        :param player: The relevant player that arrives to the given mission on the given task.
+        :type: PlayerSimple
+        :param task: The relevant task that contain the given mission
+        :type: TaskSimple
+        :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time, event=event, mission=mission, agent=agent)
+        SimulationEvent.__init__(time=time, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
         simulation.solve()
 
 
 class Simulation:
-    def __init__(self, name:str, players_list:list, solver, f_are_agents_neighbours, f_is_agent_can_be_allocated_to_mission,
-                 events_generator, first_event, running_events=[], f_calculate_distance=calculate_distance):
+    def __init__(self, name: str, players_list: list, solver, f_are_players_neighbours: function,
+                 f_is_player_can_be_allocated_to_mission,
+                 tasks_generator, f_calculate_distance=calculate_distance):
         """
 
         :param name: The name of simulation
-        :param players_list: The list of the players(agents) that are participate
+        :param players_list: The list of the players(players) that are participate
         :param solver: The algorithm that solve the task allocation problem
-        :param f_are_agents_neighbours: functions that checks if the players are agent
-        :param f_is_agent_can_be_allocated_to_mission: The function checks if the agent can be allocated to mission
-        :param events_generator:
-        :param first_events :list of events that are ready in the system (it can be a new a events or events in process)
+        :param f_are_players_neighbours: functions that checks if the players are player
+        :param f_is_player_can_be_allocated_to_mission: The function checks if the player can be allocated to mission
+        :param tasks_generator:
         :param f_calculate_distance: calculate the distance
         """
         self.tnow = 0
         self.prev_time = 0
         self.last_event = None
         self.name = name
+        self.diary = []
+        # players initialization
         self.players_list = players_list
         self.solver = solver
-        self.solver.add_players_list()
-        self.f_are_agents_neighbours = f_are_agents_neighbours
-        self.f_is_agent_can_be_allocated_to_mission = f_is_agent_can_be_allocated_to_mission
-        self.events_generator = events_generator
-        self.f_calculate_distance = calculate_distance
-        self.events_list = running_events
-        self.diary = [first_event]
-        self.new_allocation = None
+        self.solver.add_players_list(players_list)
+        self.f_are_players_neighbours = f_are_players_neighbours
 
+        # create neighbours to players TODO(@benrachmut): Please look at this.
+        for a in self.players_list:
+            a.create_neighbours_list(self.players_list, self.f_are_players_neighbours)
+
+        self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_mission
+        self.tasks_generator = tasks_generator
+        self.f_calculate_distance = calculate_distance
+        self.generate_new_task()
+        self.new_allocation = None
 
     def run_simulation(self):
         while not self.diary:
@@ -558,16 +564,49 @@ class Simulation:
 
     def solve(self):
 
-        self.new_allocation = self.solver.solve(self.last_event) #{player:[task,mission]}
-        self.check_new_allocation() 
+        self.new_allocation: dict = self.solver.solve(self.last_event)  # {player:[task,mission]}
+        self.check_new_allocation()
 
-    def generate_new_event(self):
-        self.events_generator.get_event()
+    def generate_new_task_to_diary(self):
+        task: TaskSimple = self.tasks_generator.get_task(self.tnow)
+        # TODO(@benrachmut): Please look at this.
+        task.create_neighbours_list(players_list=self.players_list,
+                                    f_is_player_can_be_allocated_to_mission=self.f_is_player_can_be_allocated_to_mission)
+        event = TaskArrivalEvent(task=task, time=task.arrival_time)
+        self.diary.append(event)
 
     def check_new_allocation(self):
-        pass
+        # TODO(@benrachmut): Please look at this.
+        for player, missions in self.new_allocation:
+            if player.current_mission is None:  # The agent doesn't have a current mission
+                if len(missions) == 0:  # The agent doesn't have a new allocation
+                    player.status = Status.IDLE
+                else:  # The agent has a new allocation
+                    self.generate_player_arrives_to_mission_event(player=player, task=missions[0], mission=missions[1])
+
+            else:  # The player has a current allocation
+                if len(missions) == 0:
+                    player.status = Status.IDLE
+                else:  # The player has a new allocation
+                    if missions[1] == player.current_mission:  # The current allocation is similar to old allocation
+                        pass
+                    else:  # The player abandons his current event to a new allocation
+                        self.handle_abandonment_event(player=player, task=missions[0], mission=missions[1])
 
     def update_workload(self):
-        for e in self.events_list:
+        for e in self.tasks_list:
             e.update_workload_for_missions(self.tnow)
 
+    def generate_player_arrives_to_mission_event(self, player, task, mission):
+
+        player.status = Status.TO_MISSION
+        player.current_mission = mission
+        player.current_task = task
+        mission.players_allocated_to_the_mission.append(player)
+        travel_time = (self.f_calculate_distance(player, task) / 50) * 60
+        self.diary.append(PlayerArriveToEMissionEvent(time=self.tnow + travel_time, task=task, mission=mission,
+                                                      player=player))
+
+    def handle_abandonment_event(self, player, task, mission):
+        player.current_mission.players_allocated_to_the_mission.remove(player)
+        self.generate_player_arrives_to_mission_event(player=player, task=task, mission=mission)
