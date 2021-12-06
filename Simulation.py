@@ -189,7 +189,7 @@ class PlayerSimple(Entity):
 
 class MissionSimple:
     """
-    Class that represents a simple mission (as a part of the event)
+    Class that represents a simple mission (as a part of the task)
     """
 
     def __init__(self, mission_id, initial_workload, arrival_time_to_the_system,
@@ -250,19 +250,19 @@ class MissionSimple:
 
 class TaskSimple(Entity):
     """
-    Class that represents a simple event in the simulation
+    Class that represents a simple task in the simulation
     """
 
     def __init__(self, id_, location, importance, missions_list: list, arrival_time=0):
         """
-        :param id_: The id of the event
+        :param id_: The id of the task
         :type  id_: str
-        :param location: The location of the event
+        :param location: The location of the task
         :type location: list of float
-        :param importance: The importance of the event
+        :param importance: The importance of the task
         :type importance: int
         :param missions_list: the missions of the
-        :param type_: The type of the event
+        :param type_: The type of the task
         :type type_: int
         :param player_responsible, simulation will assign a responsible player to perform that algorithmic task
         computation and message delivery
@@ -273,9 +273,9 @@ class TaskSimple(Entity):
         self.importance = importance
         self.arrival_time = arrival_time
 
-    def event_utility(self):
+    def task_utility(self):
         """
-        Calculates the total utility of the event (sum of missions' utilities)
+        Calculates the total utility of the task (sum of missions' utilities)
         :return: utility
         :rtype: float
         """
@@ -339,7 +339,7 @@ def find_responsible_player(task: TaskSimple, players):
 
 class MapSimple:
     """
-    Class that represents the map for the simulation. The events and the players must be located using generate_location
+    Class that represents the map for the simulation. The tasks and the players must be located using generate_location
     method. The simple map is in the shape of rectangle (with width and length parameters).
     """
 
@@ -427,12 +427,11 @@ class SimulationEvent:
         :type: float
         :param player: The relevant player for this simulation event. Can be None(depends on extension).
         :type: PlayerSimple
-        :param task: The relevant event(task) to this simulation event. Can be None(depends on extension).
-        :type: EventSimple
-        :param mission: The relevant mission (of tasl) for this simulation event. Can be None(depends on extension).
-        :type: MissionSimple
-        :param task: The relevant task for this simulation event. Can be None(depends on extension).
+        :param task: The relevant task(task) to this simulation event. Can be None(depends on extension).
         :type: TaskSimple
+        :param mission: The relevant mission (of task) for this simulation event. Can be None(depends on extension).
+        :type: MissionSimple
+
         """
         self.time = time
         self.player = player
@@ -447,8 +446,8 @@ class SimulationEvent:
 
     def handle_event(self, simulation):
         """
-        Handle with the event when it arrives in the simulation
-        :param simulation: the simulation where the the event appears
+        Handle with the task when it arrives in the simulation
+        :param simulation: the simulation where the the task appears
         :type: Simulation
         :return:
         """
@@ -457,14 +456,14 @@ class SimulationEvent:
 
 class TaskArrivalEvent(SimulationEvent):
     """
-    Class that represent an simulation event of new Event(task) arrival.
+    Class that represent an simulation event of new task arrival.
     """
 
     def __init__(self, time: float, task: TaskSimple):
         """
         :param time:the time of the event
         :type: float
-        :param event: The new event that arrives to simulation.
+        :param task: The new task that arrives to simulation.
         :type: TaskSimple
         """
         SimulationEvent.__init__(time=time, task=task)
@@ -481,18 +480,18 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
     Class that represent an event of player's arrival to the mission.
     """
 
-    def __init__(self, time, player, event, mission):
+    def __init__(self, time, player, task, mission):
         """
         :param time:the time of the event
         :type: float
-        :param player: The relevant player that arrives to the given mission on the given event.
+        :param player: The relevant player that arrives to the given mission on the given task.
         :type: PlayerSimple
-        :param event: The relevant event(task) that contain the given mission
-        :type: EventSimple
+        :param task: The relevant task that contain the given mission
+        :type: TaskSimple
         :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time, event=event, mission=mission, player=player)
+        SimulationEvent.__init__(time=time, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
         simulation.create_player_finish_handle_mission_event()
@@ -503,18 +502,18 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
     Class that represent an event of: player finishes to handle  with the mission.
     """
 
-    def __init__(self, time, player, event, mission):
+    def __init__(self, time, player, task, mission):
         """
         :param time:the time of the event
         :type: float
-        :param player: The relevant player that arrives to the given mission on the given event.
+        :param player: The relevant player that arrives to the given mission on the given task.
         :type: PlayerSimple
-        :param event: The relevant event(task) that contain the given mission
-        :type: EventSimple
+        :param task: The relevant task that contain the given mission
+        :type: TaskSimple
         :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time, event=event, mission=mission, player=player)
+        SimulationEvent.__init__(time=time, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
         simulation.solve()
@@ -572,6 +571,7 @@ class Simulation:
         task: TaskSimple = self.tasks_generator.get_task(self.tnow)
         # TODO(@benrachmut): Please look at this.
         task.create_neighbours_list(players_list=self.players_list,f_is_player_can_be_allocated_to_mission=self.f_is_player_can_be_allocated_to_mission)
+        find_responsible_player(task,self.players_list)
         event = TaskArrivalEvent(task=task, time=task.arrival_time)
         self.diary.append(event)
 
