@@ -395,11 +395,13 @@ class FisherTaskASY(TaskAlgorithm):
 
     def get_current_timestamp_from_context(self, msg):
         player_id = msg.sender
-        if self.msgs_from_players[player_id] is None:
+        try:
+            if self.msgs_from_players[player_id] is None:
+                return 0
+            else:
+                return self.msgs_from_players[player_id].timestamp
+        except:
             return 0
-        else:
-            return self.msgs_from_players[player_id].timestamp
-
     def update_message_in_context(self, msg):
         player_id = msg.sender
         for mission, bid in msg.information.items():
