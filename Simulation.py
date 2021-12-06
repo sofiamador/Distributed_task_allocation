@@ -319,7 +319,7 @@ def amount_of_task_responsible(player):
     return len(player.tasks_responsible)
 
 
-def find_responsible_player(task: TaskSimple, players):
+def find_and_allocate_responsible_player(task: TaskSimple, players):
     distances = []
     for player in players:
         distances.append(calculate_distance(task, player))
@@ -469,10 +469,10 @@ class TaskArrivalEvent(SimulationEvent):
         SimulationEvent.__init__(time=time, task=task)
 
     def handle_event(self, simulation):
-        find_responsible_player(task=self.task, players=simulation.players_list)
+        find_and_allocate_responsible_player(task=self.task, players=simulation.players_list)
         simulation.solver.add_task_to_solver(self.task)
         simulation.solve()
-        simulation.generate_new_task()
+        simulation.generate_new_task_to_diary()
 
 
 class PlayerArriveToEMissionEvent(SimulationEvent):
@@ -537,8 +537,8 @@ class Simulation:
         self.prev_time = 0
         self.last_event = None
         self.name = name
-
-        #players initialization
+        self.diary = []
+        # players initialization
         self.players_list = players_list
         self.solver = solver
         self.solver.add_players_list(players_list)
@@ -546,7 +546,7 @@ class Simulation:
 
         # create neighbours to players TODO(@benrachmut): Please look at this.
         for a in self.players_list:
-            a.create_neighbours_list(self.players_list,self.f_are_players_neighbours)
+            a.create_neighbours_list(self.players_list, self.f_are_players_neighbours)
 
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_mission
         self.tasks_generator = tasks_generator
@@ -564,22 +564,49 @@ class Simulation:
 
     def solve(self):
 
-        self.new_allocation = self.solver.solve(self.last_event)  # {player:[task,mission]}
+        self.new_allocation: dict = self.solver.solve(self.last_event)  # {player:[task,mission]}
         self.check_new_allocation()
 
-    def generate_new_task(self):
+    def generate_new_task_to_diary(self):
         task: TaskSimple = self.tasks_generator.get_task(self.tnow)
         # TODO(@benrachmut): Please look at this.
-        task.create_neighbours_list(players_list=self.players_list,f_is_player_can_be_allocated_to_mission=self.f_is_player_can_be_allocated_to_mission)
-        find_responsible_player(task,self.players_list)
+        task.create_neighbours_list(players_list=self.players_list,
+                                    f_is_player_can_be_allocated_to_mission=self.f_is_player_can_be_allocated_to_mission)
         event = TaskArrivalEvent(task=task, time=task.arrival_time)
         self.diary.append(event)
 
     def check_new_allocation(self):
-        pass
+        # TODO(@benrachmut): Please look at this.
+        for player, missions in self.new_allocation:
+            if player.current_mission is None:  # The agent doesn't have a current mission
+                if len(missions) == 0:  # The agent doesn't have a new allocation
+                    player.status = Status.IDLE
+                else:  # The agent has a new allocation
+                    self.generate_player_arrives_to_mission_event(player=player, task=missions[0], mission=missions[1])
+
+            else:  # The player has a current allocation
+                if len(missions) == 0:
+                    player.status = Status.IDLE
+                else:  # The player has a new allocation
+                    if missions[1] == player.current_mission:  # The current allocation is similar to old allocation
+                        pass
+                    else:  # The player abandons his current event to a new allocation
+                        self.handle_abandonment_event(player=player, task=missions[0], mission=missions[1])
 
     def update_workload(self):
         for e in self.tasks_list:
             e.update_workload_for_missions(self.tnow)
 
+    def generate_player_arrives_to_mission_event(self, player, task, mission):
 
+        player.status = Status.TO_MISSION
+        player.current_mission = mission
+        player.current_task = task
+        mission.players_allocated_to_the_mission.append(player)
+        travel_time = (self.f_calculate_distance(player, task) / 50) * 60
+        self.diary.append(PlayerArriveToEMissionEvent(time=self.tnow + travel_time, task=task, mission=mission,
+                                                      player=player))
+
+    def handle_abandonment_event(self, player, task, mission):
+        player.current_mission.players_allocated_to_the_mission.remove(player)
+        self.generate_player_arrives_to_mission_event(player=player, task=task, mission=mission)

@@ -16,7 +16,7 @@ from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
-from Simulation import MapHubs, TaskArrivalEvent, find_responsible_player, TaskSimple, AbilitySimple
+from Simulation import MapHubs, TaskArrivalEvent, find_and_allocate_responsible_player, TaskSimple, AbilitySimple
 from Allocation_Solver_Abstract import AllocationSolver
 import string
 
@@ -81,7 +81,7 @@ class SimulationStatic():
         self.solver = solver
 
         for task in self.tasks:
-            find_responsible_player(task=task, players=self.players)
+            find_and_allocate_responsible_player(task=task, players=self.players)
 
         for player in self.players:
             self.solver.add_player_to_solver(player)
