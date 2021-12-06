@@ -656,8 +656,8 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
-    fisher_solver_distribution_levels = [2] # 1 = semi distributed, 2 = one task distributed
-    util_structure_levels = [1] # 1-calculated rij, 2-random when importance determines, 3-random completely
+    fisher_solver_distribution_levels = [1,2] # 1 = semi distributed, 2 = one task distributed
+    util_structure_levels = [1,2,3] # 1-calculated rij, 2-random when importance determines, 3-random completely
 
     different_reps_market_bool = True
     same_protocol_reps_number = 100
