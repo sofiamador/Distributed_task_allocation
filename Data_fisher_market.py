@@ -107,11 +107,14 @@ def calculate_sum_R_X(agents_algorithm):
                 for mission in task_simulation.missions_list:
                     r_ijk_util = player.r_i[task_simulation][mission]
                     r_ijk = r_ijk_util.get_utility()
-                    x_ijk = task_algo.x_jk[mission][player.simulation_entity.id_]
-                    try:
-                        ri_xi += r_ijk * x_ijk
-                    except:
-                        pass
+                    if r_ijk!=0:
+                        x_ijk = task_algo.x_jk[mission][player.simulation_entity.id_]
+                        if x_ijk is None:
+                            pass
+                        else:
+                            ri_xi += r_ijk * x_ijk
+
+
             ri_xi_list.append(ri_xi)
     return sum(ri_xi_list)
 

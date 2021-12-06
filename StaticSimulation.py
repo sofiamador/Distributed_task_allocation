@@ -24,7 +24,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant = 1000000#100000
+termination_time_constant = 10000#100000
 map_width = None
 map_length = None
 data_jumps = None
@@ -141,7 +141,7 @@ class SimulationStatic():
     def set_tasks_neighbors(self):
         ids_ = []
         for player in self.players:
-            ids_.append(player.id_)
+            ids_.append(player)
         for task in self.tasks:
             task.create_neighbours_list(ids_)
 
