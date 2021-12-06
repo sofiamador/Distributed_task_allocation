@@ -1,7 +1,6 @@
 import enum
 import random
 import sys
-#from builtins import function
 from datetime import time
 
 global solver_debug
@@ -175,7 +174,7 @@ class PlayerSimple(Entity):
         self.location = location
         self.last_time_updated = tnow
 
-    def create_neighbours_list(self, players_list, f_are_neighbours):
+    def create_neighbours_list(self, players_list, f_are_neighbours = are_neighbours):
         """
         creates neighbours list of players
         :param players_list:
@@ -284,7 +283,7 @@ class TaskSimple(Entity):
             sum_ += m.mission_utility
         return sum_
 
-    def create_neighbours_list(self, players_list, f_is_player_can_be_allocated_to_mission=are_neighbours):
+    def create_neighbours_list(self, players_list, f_is_player_can_be_allocated_to_mission=is_player_can_be_allocated_to_task):
         """
         Creates 
         :param players_list:
@@ -520,9 +519,9 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
 
 
 class Simulation:
-    def __init__(self, name: str, players_list: list, solver, f_are_players_neighbours,
-                 f_is_player_can_be_allocated_to_mission,
-                 tasks_generator, f_calculate_distance=calculate_distance):
+    def __init__(self, name: str, players_list: list, solver, tasks_generator, f_are_players_neighbours = are_neighbours,
+                 f_is_player_can_be_allocated_to_mission = is_player_can_be_allocated_to_task,
+                 f_calculate_distance=calculate_distance):
         """
 
         :param name: The name of simulation
@@ -550,7 +549,7 @@ class Simulation:
 
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_mission
         self.tasks_generator = tasks_generator
-        self.f_calculate_distance = calculate_distance
+        self.f_calculate_distance = f_calculate_distance
         self.generate_new_task()
         self.new_allocation = None
 
