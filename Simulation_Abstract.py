@@ -480,7 +480,7 @@ class TaskArrivalEvent(SimulationEvent):
         :param task: The new task that arrives to simulation.
         :type: TaskSimple
         """
-        SimulationEvent.__init__(time=time, task=task)
+        SimulationEvent.__init__(self, time=time, task=task)
 
     def handle_event(self, simulation):
         find_and_allocate_responsible_player(task=self.task, players=simulation.players_list)

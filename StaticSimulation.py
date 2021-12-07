@@ -4,7 +4,7 @@ import random
 import matplotlib.pyplot as plt
 
 from Allocation_Solver_Abstract import Mailer
-from Allocation_Solver_Fisher import FisherAsynchronousSolver, FisherAsynchronousSolverFullDistributed
+from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, FisherAsynchronousSolver_TaskRandInit
 from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform, CommunicationProtocolDefault, \
     CommunicationProtocolDistanceBaseDelayPois, CommunicationProtocolMessageLossConstant, \
     CommunicationProtocolDistanceBaseMessageLoss, CommunicationProtocolDistanceBaseDelayPoisAndLoss, \
@@ -318,7 +318,7 @@ def create_data_communication(amount_of_lines):
 def create_fisher_solver(simulation_rep,communication_protocol,ro=1, fisher_solver_distribution_level = None,util_structure_level = None):
     if fisher_solver_distribution_level == 1:
 
-        return FisherAsynchronousSolver(
+        return FisherAsynchronousSolver_TasksTogether(
         f_termination_condition=f_termination_condition_constant_mailer_nclo,
         f_global_measurements=get_data_fisher(),
         f_communication_disturbance=communication_protocol.get_communication_disturbance,
@@ -327,7 +327,7 @@ def create_fisher_solver(simulation_rep,communication_protocol,ro=1, fisher_solv
         ro=ro,util_structure_level = util_structure_level,simulation_rep=simulation_rep)
 
     if fisher_solver_distribution_level == 2:
-        return FisherAsynchronousSolverFullDistributed(
+        return FisherAsynchronousSolver_TaskRandInit(
          f_termination_condition=f_termination_condition_constant_mailer_nclo,
          f_global_measurements=get_data_fisher(),
          f_communication_disturbance=communication_protocol.get_communication_disturbance,

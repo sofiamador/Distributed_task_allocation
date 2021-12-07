@@ -28,7 +28,6 @@ class SinglePlayerGeneratorTSG():
         self.rand = rand
         self.tnow = tnow
         self.is_static_simulation =is_static_simulation
-
         self.location = map_.generate_location_gauss_around_center()
         self.selected_ability = ability_number#self.get_selected_ability(ability_number)
         parameters_input = self.get_parameters_input_dict()
@@ -176,12 +175,12 @@ class TaskGeneratorTSG (TaskGenerator):
         """
         :rtype: TaskSimple
         """
-        location = self.map_.generate_location_gauss_around_center()
+        location = self.map.generate_location_gauss_around_center()
         damage_level = self.random.choice([1, 2, 3, 4, 5, 6])
         life_saving_potential = self.random.choice([1, 2, 3, 4, 5])
         parameters_input = get_parameters_input_dict()
         parameters_dict = create_event_params_data_map(parameters_input)
-        key, value = self.get_relevant_key_and_value(parameters_dict,damage_level,life_saving_potential)
+        key, value = get_relevant_key_and_value(parameters_dict,damage_level,life_saving_potential)
 
         random_task = TSGEvent(event_id=rand_id_str(self.random),
                                  event_type=2,

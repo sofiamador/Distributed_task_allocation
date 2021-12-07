@@ -1336,14 +1336,30 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
 def task_by_id(task_algo:TaskAlgorithm):
     return task_algo.simulation_entity.id_
 
-class AllocationSolverTasksPlayersFull(AllocationSolverTasksPlayersSemi):
+class AllocationSolverTasksPlayersFullRandTaskInit(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
         AllocationSolverTasksPlayersSemi.__init__(self,mailer, f_termination_condition, f_global_measurements,
                                              f_communication_disturbance)
 
-
-
     def agents_initialize(self):
         max_task = max(self.tasks_algorithm,key = task_by_id)
+        max_task.initiate_algorithm()
+
+
+def get_task_arrival_time(task_entity:TaskSimple):
+    return task_entity.arrival_time
+
+class AllocationSolverTasksPlayersFullLatestTaskInit(AllocationSolverTasksPlayersSemi):
+    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+                 f_communication_disturbance=default_communication_disturbance):
+        AllocationSolverTasksPlayersSemi.__init__(self,mailer, f_termination_condition, f_global_measurements,
+                                             f_communication_disturbance)
+
+    def agents_initialize(self):
+        task_entities = []
+        for task_algo in self.tasks_algorithm:
+            task_entities.append(task_algo.simulation_entity)
+
+        max_task = max(task_entities,key = get_task_arrival_time)
         max_task.initiate_algorithm()
