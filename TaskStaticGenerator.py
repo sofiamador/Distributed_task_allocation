@@ -1,7 +1,7 @@
 import string
 import random
 
-from Simulation import MapHubs, MissionSimple, TaskSimple, AbilitySimple, TaskGenerator
+from Simulation_Abstract import MapHubs, MissionSimple, TaskSimple, AbilitySimple, TaskGenerator
 # from StaticSimulation import TaskSimpleStatic, rand_id_str
 from TSG_Solver import TSGEvent, Status, TSGPlayer
 

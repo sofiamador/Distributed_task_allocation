@@ -2,7 +2,7 @@ import copy
 
 from Allocation_Solver_Abstract import AllocationSolverCentralized
 from Allocation_Solver_Fisher import Utility
-from Simulation import TaskSimple, PlayerSimple
+from Simulation_Abstract import TaskSimple, PlayerSimple
 
 
 class FisherCentralizedImplementation:

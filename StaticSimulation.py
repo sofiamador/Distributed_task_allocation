@@ -16,7 +16,7 @@ from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
-from Simulation import MapHubs, TaskArrivalEvent, find_and_allocate_responsible_player, TaskSimple, AbilitySimple
+from Simulation_Abstract import MapHubs, TaskArrivalEvent, find_and_allocate_responsible_player, TaskSimple, AbilitySimple
 from Allocation_Solver_Abstract import AllocationSolver
 import string
 

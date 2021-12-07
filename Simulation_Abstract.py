@@ -143,7 +143,7 @@ class PlayerSimple(Entity):
     """
 
     def __init__(self, id_, current_location, speed, status=Status.IDLE,
-                 abilities=None, tnow=0, base_location =  None):
+                 abilities=None, tnow=0, base_location=None):
         """
         :param id_: The id of the player
         :type  id_: str
@@ -230,6 +230,7 @@ class MissionSimple:
         self.initial_workload = initial_workload
         self.remaining_workload = initial_workload
         self.players_allocated_to_the_mission = []
+        self.players_handling_with_the_mission = []
         self.is_done = False
         self.arrival_time_to_the_system = arrival_time_to_the_system
         self.last_updated = arrival_time_to_the_system
@@ -288,6 +289,7 @@ class TaskSimple(Entity):
         self.player_responsible = None
         self.importance = importance
         self.arrival_time = arrival_time
+        self.done_missions = []
 
     def task_utility(self):
         """
@@ -316,6 +318,10 @@ class TaskSimple(Entity):
         for m in self.missions_list:
             m.update_workload()
 
+    def mission_finished(self, mission):
+        self.missions_list.remove(mission)
+        self.done_missions.append(mission)
+
 
 def amount_of_task_responsible(player):
     return len(player.tasks_responsible)
@@ -324,7 +330,10 @@ def amount_of_task_responsible(player):
 def find_and_allocate_responsible_player(task: TaskSimple, players):
     distances = []
     for player in players:
-        distances.append(calculate_distance(task, player))
+        for mission in task.missions_list:
+            for ability in mission.abilities:
+                if ability in player.abilities:
+                    distances.append(calculate_distance(task, player))
 
     min_distance = min(distances)
 
@@ -332,7 +341,10 @@ def find_and_allocate_responsible_player(task: TaskSimple, players):
 
     for player in players:
         if calculate_distance(task, player) == min_distance:
-            players_min_distances.append(player)
+            for mission in task.missions_list:
+                for ability in mission.abilities:
+                    if ability in player.abilities:
+                        players_min_distances.append(player)
 
     selected_player = min(players_min_distances, key=amount_of_task_responsible)
     selected_player.tasks_responsible.append(task)
@@ -496,7 +508,36 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         SimulationEvent.__init__(time=time, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
-        simulation.create_player_finish_handle_mission_event()
+        self.player.status = Status.ON_MISSION
+        self.player.location = self.task.location
+        self.mission.players_handling_with_the_mission.append(self.player)
+        simulation.generate_finish_handle_mission_event(mission=self.mission, player=self.player)
+
+
+class FinishHandleMissionEvent(SimulationEvent):
+    """
+    Class that represent an event of: player finishes to handle  with the mission.
+    """
+
+    def __init__(self, time, task, mission):
+        """
+        :param time:the time of the event
+        :type: float
+        :param player: The relevant player that arrives to the given mission on the given task.
+        :type: PlayerSimple
+        :param task: The relevant task that contain the given mission
+        :type: TaskSimple
+        :param mission: The mission that the player arrives to.
+        :type: MissionSimple
+        """
+        SimulationEvent.__init__(time=time, task=task, mission=mission)
+
+    def handle_event(self, simulation):
+        for p in self.mission.players_handling_with_the_mission:
+            p.current_mission = None
+        self.mission.is_done = True
+        self.task.mission_finished(self.mission)
+        simulation.solve()
 
 
 class PlayerFinishHandleMissionEvent(SimulationEvent):
@@ -549,11 +590,13 @@ class Simulation:
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_mission
         self.tasks_generator = tasks_generator
         self.f_calculate_distance = f_calculate_distance
-        self.generate_new_task()
+        self.generate_new_task_to_diary()
         self.new_allocation = None
+        self.tasks_list = []
 
     def run_simulation(self):
         while not self.diary:
+            self.diary = sorted(self.diary, key=lambda event: event.time)
             self.last_event = self.diary.pop(0)
             self.prev_time = self.tnow
             self.tnow = self.last_event.time
@@ -582,7 +625,7 @@ class Simulation:
                     self.generate_player_arrives_to_mission_event(player=player, task=missions[0], mission=missions[1])
 
             else:  # The player has a current allocation
-                if len(missions) == 0: # Player doesn't have a new allocation
+                if len(missions) == 0:  # Player doesn't have a new allocation
                     player.status = Status.IDLE
                     # TODO sent to the base
                 else:  # The player has a new allocation
@@ -605,6 +648,19 @@ class Simulation:
         self.diary.append(PlayerArriveToEMissionEvent(time=self.tnow + travel_time, task=task, mission=mission,
                                                       player=player))
 
-    def handle_abandonment_event(self, player, task, mission):
+    def handle_abandonment_event(self, player: PlayerSimple, task: TaskSimple, mission: MissionSimple):
         player.current_mission.players_allocated_to_the_mission.remove(player)
+        player.current_mission.players_handling_with_the_mission.remove(player)
         self.generate_player_arrives_to_mission_event(player=player, task=task, mission=mission)
+        self.generate_finish_handle_mission_event(mission=mission)
+
+    def generate_finish_handle_mission_event(self, mission: MissionSimple):
+        for ev in self.diary:
+            if type(ev) == FinishHandleMissionEvent and ev.mission.mission_id == mission.mission_id:
+                self.diary.remove(ev)
+        productivity_sum = 0
+        for p in mission.players_handling_with_the_mission:
+            productivity_sum += p.productivity
+        time_to_end_mission = mission.remaining_workload / productivity_sum
+        event = FinishHandleMissionEvent(mission=mission, time=self.tnow + time_to_end_mission)
+        self.diary.append(event)
