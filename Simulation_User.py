@@ -88,4 +88,3 @@ for simulation_number in simulations_range:
     name = str(simulation_number)
 
     simulation_created =  Simulation(name, players_list, solver, tasks_generator)
-    print(3)
