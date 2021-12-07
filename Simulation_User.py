@@ -16,9 +16,6 @@ for simulation_number in simulations_range:
     tasks_generator = TaskGeneratorTSG(map_, seed)
     solver = None
     players_list = None
-    name = None
-
-
-
+    name = str(simulation_number)
 
     simulation_created =  Simulation(name, players_list, solver, tasks_generator)
