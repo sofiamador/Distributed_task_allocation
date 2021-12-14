@@ -186,16 +186,10 @@ class TSGMission(MissionSimple):
         self.optimal_finish = self.initial_workload  # Update for each mission = 0
 
     # ##------------------------------Methods for strings and equal---------------------------------##
-    def __eq__(self, other):
-        #if type(other) is TSGMission:
-        #    return self.abilities.ability_type == other.agent_type and self.event_id == other.event_id
-        #return False
-        return self.mission_id.__hash__() == other.mission_id.__hash__()
-    def __hash__(self):
-        return self.mission_id.__hash__()
 
     def __str__(self):
-        return"Max agents: " + str(self.max_players)+", Ability: " + str(self.abilities[0].ability_type) #"Mission id: " + str(self.mission_id) + ", max agents: " + str(self.max_players)
+        return "Max agents: " + str(self.max_players) + ", Ability: " + str(self.abilities[
+                                                                                0].ability_type)  # "Mission id: " + str(self.mission_id) + ", max agents: " + str(self.max_players)
 
         # f"Event id:{self.event_id}, required workload:{self.required_workload}," \
         #   f" remaining workload:{self.remaining_workload}" \
@@ -326,13 +320,20 @@ class TSGMission(MissionSimple):
         optimal_threshold = self.initial_workload * self.damage_level_threshold  # Gets the required_workload and multiply by a agreed percentage.
         return optimal_threshold  # Store as threshold.
 
+    def workload_updating(self, delta):
+        productivity = 0
+        for p in self.players_allocated_to_the_mission:
+            productivity += p.productivity
+        self.remaining_workload -= delta * productivity
+
 
 class TSGEvent(TaskSimple):
-    def __init__(self, event_id, event_type, damage_level, life_saving_potential,importance,
-                 event_creation_time, point, workload, mission_params,event_update_time=None):
+    def __init__(self, event_id, event_type, damage_level, life_saving_potential, importance,
+                 event_creation_time, point, workload, mission_params, event_update_time=None):
 
         # ##------------------------Parameters received from TSG during simulation run-------------------------##
-        TaskSimple.__init__(self, id_=event_id, location=point, importance=importance, missions_list=[], arrival_time=event_creation_time)
+        TaskSimple.__init__(self, id_=event_id, location=point, importance=importance, missions_list=[],
+                            arrival_time=event_creation_time)
 
         self.initialRPM = 12
         self.event_type = event_type
@@ -375,10 +376,6 @@ class TSGEvent(TaskSimple):
         self.initial_ro_coefficient = penalty_team_ratio_weight
         self.ro_coefficient = self.initialize_ro_coefficient()
 
-
-    def __hash__(self):
-        return hash(self.id_)
-
     # Determine the threshold damage level according to the damage level.
     def set_damage_level_threshold(self):
         damage_level = self.damage_level
@@ -415,14 +412,9 @@ class TSGEvent(TaskSimple):
         self.initialRPM = initial_RPM
         # ##------------------------------Methods for equality, strings and prints---------------------------------##
 
-    def __eq__(self, other):
-        if isinstance(other,TSGEvent):
-            return self.id_ == other.id_
-        return False
-
     def __str__(self):
-        return self.id_#f"Event id:{self.id_}, creation time: {self.event_creation_time}, " \
-               #f"importance: {self.importance}, event location:{self.point}.\n"
+        return self.id_  # f"Event id:{self.id_}, creation time: {self.event_creation_time}, " \
+        # f"importance: {self.importance}, event location:{self.point}.\n"
 
     # ##------------------------------Getters--------------------------------------------------##
 
@@ -466,7 +458,6 @@ class TSGEvent(TaskSimple):
     # penalty for late arrival
     def calculate_penalty_for_late_arrival(self, time_of_first_arrival, update_late_arrival_indicator=True):
         penalty = 0
-
 
         if time_of_first_arrival <= self.optimal_time + self.event_creation_time:  # Case 1 - Time of first arrival < Optimal time
             penalty = self.calculate_according_to_phi_one(time_of_first_arrival=time_of_first_arrival,
@@ -555,15 +546,6 @@ class TSGPlayer(PlayerSimple):
 
     # ##------------------------Methods for change status--------------------------------------------##
 
-    def __eq__(self, other):
-        # if type(other) is TSGMission:
-        #    return self.abilities.ability_type == other.agent_type and self.event_id == other.event_id
-        # return False
-        return self.id_.__hash__() == other.id_.__hash__()
-
-    def __hash__(self):
-        return self.id_.__hash__()
-
     def check_if_agent_is_idle(self):
         if self.status is Status.IDLE:
             return 1
@@ -631,12 +613,6 @@ class TSGPlayer(PlayerSimple):
 
     def get_agent_type(self):
         return self.agent_type
-
-    def __eq__(self, other):
-
-        if isinstance(other,TSGPlayer):
-            return self.id_ == other.id_
-        return False
 
     def __str__(self):
         return str(self.id_)

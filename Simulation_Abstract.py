@@ -143,7 +143,7 @@ class PlayerSimple(Entity):
     """
 
     def __init__(self, id_, current_location, speed, status=Status.IDLE,
-                 abilities=None, tnow=0, base_location=None):
+                 abilities=None, tnow=0, base_location=None, productivity=1):
         """
         :param id_: The id of the player
         :type  id_: str
@@ -170,6 +170,7 @@ class PlayerSimple(Entity):
         self.tasks_responsible = []
         self.neighbours = []
         self.base_location = base_location
+        self.productivity = productivity
 
     def update_status(self, new_status: Status, tnow: float) -> None:
         """
@@ -262,7 +263,13 @@ class MissionSimple:
         self.last_updated = tnow
 
     def workload_updating(self, delta):
-        self.remaining_workload -= delta * len(self.players_allocated_to_the_mission)
+        self.remaining_workload -= delta * len(self.players_handling_with_the_mission)
+
+    def __hash__(self):
+        return hash(self.mission_id)
+
+    def __eq__(self, other):
+        return self.mission_id == other.mission_id
 
 
 class TaskSimple(Entity):
@@ -316,7 +323,7 @@ class TaskSimple(Entity):
 
     def update_workload_for_missions(self, tnow):
         for m in self.missions_list:
-            m.update_workload()
+            m.update_workload(tnow)
 
     def mission_finished(self, mission):
         self.missions_list.remove(mission)
@@ -564,7 +571,7 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
 
 class Simulation:
     def __init__(self, name: str, players_list: list, solver, tasks_generator, f_are_players_neighbours=are_neighbours,
-                 f_is_player_can_be_allocated_to_mission=is_player_can_be_allocated_to_task,
+                 f_is_player_can_be_allocated_to_task=is_player_can_be_allocated_to_task,
                  f_calculate_distance=calculate_distance):
         """
 
@@ -572,7 +579,7 @@ class Simulation:
         :param players_list: The list of the players(players) that are participate
         :param solver: The algorithm that solve the task allocation problem
         :param f_are_players_neighbours: functions that checks if the players are player
-        :param f_is_player_can_be_allocated_to_mission: The function checks if the player can be allocated to mission
+        :param f_is_player_can_be_allocated_to_task: The function checks if the player can be allocated to mission
         :param tasks_generator:
         :param f_calculate_distance: calculate the distance
         """
@@ -587,7 +594,7 @@ class Simulation:
         self.solver.add_players_list(players_list)
         self.f_are_players_neighbours = f_are_players_neighbours
 
-        self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_mission
+        self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_task
         self.tasks_generator = tasks_generator
         self.f_calculate_distance = f_calculate_distance
         self.generate_new_task_to_diary()
@@ -605,12 +612,11 @@ class Simulation:
 
     def solve(self):
 
-        self.new_allocation: dict = self.solver.solve(self.last_event)  # {player:[task,mission]}
+        self.new_allocation: dict = self.solver.solve(self.tnow)  # {player:[(task,mission,time)]}
         self.check_new_allocation()
 
     def generate_new_task_to_diary(self):
         task: TaskSimple = self.tasks_generator.get_task(self.tnow)
-        # TODO(@benrachmut): Please look at this.
         task.create_neighbours_list(players_list=self.players_list,
                                     f_is_player_can_be_allocated_to_mission=self.f_is_player_can_be_allocated_to_mission)
         event = TaskArrivalEvent(task=task, time=task.arrival_time)
