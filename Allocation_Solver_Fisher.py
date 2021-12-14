@@ -1,8 +1,10 @@
 import abc
+import copy
 import math
 import random
 from abc import ABC
 
+import Simulation_Abstract
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
     default_communication_disturbance, AllocationSolverTasksPlayersFullRandTaskInit, \
     AllocationSolverTasksPlayersFullLatestTaskInit
@@ -47,6 +49,11 @@ def calculate_distance(entity1: Entity, entity2: Entity):
         distance += (entity1.location[i] - entity2.location[i]) ** 2
     return distance ** 0.5
 
+class Allocation():
+    def __init__(self,task,mission,measure_):
+        self.task = task
+        self.mission = mission
+        self.measure_ = measure_
 
 class FisherPlayerASY(PlayerAlgorithm):
     def __init__(self,util_structure_level , agent_simulator, t_now, future_utility_function, is_with_timestamp,ro = 1):
@@ -55,6 +62,8 @@ class FisherPlayerASY(PlayerAlgorithm):
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
         self.bids = {}
         self.x_i = {}  # dict {key = task, value = dict{key= mission,value = allocation}}
+        self.x_i_norm = {}  # dict {key = task, value = dict{key= mission,value = allocation}}
+
         self.msgs_from_tasks = {}  # dict {key = task_id, value = last msg}
         self.calculate_bids_flag = False
         self.future_utility_function = future_utility_function
@@ -67,6 +76,7 @@ class FisherPlayerASY(PlayerAlgorithm):
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
         self.bids = {}
         self.x_i = {}  # dict {key = task, value = dict{key= mission,value = allocation}}
+        self.x_i_norm = {}
         self.msgs_from_tasks = {}  # dict {key = task_id, value = last msg}
         self.calculate_bids_flag = False
 
@@ -85,8 +95,10 @@ class FisherPlayerASY(PlayerAlgorithm):
 
     def set_single_task_in_x_i(self, task_log):
         self.x_i[task_log] = {}
+        self.x_i_norm[task_log] = {}
         for mission_log in task_log.missions_list:
             self.x_i[task_log][mission_log] = None
+            self.x_i_norm[task_log][mission_log] = None
 
     def set_initial_r_i(self):
         for task_in_log in self.tasks_log:
@@ -128,8 +140,6 @@ class FisherPlayerASY(PlayerAlgorithm):
 
 
         return util
-
-
 
     def set_initial_bids(self):
         sum_util = self.get_sum_util()
@@ -198,7 +208,8 @@ class FisherPlayerASY(PlayerAlgorithm):
         task_id = msg.sender
         self.msgs_from_tasks[task_id] = msg
 
-        dict_missions_xi = msg.information
+        dict_missions_xi = msg.information[0]
+        dict_missions_xi_norm = msg.information[1]
         task_simulation = msg.task_entity
         for mission, x_ij in dict_missions_xi.items():
             if x_ij is None:
@@ -208,8 +219,14 @@ class FisherPlayerASY(PlayerAlgorithm):
             else:
                 self.x_i[task_simulation][mission] = 0
 
-            if fisher_player_debug and self.simulation_entity.id_ == "QDPV68R5J2":
-                self.debug_print_received_xij(task_simulation, mission, x_ij)
+        for mission, x_ij_norm in dict_missions_xi_norm.items():
+            if x_ij_norm is None:
+                self.x_i_norm[task_simulation][mission] = x_ij_norm
+            elif x_ij_norm > 0.001:
+                self.x_i_norm[task_simulation][mission] = x_ij_norm
+            else:
+                self.x_i_norm[task_simulation][mission] = 0
+
 
     def debug_print_received_xij(self, task_simulation, mission, x_ij):
         print("RIJ = ", self.r_i[task_simulation][mission].linear_utility)
@@ -225,6 +242,19 @@ class FisherPlayerASY(PlayerAlgorithm):
         return self.calculate_bids_flag
 
     def compute(self):
+        self.compute_player_market()
+        self.compute_schedule()
+
+    def compute_schedule(self):
+
+        time_to_tasks = self.get_time_of_task()
+        bang_per_buck_dict = self.get_bang_per_buck_dict(time_to_tasks)  #task = {mission:bpb}
+        STOPPED HERE
+        #print(time_to_task.values())
+
+
+
+    def compute_player_market(self):
         sum_of_bids, sum_util_nones, w_none, w_not_none = self.calculate_sum_xij_rj()
         atomic_counter = 0
         for task, dict in self.x_i.items():
@@ -244,6 +274,7 @@ class FisherPlayerASY(PlayerAlgorithm):
                         self.bids[task][mission] = (r_ij_times_x_ij / sum_of_bids) * w_not_none
                 atomic_counter = atomic_counter + 1
         self.check_bids()
+
 
     def check_bids(self):
         bids_list = []
@@ -313,6 +344,33 @@ class FisherPlayerASY(PlayerAlgorithm):
     def set_receive_flag_to_false(self):
         self.calculate_bids_flag = False
 
+    def get_time_of_task(self):
+        ans = {}
+        for task in self.x_i_norm.keys():
+            distance_to_task = Simulation_Abstract.calculate_distance(self.simulation_entity, task)
+            arrival_time = distance_to_task / self.simulation_entity.speed
+            ans[task] = arrival_time
+        return ans
+
+    def get_bang_per_buck_dict(self, time_to_tasks):
+        bang_per_buck = {}
+        for task, dict_ in self.x_i_norm.items():
+            bang_per_buck[task] = {}
+            time_to_task = time_to_tasks[task]
+            for mission, allocation in dict_.items():
+                r_ijk = self.r_i[task][mission].get_utility(1)
+                x_ijk = allocation
+                numerator = r_ijk * x_ijk
+
+                remaining_workload = mission.remaining_workload
+                productivity = self.simulation_entity.productivity
+                time_at_mission = allocation * remaining_workload / productivity
+                denominator = time_to_task + time_at_mission
+
+                bang_per_buck[task][mission] = numerator / denominator
+        return bang_per_buck
+
+
 class FisherTaskASY(TaskAlgorithm):
     def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges = 2, Threshold = 0.001):
 
@@ -334,6 +392,8 @@ class FisherTaskASY(TaskAlgorithm):
         self.reset_bids()
 
         self.x_jk = {}
+        self.x_jk_normal = {}
+
         self.reset_x_jk()
 
         self.msgs_from_players = {}
@@ -370,10 +430,13 @@ class FisherTaskASY(TaskAlgorithm):
 
     def reset_x_jk(self):
         self.x_jk = {}
+        self.x_jk_normal = {}
         for mission in self.simulation_entity.missions_list:
             self.x_jk[mission] = {}
+            self.x_jk_normal[mission] = {}
             for n_id in self.potential_players_ids_list:
                 self.x_jk[mission][n_id] = None
+                self.x_jk_normal[mission][n_id] = None
 
     def reset_bids(self):
         self.bids = {}
@@ -436,11 +499,25 @@ class FisherTaskASY(TaskAlgorithm):
                     self.x_jk[mission][player_id] = bid / self.price_current[mission]
                 else:
                     self.x_jk[mission][player_id] = None
+
         self.check_if_x_jk_per_mission_is_one()
+        dict_non_zero_allocation = self.dict_non_zero_allocation()
+        for mission, dict_ in dict_non_zero_allocation.items():
+            if len(dict_) == 0:
+                pass
+            if mission.max_players == 1:
+                self.normalize_allocation_if_no_coop(dict_,mission)
+            else:
+                amount_of_allocated_agents = len(dict_non_zero_allocation[mission])
+                if amount_of_allocated_agents>mission.max_players:
+                    self.spread_allocation_to_max_amount(dict_non_zero_allocation[mission],mission.max_players,mission)
+                else:
+                    self.copy_current_xij_to_normalized(mission)
+            #print(self.x_jk_normal[mission])
         if flag:
             return True
         return False
-        #print(self.x_jk)
+
 
 
     def update_converges_conditions(self,mission):
@@ -456,7 +533,6 @@ class FisherTaskASY(TaskAlgorithm):
             ans[mission] = 0
         for mission in self.simulation_entity.missions_list:
             for player_id, bid in self.bids[mission].items():
-                self.atomic_counter = self.atomic_counter + 1
                 if self.bids[mission][player_id] is not None and self.price_current[mission] != 0:
                     ans[mission] = ans[mission]+ self.x_jk[mission][player_id]
                 else:
@@ -483,14 +559,18 @@ class FisherTaskASY(TaskAlgorithm):
     def get_list_of_msgs_to_send(self):
         ans = []
         for n_id in self.potential_players_ids_list:
-            info = {}
+            xij_market = {}
+            xij_normal= {}
             flag = False
             for mission in self.simulation_entity.missions_list:
                 x_ijk = self.x_jk[mission][n_id]
+                xij_normal_val = self.x_jk_normal[mission][n_id]
                 if x_ijk != 0:
                     flag = True
-                info[mission] = x_ijk
+                xij_market[mission] = x_ijk
+                xij_normal[mission] = xij_normal_val
 
+            info= [xij_market,xij_normal]
             if flag:
                 is_perfect_com = False
                 if self.simulation_entity.player_responsible.id_ == n_id:
@@ -547,6 +627,67 @@ class FisherTaskASY(TaskAlgorithm):
             if xjk == 1:
                 return True
         return False
+
+    def dict_non_zero_allocation(self):
+        ans = {}
+        for mission, dict in self.x_jk.items():
+            temp_ans = {}
+            for player_id, allocation in dict.items():
+                if allocation!=0 and allocation is not None:
+                    temp_ans[player_id] = allocation
+            ans[mission] = temp_ans
+
+        return ans
+
+    def normalize_allocation_if_no_coop(self,dict_,mission):
+        top_allocation_player_id =None
+        if len(dict_) != 0:
+            top_allocation_player_id = max(dict_, key=dict_.get)
+
+        if top_allocation_player_id is not None:
+            for player_id in self.x_jk_normal[mission].keys():
+                if player_id == top_allocation_player_id:
+                    self.x_jk_normal[mission][player_id] = 1
+                else:
+                    self.x_jk_normal[mission][player_id]  = 0
+        else:
+            for player_id in self.x_jk_normal[mission].keys():
+                    self.x_jk_normal[mission][player_id]  = 0
+
+
+    def copy_current_xij_to_normalized(self, mission):
+
+        for player_id in self.x_jk_normal[mission].keys():
+            if self.x_jk[mission][player_id] != 0 or self.x_jk[mission][player_id] is not None:
+                self.x_jk_normal[mission][player_id] = self.x_jk[mission][player_id]
+            else:
+                self.x_jk_normal[mission][player_id] = 0
+
+
+    def spread_allocation_to_max_amount(self, dict_,max_players,mission):
+        to_be_allocated = self.get_dict_of_allocated_players(dict_,max_players)
+        normalized_allocated_players = self.get_normalized_allocated_players(to_be_allocated)
+
+        for id_ in self.x_jk_normal[mission].keys():
+            if id_ in normalized_allocated_players.keys():
+                self.x_jk_normal[mission][id_] = normalized_allocated_players[id_]
+            else:
+                self.x_jk_normal[mission][id_] = 0
+
+    def get_dict_of_allocated_players(self,dict_,max_players):
+        to_be_allocated = copy.deepcopy(dict_)
+        while len(to_be_allocated) != max_players:
+            lowest_allocation_player_id = min(to_be_allocated, key=to_be_allocated.get)
+            del to_be_allocated[lowest_allocation_player_id]
+        return to_be_allocated
+
+    def get_normalized_allocated_players(self, to_be_allocated):
+        ans = {}
+        sum_of_values = sum(to_be_allocated.values())
+        for id_, non_norm_xijk in to_be_allocated.items():
+            ans[id_] = non_norm_xijk / sum_of_values
+        return ans
+
 
 class FisherPhaseTwoPlayerABS (PlayerAlgorithm,ABC):
     def __init__(self, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):

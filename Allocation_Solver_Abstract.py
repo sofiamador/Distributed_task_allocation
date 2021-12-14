@@ -827,6 +827,13 @@ class AgentAlgorithmTaskPlayers(AgentAlgorithm):
     def __init__(self, simulation_entity: Entity, t_now, is_with_timestamp=False):
         AgentAlgorithm.__init__(self, simulation_entity=simulation_entity, t_now=t_now,
                                 is_with_timestamp=is_with_timestamp)
+        self.ttt=simulation_entity
+
+    #def __eq__(self, other):
+        #return self.simulation_entity.id_ == other.simulation_entity.id_
+
+    #def __hash__(self):
+        #return 0#self.simulation_entity.id_.__hash__()
 
 
     def set_receive_flag_to_true_given_msg(self, msg:Msg):

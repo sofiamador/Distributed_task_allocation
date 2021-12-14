@@ -152,8 +152,11 @@ def calculate_rij_tsg(player_entity :TSGPlayer, mission_entity:TSGMission, task_
 
     abandonment_penalty = w_late_penalty * late_penalty + w_interruption_penalty * interruption_penalty
 
-    ans = max_util * late_arrival_indicator * distance_penalty * productivity * shift_time_ratio + (
-            w_ratio_penalty * ratio_utility) - abandonment_penalty
+
+    #ans = max_util * late_arrival_indicator * distance_penalty * productivity * shift_time_ratio + (
+    #        w_ratio_penalty * ratio_utility) - abandonment_penalty
+
+    ans = max_util * late_arrival_indicator * distance_penalty * productivity  - abandonment_penalty
 
     if ans < 10:
         ans = 10

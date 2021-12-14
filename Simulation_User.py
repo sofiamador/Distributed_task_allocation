@@ -23,7 +23,7 @@ def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
         return False
     return True
 
-def create_fisher_solver(communication_protocol,ro=1, fisher_solver_distribution_level = solver_selection,
+def create_fisher_solver(communication_protocol,ro=0.9, fisher_solver_distribution_level = solver_selection,
                          util_structure_level = util_structure_levels):
 
     if fisher_solver_distribution_level == 1:
