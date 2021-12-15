@@ -909,7 +909,7 @@ class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
                 self.add_neighbour_id(msg.task_entity.id_)
             else:
                 for task_in_log in self.tasks_log:
-                    if task_in_log.id_==msg.task_entity:
+                    if task_in_log==msg.task_entity:
                         if task_in_log.last_time_updated<msg.task_entity.last_time_updated:
                             self.tasks_log.remove(task_in_log)
                             self.tasks_log.append(msg.task_entity)

@@ -56,7 +56,7 @@ class Entity:
         return hash(self.id_)
 
     def __eq__(self, other):
-        return self.id_ == other.id
+        return self.id_ == other.id_
 
 
 def calculate_distance(entity1: Entity, entity2: Entity):
