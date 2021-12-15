@@ -53,11 +53,14 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     return distance ** 0.5
 
 
-class Allocation():
-    def __init__(self, task, mission, measure_):
+class AllocationData():
+    def __init__(self, task, mission,player_id, measure_):
         self.task = task
         self.mission = mission
-        self.measure_ = measure_
+        self.player_id = player_id
+        self.measure_ = measure_ #bpb
+        self.time_player_arrives = None
+        self.max_time_received = None
 
 
 class FisherPlayerASY(PlayerAlgorithm, ABC):
@@ -86,6 +89,11 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
         self.set_initial_bids()
         self.set_initial_x_i()
         self.set_msgs()
+        self.more_reset_additional_fields()
+
+    @abc.abstractmethod
+    def more_reset_additional_fields(self):
+        raise NotImplementedError
 
     def set_msgs(self):
         for task_log in self.tasks_log:
@@ -362,6 +370,13 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         FisherPlayerASY.__init__(self,util_structure_level = util_structure_level, agent_simulator=agent_simulator,
                                  t_now=t_now, future_utility_function=future_utility_function,
                                  is_with_timestamp=is_with_timestamp, ro=ro)
+        self.allocations_data = []
+
+
+
+
+    def more_reset_additional_fields(self):
+        self.allocations_data = []
 
     def update_more_information_index_2_and_above(self, task_simulation, msg):
         pass #TODO
@@ -369,7 +384,18 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
     #TODO
     def compute_schedule(self):
         time_to_tasks = self.get_time_of_task()
-        #bang_per_buck_dict = self.get_bang_per_buck_dict(time_to_tasks)  # task = {mission:bpb}
+        bang_per_buck_dict = self.get_bang_per_buck_dict(time_to_tasks)  # task = {mission:bpb}
+        self.insert_bpb_dict_to_allocation_data(bang_per_buck_dict)
+        sorted(self.allocations_data,key= ) STOPPED HERE
+    def insert_bpb_dict_to_allocation_data(self, bang_per_buck_dict):
+        for task,dict_ in bang_per_buck_dict.items():
+            for mission, bpb_measure in dict_.items():
+                current_allocation_data_in_memory = self.get_allocation_data(task, mission)
+                if current_allocation_data_in_memory is None :
+                    self.allocations_data.append(AllocationData(task =task, mission = mission,player_id=self.simulation_entity.id_, measure_=bpb_measure))
+                else:
+                    current_allocation_data_in_memory.measure_ = bpb_measure
+
 
     def get_time_of_task(self):
         ans = {}
@@ -385,21 +411,28 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
             bang_per_buck[task] = {}
             time_to_task = time_to_tasks[task]
             for mission, allocation in dict_.items():
+
                 r_ijk = self.r_i[task][mission].get_utility(1)
                 x_ijk = allocation
-                numerator = r_ijk * x_ijk
 
-                remaining_workload = mission.remaining_workload
-                productivity = self.simulation_entity.productivity
-                time_at_mission = allocation * remaining_workload / productivity
-                denominator = time_to_task + time_at_mission
+                if x_ijk is None:
+                    bang_per_buck[task][mission] = 0
+                else:
+                    numerator = r_ijk * x_ijk
 
-                bang_per_buck[task][mission] = numerator / denominator
+                    remaining_workload = mission.remaining_workload
+                    productivity = self.simulation_entity.productivity
+                    time_at_mission = allocation * remaining_workload / productivity
+                    denominator = time_to_task + time_at_mission
+                    bang_per_buck[task][mission] = numerator / denominator
         return bang_per_buck
 
 
     def list_of_info_to_send_beside_bids(self, task:TaskSimple) -> []:
         pass  #TODO
+
+
+
 
 class FisherTaskASY(TaskAlgorithm):
     def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges=2, Threshold=0.001):
@@ -443,6 +476,12 @@ class FisherTaskASY(TaskAlgorithm):
             self.price_current[mission] = 0
             self.price_delta[mission] = 9999999
             self.counter_of_converges_dict[mission] = self.counter_of_converges
+        self.more_reset_additional_fields()
+
+    @abc.abstractmethod
+    def more_reset_additional_fields(self):
+        raise NotImplementedError
+
 
     def reset_msgs_from_players(self):
         self.msgs_from_players = {}
@@ -772,6 +811,10 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
             self.price_delta[mission] = 9999999
             self.counter_of_converges_dict[mission] = self.counter_of_converges
         FisherTaskASY.__init__(self, agent_simulator=agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp, counter_of_converges=2, Threshold=0.001)
+
+
+    def more_reset_additional_fields(self):
+        pass  # TODO
 
     def update_more_information_index_1_and_above(self, player_id, msg):
         pass  # TODO

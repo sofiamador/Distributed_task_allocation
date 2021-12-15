@@ -71,8 +71,17 @@ class SinglePlayerGeneratorTSG():
             status = Status.IDLE
             start_activity_time =t_now- self.rand.random()*force_data_dict[type_]["max_activity_time"]
             start_resting_time = None
-            productivity = 1-(t_now-start_activity_time)/force_data_dict[type_]["max_activity_time"]
-            if not 0<productivity<1:
+
+            a = 0.6
+            b = 1
+            x_min = 0
+            x_max = 1
+
+            x = 1-(t_now-start_activity_time)/force_data_dict[type_]["max_activity_time"]
+            x_tag =a+ (((x-x_min)*(b-a))/(x_max-x_min))
+            productivity = x_tag
+
+            if not a<=productivity<=b:
                 raise Exception("something in the calc went wrong")
 
         return TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
@@ -84,8 +93,6 @@ class SinglePlayerGeneratorTSG():
                       competence_length=force_data_dict[type_]["competence_length"], status=status,
                       is_working_extra_hours=is_working_extra_hours, address=address,productivity=productivity
                          )
-
-
 
 
     def get_selected_ability(self,ability_number):
