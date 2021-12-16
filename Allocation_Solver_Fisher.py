@@ -54,13 +54,14 @@ def calculate_distance(entity1: Entity, entity2: Entity):
 
 
 class AllocationData():
-    def __init__(self, task, mission,player_id, measure_):
+    def __init__(self, task, mission,player_id, measure_,norm_xjk):
         self.task = task
         self.mission = mission
         self.player_id = player_id
         self.measure_ = measure_ #bpb
         self.time_player_arrives = None
         self.max_time_received = None
+        self.norm_xjk = norm_xjk
 
 
 class FisherPlayerASY(PlayerAlgorithm, ABC):
@@ -400,7 +401,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
                 break
 
         self.measure_arrival_time()
-
+        print(3)
 
 
     def insert_bpb_dict_to_allocation_data(self, bang_per_buck_dict):
@@ -409,7 +410,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
                 current_allocation_data_in_memory = self.get_allocation_data(task, mission)
                 if current_allocation_data_in_memory is None :
                     allo_temp = AllocationData(task=task, mission=mission, player_id=self.simulation_entity.id_,
-                                               measure_=bpb_measure)
+                                               measure_=bpb_measure,norm_xjk=self.x_i_norm[task][mission])
                     self.allocations_data.append(allo_temp)
 
                     if allo_temp.task not in self.allocation_data_dict.keys() :
@@ -418,7 +419,8 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
 
                 else:
                     current_allocation_data_in_memory.measure_ = bpb_measure
-                    current_allocation_data_in_memory.time_player_arrive = None
+                    current_allocation_data_in_memory.norm_xjk = self.x_i_norm[task][mission]
+                    current_allocation_data_in_memory.time_player_arrives = None
 
     def get_allocation_data(self, task, mission):
         for allo in self.allocations_data:
@@ -465,15 +467,30 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         pass  #TODO
 
     def measure_arrival_time(self):
-        current_locations = self.simulation_entity.location
+        current_time = 0
+        player_speed = self.simulation_entity.speed
+        current_location = self.simulation_entity.location
         for allocation in self.allocations_data:
+            location_task = allocation.task.location
             if allocation.measure_ == 0:
                 return
             else:
-                distance = Simulation_Abstract.calculate_distance(allocation.task,self.simulation_entity)
-                allocation distance/self.simulation_entity.speed
+                distance_to_task = Simulation_Abstract.calculate_distance_input_location(location_task,current_location)
+                absolute_time_to_task = distance_to_task/player_speed
 
+                ####---------
+                time_player_arrives = current_time+ absolute_time_to_task
+                allocation.time_player_arrives = time_player_arrives
 
+                ###----------
+                current_time = self.update_current_time(allocation,current_time,absolute_time_to_task)
+                current_location = location_task
+
+    def update_current_time(self,allocation,current_time,absolute_time_to_task):
+        remaining_workload = allocation.mission.remaining_workload
+        productivity = self.simulation_entity.productivity
+        time_at_mission = allocation.norm_xjk * remaining_workload / productivity
+        return current_time + absolute_time_to_task + time_at_mission
 
 
 class FisherTaskASY(TaskAlgorithm):
