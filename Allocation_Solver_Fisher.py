@@ -364,6 +364,8 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
     def set_receive_flag_to_false(self):
         self.calculate_bids_flag = False
 
+def get_allocation_measure(allo:AllocationData):
+    return allo.measure_
 
 class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
     def __init__(self, util_structure_level, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):
@@ -381,12 +383,23 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
     def update_more_information_index_2_and_above(self, task_simulation, msg):
         pass #TODO
 
+
     #TODO
     def compute_schedule(self):
         time_to_tasks = self.get_time_of_task()
         bang_per_buck_dict = self.get_bang_per_buck_dict(time_to_tasks)  # task = {mission:bpb}
         self.insert_bpb_dict_to_allocation_data(bang_per_buck_dict)
-        sorted(self.allocations_data,key= ) STOPPED HERE
+
+        counter = 0
+        #for allo in self.allocations_data:
+        #    if allo.measure_>0:
+        #        counter+=1
+
+
+
+        sorted(self.allocations_data, key= get_allocation_measure)
+
+
     def insert_bpb_dict_to_allocation_data(self, bang_per_buck_dict):
         for task,dict_ in bang_per_buck_dict.items():
             for mission, bpb_measure in dict_.items():
@@ -395,6 +408,14 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
                     self.allocations_data.append(AllocationData(task =task, mission = mission,player_id=self.simulation_entity.id_, measure_=bpb_measure))
                 else:
                     current_allocation_data_in_memory.measure_ = bpb_measure
+
+    def get_allocation_data(self, task, mission):
+        for allo in self.allocations_data:
+            first_cond = allo.task.id_ == task.id_
+            second_cond = allo.mission.mission_id = mission.mission_id
+            if first_cond and second_cond:
+                return allo
+        return None
 
 
     def get_time_of_task(self):
@@ -594,9 +615,13 @@ class FisherTaskASY(TaskAlgorithm):
 
     def check_converges_market(self):
         for mission in self.simulation_entity.missions_list:
-            self.price_delta[mission] = math.fabs(self.price_t_minus[mission] - self.price_current[mission])
-            if self.price_delta[mission] != 0:
-                self.update_converges_conditions(mission)
+
+                current_price = self.price_current[mission]
+                t_minus_price = self.price_t_minus[mission]
+                self.price_delta[mission] = math.fabs(t_minus_price - current_price)
+                if self.price_delta[mission] != 0:
+                    self.update_converges_conditions(mission)
+
 
 
     def update_converges_conditions(self, mission):
