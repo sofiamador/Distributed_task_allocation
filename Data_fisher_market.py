@@ -108,10 +108,7 @@ def calculate_sum_R_X(agents_algorithm):
                     r_ijk_util = player.r_i[task_simulation][mission]
                     r_ijk = r_ijk_util.get_utility()
                     if r_ijk!=0:
-                        try:
-                            x_ijk = task_algo.x_jk[mission][player.simulation_entity.id_]
-                        except:
-                            print(3)
+                        x_ijk = task_algo.x_jk[mission][player.simulation_entity.id_]
                         if x_ijk is None:
                             pass
                         else:

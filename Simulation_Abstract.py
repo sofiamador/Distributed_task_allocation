@@ -69,10 +69,30 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     :return: Euclidean distance between two entities
     :rtype: float
     """
+    location1 = entity1.location
+    location2 = entity2.location
     distance = 0
-    n = min(len(entity1.location), len(entity2.location))
+    n = min(location1, location2)
     for i in range(n):
-        distance += (entity1.location[i] - entity2.location[i]) ** 2
+        distance += (location1[i] - location2[i]) ** 2
+
+    return distance ** 0.5
+
+def calculate_distance_input_location(location1, location2):
+    """
+    Calculates the distance between two entities. Each entity must have a location property.
+    :param entity1:first entity
+    :type entity1: Entity
+    :param entity2:second entity
+    :type entity1: Entity
+    :return: Euclidean distance between two entities
+    :rtype: float
+    """
+
+    distance = 0
+    n = min(location1, location2)
+    for i in range(n):
+        distance += (location1[i] - location2[i]) ** 2
 
     return distance ** 0.5
 

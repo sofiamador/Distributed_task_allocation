@@ -662,7 +662,7 @@ if __name__ == '__main__':
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
-    simulation_reps = range(1)
+    simulation_reps = range(5)
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
