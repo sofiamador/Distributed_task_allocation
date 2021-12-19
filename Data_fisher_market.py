@@ -304,8 +304,31 @@ def calculate_price_single_player_view(agents_algorithm):
                 ans += pa.bids[task_algorithm.simulation_entity][mission]
     return ans
 
+###--- bpb---
+def calc_sum_sum_bpb(agents_algorithm):
+    players = get_specified_type_agent(agents_algorithm, PlayerAlgorithm)
+    ans = 0
+    for player in players:
+        list_of_allocations = player.allocations_data
+        for allocation in list_of_allocations:
+            if allocation.measure_ is not None:
+                ans+=allocation.measure_
+    return ans
 
-
+def calc_sum_max_bpb(agents_algorithm):
+    players = get_specified_type_agent(agents_algorithm, PlayerAlgorithm)
+    ans = []
+    for player in players:
+        list_of_allocations = player.allocations_data
+        temp_list = []
+        for allocation in list_of_allocations:
+            if allocation.measure_ is not None:
+                temp_list.append(allocation.measure_)
+        if len(temp_list)==0:
+            ans.append(0)
+        else:
+            ans.append(max(temp_list))
+    return sum(ans)
 
 def get_data_fisher():
     ans = {}
@@ -332,6 +355,10 @@ def get_data_fisher():
 
     ans["Price_Single_Mission"] = calculate_price_single_task_view
     ans["Price_Single_Mission_Players_View"] = calculate_price_single_player_view
+
+    # ---bpb
+    ans["Sum BPB"] = calc_sum_sum_bpb
+    ans["Max BPB"] = calc_sum_max_bpb
 
     return ans
 

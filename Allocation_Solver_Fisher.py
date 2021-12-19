@@ -19,7 +19,7 @@ simulation_rep_received = 0
 
 class Utility:
     def __init__(self, player_entity, mission_entity, task_entity, t_now, future_utility_function,
-                 ro=1, util=-1):
+                 ro=0.9, util=-1):
         self.player_entity = player_entity
         self.mission_entity = mission_entity
         self.task_entity = task_entity
@@ -65,7 +65,7 @@ class AllocationData():
 
 
 class FisherPlayerASY(PlayerAlgorithm, ABC):
-    def __init__(self, util_structure_level, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):
+    def __init__(self, util_structure_level, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=0.9):
         PlayerAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
         self.ro = ro
         self.r_i = {}  # dict {key = task, value = dict{key= mission,value = utility}}
@@ -369,7 +369,7 @@ def get_allocation_measure(allo:AllocationData):
     return allo.measure_
 
 class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
-    def __init__(self, util_structure_level, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=1):
+    def __init__(self, util_structure_level, agent_simulator, t_now, future_utility_function, is_with_timestamp, ro=0.9):
         FisherPlayerASY.__init__(self,util_structure_level = util_structure_level, agent_simulator=agent_simulator,
                                  t_now=t_now, future_utility_function=future_utility_function,
                                  is_with_timestamp=is_with_timestamp, ro=ro)
@@ -402,16 +402,20 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         self.insert_bpb_dict_to_allocation_data(bang_per_buck_dict)
         self.allocations_data = sorted(self.allocations_data, key= get_allocation_measure, reverse=True)
         self.measure_arrival_time()
-        allocation_list = self.exam_switch()
+        only_allocated_missions = self.get_only_allocated_missions()
+        allocation_list = self.exam_switch(only_allocated_missions)
+        self.update_schedule_for_simulation_player(allocation_list)
 
+    def update_schedule_for_simulation_player(self, allocation_list):
+        self.simulation_entity.schedule = []  # [(task,mission,time)]
+        for allo in allocation_list:
+            task = allo.task
+            mission = allo.mission
+            time_ = allo.norm_xjk * self.simulation_entity.productivity
+            tuple_ = (task, mission, time_)
+            self.simulation_entity.schedule.append(tuple_)  # [(task,mission,time)]
 
-
-    def exam_switch(self):
-        only_allo_missions = []
-        for allo in self.allocations_data:
-            if allo.measure_>0:
-                only_allo_missions.append(allo)
-        only_allo_missions = sorted(only_allo_missions, key= get_allocation_measure, reverse=True)
+    def exam_switch(self,only_allo_missions):
 
 
         if len(only_allo_missions)>0:
@@ -419,12 +423,13 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
 
             max_time_received = top_measure_allocation.max_time_received
 
-            for i in range(1,len(only_allo_missions)):
-                other_mission_allocation = only_allo_missions[i]
-                time_it_will_take = self.get_time_it_takes_to_go_to_other_mission(top_measure_allocation,other_mission_allocation)
-                if max_time_received>time_it_will_take:
-                    only_allo_missions[0], only_allo_missions[i] = only_allo_missions[i], only_allo_missions[0]
-                    break
+            if max_time_received is not None:
+                for i in range(1,len(only_allo_missions)):
+                    other_mission_allocation = only_allo_missions[i]
+                    time_it_will_take = self.get_time_it_takes_to_go_to_other_mission(top_measure_allocation,other_mission_allocation)
+                    if max_time_received>time_it_will_take:
+                        only_allo_missions[0], only_allo_missions[i] = only_allo_missions[i], only_allo_missions[0]
+                        break
         return only_allo_missions
 
 
@@ -433,7 +438,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         player_speed = self.simulation_entity.speed
         top_measure_task_location = top_measure_allocation.task.location
 
-        location_task = other_mission_allocation.location
+        location_task = other_mission_allocation.task.location
 
         ####---------travel time from current location
         distance_to_task = Simulation_Abstract.calculate_distance_input_location(location_task, current_location)
@@ -546,6 +551,15 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         productivity = self.simulation_entity.productivity
         time_at_mission = allocation.norm_xjk * remaining_workload / productivity
         return current_time + absolute_time_to_task + time_at_mission
+
+    def get_only_allocated_missions(self):
+        only_allo_missions = []
+        for allo in self.allocations_data:
+            if allo.measure_ > 0:
+                only_allo_missions.append(allo)
+        only_allo_missions = sorted(only_allo_missions, key=get_allocation_measure, reverse=True)
+        return only_allo_missions
+
 
 
 
@@ -986,7 +1000,7 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
 class FisherAsynchronousSolver_TasksTogether(AllocationSolverTasksPlayersSemi):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
-                 is_with_timestamp=True, ro=1, simulation_rep=0):
+                 is_with_timestamp=True, ro=0.9, simulation_rep=0):
         AllocationSolverTasksPlayersSemi.__init__(self, mailer, f_termination_condition, f_global_measurements,
                                                   f_communication_disturbance)
         simulation_rep_received = simulation_rep
@@ -1008,7 +1022,7 @@ class FisherAsynchronousSolver_TasksTogether(AllocationSolverTasksPlayersSemi):
 class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRandTaskInit):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
-                 is_with_timestamp=True, ro=1, simulation_rep=0):
+                 is_with_timestamp=True, ro=0.9, simulation_rep=0):
         AllocationSolverTasksPlayersFullRandTaskInit.__init__(self, mailer, f_termination_condition,
                                                               f_global_measurements,
                                                               f_communication_disturbance)
@@ -1031,7 +1045,7 @@ class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRand
 class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayersFullRandTaskInit):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
-                 is_with_timestamp=True, ro=1, simulation_rep=0):
+                 is_with_timestamp=True, ro=0.9, simulation_rep=0):
         AllocationSolverTasksPlayersFullLatestTaskInit.__init__(self, mailer, f_termination_condition,
                                                                 f_global_measurements,
                                                                 f_communication_disturbance)

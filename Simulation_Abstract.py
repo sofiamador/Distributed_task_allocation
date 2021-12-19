@@ -619,8 +619,8 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
         if len(self.player.schedule)==0:
             simulation.generate_agent_finish_handle_mission_event()
         if self.mission.is_done:
-
-        simulation.solve()
+            pass
+        #simulation.solve()
 
 
 class Simulation:
