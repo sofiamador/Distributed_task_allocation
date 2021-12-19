@@ -54,13 +54,13 @@ def calculate_distance(entity1: Entity, entity2: Entity):
 
 
 class AllocationData():
-    def __init__(self, task, mission,player_id, measure_,norm_xjk):
+    def __init__(self, task, mission,player_id, measure_=None,norm_xjk=None, time_player_arrives = None, max_time_received = None):
         self.task = task
         self.mission = mission
         self.player_id = player_id
         self.measure_ = measure_ #bpb
-        self.time_player_arrives = None
-        self.max_time_received = None
+        self.time_player_arrives = time_player_arrives
+        self.max_time_received = max_time_received
         self.norm_xjk = norm_xjk
 
 
@@ -383,25 +383,75 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         self.allocation_data_dict = {}
 
     def update_more_information_index_2_and_above(self, task_simulation, msg):
-        pass #TODO
+        max_time_dict = msg.information[2]
+        if task_simulation not in self.allocation_data_dict:
+            self.allocation_data_dict[task_simulation] = {}
+            for mission in task_simulation.missions_list:
+                self.allocation_data_dict[task_simulation][mission] = AllocationData(task=task_simulation,
+                                                                                     mission=mission,
+                                                                                     player_id=self.simulation_entity.id_,
+                                                                                       )
+        allos_of_task = self.allocation_data_dict[task_simulation]
+        for mission, max_time in max_time_dict.items():
+            allos_of_task[mission].max_time_received = max_time
 
 
-    #TODO
     def compute_schedule(self):
         time_to_tasks = self.get_time_of_task()
         bang_per_buck_dict = self.get_bang_per_buck_dict(time_to_tasks)  # task = {mission:bpb}
         self.insert_bpb_dict_to_allocation_data(bang_per_buck_dict)
         self.allocations_data = sorted(self.allocations_data, key= get_allocation_measure, reverse=True)
-        counter = 0
-
-        for allocation in self.allocations_data:
-            if allocation.measure_>0:
-                counter = counter+1
-            if allocation.measure_ == 0:
-                break
-
         self.measure_arrival_time()
-        print(3)
+        allocation_list = self.exam_switch()
+
+
+
+    def exam_switch(self):
+        only_allo_missions = []
+        for allo in self.allocations_data:
+            if allo.measure_>0:
+                only_allo_missions.append(allo)
+        only_allo_missions = sorted(only_allo_missions, key= get_allocation_measure, reverse=True)
+
+
+        if len(only_allo_missions)>0:
+            top_measure_allocation = only_allo_missions[0]
+
+            max_time_received = top_measure_allocation.max_time_received
+
+            for i in range(1,len(only_allo_missions)):
+                other_mission_allocation = only_allo_missions[i]
+                time_it_will_take = self.get_time_it_takes_to_go_to_other_mission(top_measure_allocation,other_mission_allocation)
+                if max_time_received>time_it_will_take:
+                    only_allo_missions[0], only_allo_missions[i] = only_allo_missions[i], only_allo_missions[0]
+                    break
+        return only_allo_missions
+
+
+    def get_time_it_takes_to_go_to_other_mission(self,top_measure_allocation,other_mission_allocation):
+        current_location = self.simulation_entity.location
+        player_speed = self.simulation_entity.speed
+        top_measure_task_location = top_measure_allocation.task.location
+
+        location_task = other_mission_allocation.location
+
+        ####---------travel time from current location
+        distance_to_task = Simulation_Abstract.calculate_distance_input_location(location_task, current_location)
+        absolute_time_to_task = distance_to_task / player_speed
+        time_player_arrives = absolute_time_to_task
+
+        ###----------workload time
+        remaining_workload = other_mission_allocation.mission.remaining_workload
+        productivity = self.simulation_entity.productivity
+        time_at_mission = other_mission_allocation.norm_xjk * remaining_workload / productivity
+
+        ###----------travel time to top location
+        distance_from_other_task_to_top = Simulation_Abstract.calculate_distance_input_location(location_task,
+                                                                                                top_measure_task_location)
+        absolute_time_to_task_from_other_task_to_top = distance_from_other_task_to_top / player_speed
+
+        ###----------
+        return time_player_arrives + time_at_mission + absolute_time_to_task_from_other_task_to_top
 
 
     def insert_bpb_dict_to_allocation_data(self, bang_per_buck_dict):
@@ -464,7 +514,12 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
 
 
     def list_of_info_to_send_beside_bids(self, task:TaskSimple) -> []:
-        pass  #TODO
+        dict_= self.allocation_data_dict[task]
+        ans = {}
+        for mission,allo in dict_.items():
+            ans[mission]=allo.time_player_arrives
+
+        return [ans]
 
     def measure_arrival_time(self):
         current_time = 0
@@ -473,7 +528,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         for allocation in self.allocations_data:
             location_task = allocation.task.location
             if allocation.measure_ == 0:
-                return
+                allocation.time_player_arrives = None
             else:
                 distance_to_task = Simulation_Abstract.calculate_distance_input_location(location_task,current_location)
                 absolute_time_to_task = distance_to_task/player_speed
@@ -491,6 +546,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         productivity = self.simulation_entity.productivity
         time_at_mission = allocation.norm_xjk * remaining_workload / productivity
         return current_time + absolute_time_to_task + time_at_mission
+
 
 
 class FisherTaskASY(TaskAlgorithm):
@@ -873,18 +929,59 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
             self.price_delta[mission] = 9999999
             self.counter_of_converges_dict[mission] = self.counter_of_converges
         FisherTaskASY.__init__(self, agent_simulator=agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp, counter_of_converges=2, Threshold=0.001)
+        self.max_time_per_mission = {}
+        self.player_greedy_arrive_dict = {}
+        self.reset_mission_per_allocation_list()
+
+    def reset_mission_per_allocation_list(self):
+        for mission in self.simulation_entity.missions_list:
+            self.player_greedy_arrive_dict[mission] ={}
+            self.max_time_per_mission[mission] = None
 
     def more_reset_additional_fields(self):
-        pass  # TODO
+        self.reset_mission_per_allocation_list()
+
 
     def update_more_information_index_1_and_above(self, player_id, msg):
-        pass  # TODO
+        allocations_dict = msg.information[1]
+        player_id_sender = msg.sender
+        for mission,time_arrive in allocations_dict.items():
+            self.player_greedy_arrive_dict[mission][player_id_sender] = time_arrive
+
+
 
     def compute_schedule(self):
-        pass # TODO
+        self.compute_max_time_per_mission()
+
+    def compute_max_time_per_mission(self):
+        for mission in self.simulation_entity.missions_list:
+            arrives_per_mission = []
+            arrive_time_dict = self.player_greedy_arrive_dict[mission]
+            for time_ in arrive_time_dict.values():
+                if time_ is not None:
+                    arrives_per_mission.append(time_)
+            if len(arrives_per_mission) == 0:
+                self.max_time_per_mission[mission] = None
+            else:
+                self.max_time_per_mission[mission] = max(arrives_per_mission)
+
+
+
+
 
     def list_of_info_to_send_beside_allocation(self,player_id:str) -> []:
-        pass  # TODO
+        return [self.max_time_per_mission]
+
+
+
+# self.task = task
+# self.mission = mission
+# self.player_id = player_id
+# self.measure_ = measure_  # bpb
+# self.time_player_arrives = None
+# self.max_time_received = None
+# self.norm_xjk = norm_xjk
+
 
 class FisherAsynchronousSolver_TasksTogether(AllocationSolverTasksPlayersSemi):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
