@@ -28,8 +28,6 @@ class Entity:
         :type  id_: str
         :param location: The location of the entity. A list of of coordination.
         :type location: list of floats
-        :param type_: The type of the entity
-        :type type_: int
         :param last_time_updated:
 
         """
@@ -60,6 +58,9 @@ class Entity:
     def __eq__(self, other):
         return self.id_ == other.id_
 
+    def __str__(self):
+        return str(self.id_)
+
 
 def calculate_distance(entity1: Entity, entity2: Entity):
     """
@@ -84,10 +85,10 @@ def calculate_distance(entity1: Entity, entity2: Entity):
 def calculate_distance_input_location(location1, location2):
     """
     Calculates the distance between two entities. Each entity must have a location property.
-    :param entity1:first entity
-    :type entity1: Entity
-    :param entity2:second entity
-    :type entity1: Entity
+    :param location1:first location
+    :type location1: list
+    :param location2:second location
+    :type location2: list
     :return: Euclidean distance between two entities
     :rtype: float
     """
@@ -282,18 +283,6 @@ class MissionSimple:
         """
         raise NotImplementedError
 
-    def add_player(self, new_player, tnow):
-        self.update_workload(tnow)
-        self.players_allocated_to_the_mission.append(new_player)
-
-    def remove_player(self, new_player, tnow):
-        self.update_workload(tnow)
-        self.players_allocated_to_the_mission.remove(new_player)
-
-    def remove_all_players(self, tnow):
-        self.update_workload(tnow)
-        self.players_allocated_to_the_mission.clear()
-
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
         self.workload_updating(delta)
@@ -302,13 +291,40 @@ class MissionSimple:
         self.last_updated = tnow
 
     def workload_updating(self, delta):
-        self.remaining_workload -= delta * len(self.players_handling_with_the_mission)
+        productivity = 0
+        for p in self.players_handling_with_the_mission:
+            productivity += p.productivity
+        self.remaining_workload -= delta * productivity
+
+    def add_allocated_player(self, player):
+        if player in self.players_allocated_to_the_mission:
+            raise Exception("Double allocation of the same player to one mission")
+        self.players_allocated_to_the_mission.append(player)
+
+    def add_handling_player(self, player):
+        if player in self.players_handling_with_the_mission:
+            raise Exception("Double handling of the the same player to one mission")
+        self.players_handling_with_the_mission.append(player)
+
+    def remove_allocated_player(self, player):
+        if player not in self.players_allocated_to_the_mission:
+            raise Exception("Allocated player is not exist in the mission")
+        self.players_allocated_to_the_mission.remove(player)
+
+    def remove_handling_player(self, player):
+        if player not in self.players_handling_with_the_mission:
+            return
+            # raise Exception("Allocated player is not exist in the mission")
+        self.players_handling_with_the_mission.remove(player)
 
     def __hash__(self):
         return hash(self.mission_id)
 
     def __eq__(self, other):
         return self.mission_id == other.mission_id
+
+    def __str__(self):
+        return str(self.mission_id)
 
 
 class TaskSimple(Entity):
@@ -484,9 +500,9 @@ class SimulationEvent:
     Class that represents an event in the simulation log.
     """
 
-    def __init__(self, time, player=None, task=None, mission=None):
+    def __init__(self, time_, player=None, task=None, mission=None):
         """
-        :param time:the time of the event
+        :param time_:the time of the event
         :type: float
         :param player: The relevant player for this simulation event. Can be None(depends on extension).
         :type: PlayerSimple
@@ -496,7 +512,7 @@ class SimulationEvent:
         :type: MissionSimple
 
         """
-        self.time = time
+        self.time = time_
         self.player = player
         self.mission = mission
         self.task = task
@@ -516,6 +532,10 @@ class SimulationEvent:
         """
         raise NotImplementedError
 
+    def __str__(self):
+        return "time" + str(time) + "\tevent type:" + str(type(self)) + "\tplayer:" + str(self.player) + "\ttask" + str(
+            self.task) + "\tmission" + str(self.mission)
+
 
 class EndSimulationEvent(SimulationEvent):
     def handle_event(self, simulation):
@@ -526,7 +546,7 @@ class EndSimulationEvent(SimulationEvent):
         :param time_:the time of the event (Simulation completion time)
         :type: float
         """
-        SimulationEvent.__init__(self, time=time_)
+        SimulationEvent.__init__(self, time_=time_)
 
 
 class TaskArrivalEvent(SimulationEvent):
@@ -541,7 +561,7 @@ class TaskArrivalEvent(SimulationEvent):
         :param task: The new task that arrives to simulation.
         :type: TaskSimple
         """
-        SimulationEvent.__init__(self, time=time_, task=task)
+        SimulationEvent.__init__(self, time_=time_, task=task)
 
     def handle_event(self, simulation):
         find_and_allocate_responsible_player(task=self.task, players=simulation.players_list)
@@ -566,38 +586,11 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time_, task=task, mission=mission, player=player)
+        SimulationEvent.__init__(time_=time_, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
-
-        self.mission.players_handling_with_the_mission.append(self.player)
+        self.mission.add_handling_player(self.player)
         simulation.generate_agent_finish_handle_mission_event(mission=self.mission, player=self.player, task=self.task)
-
-
-class FinishHandleMissionEvent(SimulationEvent):
-    """
-    Class that represent an event of: player finishes to handle  with the mission.
-    """
-
-    def __init__(self, time, task, mission):
-        """
-        :param time_:the time of the event
-        :type: float
-        :param player: The relevant player that arrives to the given mission on the given task.
-        :type: PlayerSimple
-        :param task: The relevant task that contain the given mission
-        :type: TaskSimple
-        :param mission: The mission that the player arrives to.
-        :type: MissionSimple
-        """
-        SimulationEvent.__init__(time=time, task=task, mission=mission)
-
-    def handle_event(self, simulation):
-        for p in self.mission.players_handling_with_the_mission:
-            p.current_mission = None
-        self.mission.is_done = True
-        self.task.mission_finished(self.mission)
-        simulation.solve()
 
 
 class PlayerFinishHandleMissionEvent(SimulationEvent):
@@ -616,7 +609,7 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
         :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time=time_, task=task, mission=mission, player=player)
+        SimulationEvent.__init__(time_=time_, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
         if len(self.player.schedule) >= 1:
@@ -628,7 +621,7 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
 
         if self.mission.is_done:
             self.task.mission_finished(self.mission)
-            #TODO check palyers on the event
+            # TODO check palyers on the event
             if self.task.is_done:
                 simulation.handle_task_ended(self.task)
 
@@ -637,7 +630,7 @@ class Simulation:
     def __init__(self, name: str, players_list: list, solver, tasks_generator: TaskGenerator, end_time: float,
                  f_are_players_neighbours=are_neighbours,
                  f_is_player_can_be_allocated_to_task=is_player_can_be_allocated_to_task,
-                 f_calculate_distance=calculate_distance):
+                 f_calculate_distance=calculate_distance, debug_mode=False):
         """
         :param name: The name of simulation
         :param players_list: The list of the players(players) that are participate
@@ -666,6 +659,7 @@ class Simulation:
         self.tasks_list = []
         self.finished_tasks_list = []
         self.diary.append(EndSimulationEvent(time_=end_time))
+        self.debug_mode = debug_mode
 
     def run_simulation(self):
         while not self.diary:
@@ -680,7 +674,7 @@ class Simulation:
 
     def solve(self):
 
-        self.solver.solve(self.tnow)  # {player:[(task,mission,time)]}
+        self.solver.solve(self.tnow)
         self.check_new_allocation()
 
     def check_new_allocation(self):
@@ -692,26 +686,28 @@ class Simulation:
                     self.generate_player_arrives_to_mission_event(player=player)
 
             else:  # The player has a current allocation
-                if len(player.schedule) == 0:  # Player doesn't have a new allocation
+                if len(player.schedule) == 0:  # Player doesn't have a new allocation (only the old one)
+                    self.handle_abandonment_event(player=player)
                     player.status = Status.IDLE
-                    # TODO sent to the base
                 else:  # The player has a new allocation
                     if player.schedule[0][
                         1] == player.current_mission:  # The current allocation is similar to old allocation
                         pass
                     else:  # The player abandons his current event to a new allocation
-                        self.handle_abandonment_event(player=player, task=player.schedule[0][0],
-                                                      mission=player.schedule[0][1])
+                        self.handle_abandonment_event(player=player)
+                        self.generate_player_arrives_to_mission_event(player=player)
 
     def update_workload(self):
         for e in self.tasks_list:
             e.update_workload_for_missions(self.tnow)
 
-    def handle_abandonment_event(self, player: PlayerSimple, task: TaskSimple, mission: MissionSimple):
-        player.current_mission.players_allocated_to_the_mission.remove(player)
-        player.current_mission.players_handling_with_the_mission.remove(player)
+    def handle_abandonment_event(self, player: PlayerSimple):
+        player.current_mission.remove_allocated_player(player)
+        player.current_mission.remove_handling_player(player)
+        player.current_mission = None
+        player.current_task = None
         self.remove_player_finish_handle_mission_event_from_diary()
-        self.generate_player_arrives_to_mission_event(player=player)
+
         # self.generate_finish_handle_mission_event(mission=mission)
 
     def remove_player_finish_handle_mission_event_from_diary(self, player: PlayerSimple):
@@ -742,22 +738,11 @@ class Simulation:
         next_mission = player.schedule[0][1]
         player.current_mission = next_mission
         player.current_task = next_task
-        next_mission.players_allocated_to_the_mission.append(player)
+        next_mission.add_allocated_player(player)
         travel_time = self.f_calculate_distance(player, next_task) / player.speed
         self.diary.append(
             PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
                                         player=player))
-
-    def generate_finish_handle_mission_event(self, mission: MissionSimple):
-        for ev in self.diary:
-            if type(ev) == FinishHandleMissionEvent and ev.mission.mission_id == mission.mission_id:
-                self.diary.remove(ev)
-        productivity_sum = 0
-        for p in mission.players_handling_with_the_mission:
-            productivity_sum += p.productivity
-        time_to_end_mission = mission.remaining_workload / productivity_sum
-        event = FinishHandleMissionEvent(mission=mission, time=self.tnow + time_to_end_mission)
-        self.diary.append(event)
 
     def generate_agent_finish_handle_mission_event(self, player: PlayerSimple, mission: MissionSimple,
                                                    task: TaskSimple):

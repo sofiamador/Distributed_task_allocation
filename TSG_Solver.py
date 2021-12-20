@@ -326,6 +326,11 @@ class TSGMission(MissionSimple):
             productivity += p.productivity
         self.remaining_workload -= delta * productivity
 
+    def add_player(self, new_player, tnow):
+        self.update_workload(tnow)
+        self.players_allocated_to_the_mission.append(new_player)
+
+
     def __eq__(self, other):
         return self.mission_id==other.mission_id
 
