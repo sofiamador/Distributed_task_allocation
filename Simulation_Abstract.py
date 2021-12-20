@@ -297,7 +297,7 @@ class MissionSimple:
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
         self.workload_updating(delta)
-        if self.remaining_workload == sys.float_info.epsilon:
+        if self.remaining_workload < 0.05:
             self.is_done = True
         self.last_updated = tnow
 
@@ -368,7 +368,7 @@ class TaskSimple(Entity):
     def mission_finished(self, mission):
         self.missions_list.remove(mission)
         self.done_missions.append(mission)
-        if len(self.missions_list)==0:
+        if len(self.missions_list) == 0:
             self.is_done = True
 
 
@@ -534,14 +534,14 @@ class TaskArrivalEvent(SimulationEvent):
     Class that represent an simulation event of new task arrival.
     """
 
-    def __init__(self, time: float, task: TaskSimple):
+    def __init__(self, time_: float, task: TaskSimple):
         """
-        :param time:the time of the event
+        :param time_:the time of the event
         :type: float
         :param task: The new task that arrives to simulation.
         :type: TaskSimple
         """
-        SimulationEvent.__init__(self, time=time, task=task)
+        SimulationEvent.__init__(self, time=time_, task=task)
 
     def handle_event(self, simulation):
         find_and_allocate_responsible_player(task=self.task, players=simulation.players_list)
@@ -569,8 +569,7 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         SimulationEvent.__init__(time=time_, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
-        self.player.status = Status.ON_MISSION
-        self.player.location = self.task.location
+
         self.mission.players_handling_with_the_mission.append(self.player)
         simulation.generate_agent_finish_handle_mission_event(mission=self.mission, player=self.player, task=self.task)
 
@@ -624,11 +623,14 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
             simulation.generate_player_arrives_to_mission_event(player=self.player)
         else:
             self.player.status = Status.IDLE
+            self.player.current_mission = None
+            self.player.current_task = None
+
         if self.mission.is_done:
             self.task.mission_finished(self.mission)
             #TODO check palyers on the event
             if self.task.is_done:
-                simulation.task_ended(self.task)
+                simulation.handle_task_ended(self.task)
 
 
 class Simulation:
@@ -731,7 +733,7 @@ class Simulation:
         task.create_neighbours_list(players_list=self.players_list,
                                     f_is_player_can_be_allocated_to_mission=
                                     self.f_is_player_can_be_allocated_to_mission)
-        event = TaskArrivalEvent(task=task, time=task.arrival_time)
+        event = TaskArrivalEvent(task=task, time_=task.arrival_time)
         self.diary.append(event)
 
     def generate_player_arrives_to_mission_event(self, player):
@@ -759,6 +761,8 @@ class Simulation:
 
     def generate_agent_finish_handle_mission_event(self, player: PlayerSimple, mission: MissionSimple,
                                                    task: TaskSimple):
+        player.status = Status.ON_MISSION
+        player.location = task.location
         duration = player.schedule[0][2]
         player.schedule.pop(0)
         self.diary.append(PlayerFinishHandleMissionEvent(time_=self.tnow + duration, mission=mission, task=task))
