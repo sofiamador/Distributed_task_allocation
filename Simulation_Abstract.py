@@ -288,6 +288,7 @@ class MissionSimple:
         self.workload_updating(delta)
         if self.remaining_workload < 0.05:
             self.is_done = True
+
         self.last_updated = tnow
 
     def workload_updating(self, delta):
@@ -295,20 +296,22 @@ class MissionSimple:
         for p in self.players_handling_with_the_mission:
             productivity += p.productivity
         self.remaining_workload -= delta * productivity
+        if self.remaining_workload < -0.01:
+            raise Exception("Negative workload to mission" + str(self.mission_id))
 
     def add_allocated_player(self, player):
         if player in self.players_allocated_to_the_mission:
-            raise Exception("Double allocation of the same player to one mission")
+            raise Exception("Double allocation of the same player to one mission" + str(self.mission_id))
         self.players_allocated_to_the_mission.append(player)
 
     def add_handling_player(self, player):
         if player in self.players_handling_with_the_mission:
-            raise Exception("Double handling of the the same player to one mission")
+            raise Exception("Double handling of the the same player to one mission" + str(self.mission_id))
         self.players_handling_with_the_mission.append(player)
 
     def remove_allocated_player(self, player):
         if player not in self.players_allocated_to_the_mission:
-            raise Exception("Allocated player is not exist in the mission")
+            raise Exception("Allocated player is not exist in the mission" + str(self.mission_id))
         self.players_allocated_to_the_mission.remove(player)
 
     def remove_handling_player(self, player):
@@ -595,7 +598,7 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
 
 class PlayerFinishHandleMissionEvent(SimulationEvent):
     """
-    Class that represent an event of: player finishes to handle  with the mission.
+    Class that represent an event of player finished to handle  with the mission.
     """
 
     def __init__(self, time_, player, task, mission):
@@ -690,8 +693,8 @@ class Simulation:
                     self.handle_abandonment_event(player=player)
                     player.status = Status.IDLE
                 else:  # The player has a new allocation
-                    if player.schedule[0][
-                        1] == player.current_mission:  # The current allocation is similar to old allocation
+                    if player.schedule[0][1] == player.current_mission:
+                        # The current allocation is similar to old allocation
                         pass
                     else:  # The player abandons his current event to a new allocation
                         self.handle_abandonment_event(player=player)
