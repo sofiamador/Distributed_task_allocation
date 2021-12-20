@@ -12,10 +12,13 @@ from Simulation_Abstract import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg, MsgTaskEntity
 from TSG_rij import calculate_rij_tsg
 
+is_with_scheduling = True
+
+
+
 fisher_player_debug = False
 print_price_delta_debug = True
 simulation_rep_received = 0
-
 
 class Utility:
     def __init__(self, player_entity, mission_entity, task_entity, t_now, future_utility_function,
@@ -383,29 +386,36 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         self.allocation_data_dict = {}
 
     def update_more_information_index_2_and_above(self, task_simulation, msg):
-        max_time_dict = msg.information[2]
-        if task_simulation not in self.allocation_data_dict:
-            self.allocation_data_dict[task_simulation] = {}
-            for mission in task_simulation.missions_list:
-                self.allocation_data_dict[task_simulation][mission] = AllocationData(task=task_simulation,
-                                                                                     mission=mission,
-                                                                                     player_id=self.simulation_entity.id_,
-                                                                                       )
-        allos_of_task = self.allocation_data_dict[task_simulation]
-        for mission, max_time in max_time_dict.items():
-            allos_of_task[mission].max_time_received = max_time
+        if is_with_scheduling:
 
+            max_time_dict = msg.information[2]
+            if task_simulation not in self.allocation_data_dict:
+                self.allocation_data_dict[task_simulation] = {}
+                for mission in task_simulation.missions_list:
+                    self.allocation_data_dict[task_simulation][mission] = AllocationData(task=task_simulation,
+                                                                                         mission=mission,
+                                                                                         player_id=self.simulation_entity.id_,
+                                                                                           )
+            allos_of_task = self.allocation_data_dict[task_simulation]
+            for mission, max_time in max_time_dict.items():
+                allos_of_task[mission].max_time_received = max_time
+
+        else:
+            pass
 
     def compute_schedule(self):
-        time_to_tasks = self.get_time_of_task()
-        bang_per_buck_dict = self.get_bang_per_buck_dict(time_to_tasks)  # task = {mission:bpb}
-        self.insert_bpb_dict_to_allocation_data(bang_per_buck_dict)
-        self.allocations_data = sorted(self.allocations_data, key= get_allocation_measure, reverse=True)
-        self.measure_arrival_time()
-        only_allocated_missions = self.get_only_allocated_missions()
-        allocation_list = self.exam_switch(only_allocated_missions)
-        self.update_schedule_for_simulation_player(allocation_list)
+        if is_with_scheduling:
 
+            time_to_tasks = self.get_time_of_task()
+            bang_per_buck_dict = self.get_bang_per_buck_dict(time_to_tasks)  # task = {mission:bpb}
+            self.insert_bpb_dict_to_allocation_data(bang_per_buck_dict)
+            self.allocations_data = sorted(self.allocations_data, key= get_allocation_measure, reverse=True)
+            self.measure_arrival_time()
+            only_allocated_missions = self.get_only_allocated_missions()
+            allocation_list = self.exam_switch(only_allocated_missions)
+            self.update_schedule_for_simulation_player(allocation_list)
+        else:
+            pass
     def update_schedule_for_simulation_player(self, allocation_list):
         self.simulation_entity.schedule = []  # [(task,mission,time)]
         for allo in allocation_list:
@@ -519,12 +529,16 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
 
 
     def list_of_info_to_send_beside_bids(self, task:TaskSimple) -> []:
-        dict_= self.allocation_data_dict[task]
-        ans = {}
-        for mission,allo in dict_.items():
-            ans[mission]=allo.time_player_arrives
+        if is_with_scheduling:
+            dict_= self.allocation_data_dict[task]
+            ans = {}
+            for mission,allo in dict_.items():
+                ans[mission]=allo.time_player_arrives
 
-        return [ans]
+            return [ans]
+
+        else:
+            pass
 
     def measure_arrival_time(self):
         current_time = 0
@@ -953,19 +967,27 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
             self.max_time_per_mission[mission] = None
 
     def more_reset_additional_fields(self):
+
         self.reset_mission_per_allocation_list()
 
 
     def update_more_information_index_1_and_above(self, player_id, msg):
-        allocations_dict = msg.information[1]
-        player_id_sender = msg.sender
-        for mission,time_arrive in allocations_dict.items():
-            self.player_greedy_arrive_dict[mission][player_id_sender] = time_arrive
+        if is_with_scheduling:
+
+            allocations_dict = msg.information[1]
+            player_id_sender = msg.sender
+            for mission,time_arrive in allocations_dict.items():
+                self.player_greedy_arrive_dict[mission][player_id_sender] = time_arrive
+        else:
+            pass
 
 
 
     def compute_schedule(self):
-        self.compute_max_time_per_mission()
+        if is_with_scheduling:
+            self.compute_max_time_per_mission()
+        else:
+            pass
 
     def compute_max_time_per_mission(self):
         for mission in self.simulation_entity.missions_list:
@@ -980,11 +1002,11 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
                 self.max_time_per_mission[mission] = max(arrives_per_mission)
 
 
-
-
-
     def list_of_info_to_send_beside_allocation(self,player_id:str) -> []:
-        return [self.max_time_per_mission]
+        if is_with_scheduling:
+            return [self.max_time_per_mission]
+        else:
+            pass
 
 
 
