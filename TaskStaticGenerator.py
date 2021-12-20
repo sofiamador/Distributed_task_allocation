@@ -4,6 +4,7 @@ import random
 from Simulation_Abstract import MapHubs, MissionSimple, TaskSimple, AbilitySimple, TaskGenerator
 # from StaticSimulation import TaskSimpleStatic, rand_id_str
 from TSG_Solver import TSGEvent, Status, TSGPlayer
+import numpy as np
 
 
 class TaskSimpleStatic(TaskSimple):
@@ -20,22 +21,18 @@ def rand_id_str(rand):
     return ans
 
 
-
-
-
 class SinglePlayerGeneratorTSG():
-    def __init__(self, rand: random.Random, map_: MapHubs, ability_number, tnow =0, is_static_simulation = False):
+    def __init__(self, rand: random.Random, map_: MapHubs, ability_number, tnow=0, is_static_simulation=False):
         self.rand = rand
         self.tnow = tnow
-        self.is_static_simulation =is_static_simulation
+        self.is_static_simulation = is_static_simulation
         self.location = map_.generate_location_gauss_around_center()
-        self.selected_ability = ability_number#self.get_selected_ability(ability_number)
+        self.selected_ability = ability_number  # self.get_selected_ability(ability_number)
         parameters_input = self.get_parameters_input_dict()
         force_data_dict = self.create_force_type_data_map(parameters_input)
-        self.rnd_player = self.create_agents(force_data_dict,t_now = self.tnow)
+        self.rnd_player = self.create_agents(force_data_dict, t_now=self.tnow)
 
-
-    def create_agents(self, force_data_dict, t_now ):
+    def create_agents(self, force_data_dict, t_now):
         agents_id_list = []
         agent_id = rand_id_str(self.rand)
         agents_id_list.append(agent_id)
@@ -54,12 +51,12 @@ class SinglePlayerGeneratorTSG():
                 "extra_hours_allowed"] + 0.25:
                 status = Status.TOTAL_RESTING
                 start_activity_time = None
-                start_resting_time = last_update_time  - resting_hours
+                start_resting_time = last_update_time - resting_hours
             elif force_data_dict[type_]["min_competence_time"] <= resting_hours < force_data_dict[type_][
                 "competence_length"]:
                 status = Status.RESTING
                 start_activity_time = None
-                start_resting_time =None #TODO t[3] / 3600 - t[7]
+                start_resting_time = None  # TODO t[3] / 3600 - t[7]
             else:
                 status = Status.IDLE
                 start_activity_time = last_update_time - working_hours
@@ -69,7 +66,7 @@ class SinglePlayerGeneratorTSG():
             productivity = 1
         else:
             status = Status.IDLE
-            start_activity_time =t_now- self.rand.random()*force_data_dict[type_]["max_activity_time"]
+            start_activity_time = t_now - self.rand.random() * force_data_dict[type_]["max_activity_time"]
             start_resting_time = None
 
             a = 0.6
@@ -77,25 +74,24 @@ class SinglePlayerGeneratorTSG():
             x_min = 0
             x_max = 1
 
-            x = 1-(t_now-start_activity_time)/force_data_dict[type_]["max_activity_time"]
-            x_tag =a+ (((x-x_min)*(b-a))/(x_max-x_min))
+            x = 1 - (t_now - start_activity_time) / force_data_dict[type_]["max_activity_time"]
+            x_tag = a + (((x - x_min) * (b - a)) / (x_max - x_min))
             productivity = x_tag
 
-            if not a<=productivity<=b:
+            if not a <= productivity <= b:
                 raise Exception("something in the calc went wrong")
 
         return TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
-                      current_location=self.location, start_activity_time=start_activity_time,
-                      start_resting_time=start_resting_time,
-                      max_activity_time=force_data_dict[type_]["max_activity_time"],
-                      extra_hours_allowed=force_data_dict[type_]["extra_hours_allowed"],
-                      min_competence_time=force_data_dict[type_]["min_competence_time"],
-                      competence_length=force_data_dict[type_]["competence_length"], status=status,
-                      is_working_extra_hours=is_working_extra_hours, address=address,productivity=productivity
+                         current_location=self.location, start_activity_time=start_activity_time,
+                         start_resting_time=start_resting_time,
+                         max_activity_time=force_data_dict[type_]["max_activity_time"],
+                         extra_hours_allowed=force_data_dict[type_]["extra_hours_allowed"],
+                         min_competence_time=force_data_dict[type_]["min_competence_time"],
+                         competence_length=force_data_dict[type_]["competence_length"], status=status,
+                         is_working_extra_hours=is_working_extra_hours, address=address, productivity=productivity
                          )
 
-
-    def get_selected_ability(self,ability_number):
+    def get_selected_ability(self, ability_number):
         if ability_number == 1:
             name = "SR"
         if ability_number == 8:
@@ -105,17 +101,15 @@ class SinglePlayerGeneratorTSG():
         return AbilitySimple(ability_type=ability_number, ability_name=name)
 
     def get_parameters_input_dict(self):
-        return [(1, 960, 120, 360, 480), (4, 960, 120, 360, 480),(8, 480, 60, 420, 480)]
+        return [(1, 960, 120, 360, 480), (4, 960, 120, 360, 480), (8, 480, 60, 420, 480)]
 
-    def create_force_type_data_map(self,force_type_data):
+    def create_force_type_data_map(self, force_type_data):
         force_data = {}
         for t in force_type_data:
             force_data[t[0]] = {"max_activity_time": t[1] / 60, "extra_hours_allowed": t[2] / 60,
                                 "min_competence_time": t[3] / 60,
                                 "competence_length": t[4] / 60}
         return force_data
-
-
 
 
 def get_parameters_input_dict():
@@ -152,6 +146,7 @@ def get_parameters_input_dict():
         (2, 6, 5, 12, [(4, 1, 3), (1, 3, 3)])
     ]
 
+
 def create_event_params_data_map(event_params):
     events_data = {}
     for t in event_params:
@@ -163,20 +158,26 @@ def create_event_params_data_map(event_params):
     return events_data
 
 
-def get_relevant_key_and_value(parameters_dict,damage_level,life_saving_potential):
+def get_relevant_key_and_value(parameters_dict, damage_level, life_saving_potential):
     for key, value in parameters_dict.items():
         if key[1] == damage_level and key[2] == life_saving_potential:
             return key, value
 
-class TaskGeneratorTSG (TaskGenerator):
-    def __init__(self, map_, seed):
+
+class TaskGeneratorTSG(TaskGenerator):
+    def __init__(self, map_, seed, exp_lambda_parameter=0.3333):
         """
 
         :param map_:
         :param seed:
         """
-        TaskGenerator.__init__(self,map_,seed)
+        TaskGenerator.__init__(self, map_, seed)
+        self.rnd_numpy = np.random.default_rng(seed=seed)
 
+
+        self.lambda_ = exp_lambda_parameter
+    def time_gap_between_tasks(self):
+        return self.rnd_numpy.exponential(scale=self.lambda_, size=1)[0]
 
     def get_task(self, tnow):
         """
@@ -187,21 +188,23 @@ class TaskGeneratorTSG (TaskGenerator):
         life_saving_potential = self.random.choice([1, 2, 3, 4, 5])
         parameters_input = get_parameters_input_dict()
         parameters_dict = create_event_params_data_map(parameters_input)
-        key, value = get_relevant_key_and_value(parameters_dict,damage_level,life_saving_potential)
+        key, value = get_relevant_key_and_value(parameters_dict, damage_level, life_saving_potential)
 
         random_task = TSGEvent(event_id=rand_id_str(self.random),
-                                 event_type=2,
-                                 damage_level=damage_level,
-                                 life_saving_potential=life_saving_potential,
-                                 event_creation_time=tnow,
-                                 event_update_time=tnow,
-                                 point=location,
-                                 workload=value["total_workload"],
-                                 mission_params=value["mission_params"],
-                                 importance=None)
+                               event_type=2,
+                               damage_level=damage_level,
+                               life_saving_potential=life_saving_potential,
+                               event_creation_time=tnow+self.time_gap_between_tasks(),
+                               event_update_time=tnow,
+                               point=location,
+                               workload=value["total_workload"],
+                               mission_params=value["mission_params"],
+                               importance=None)
         return random_task
+
+
 class SingleTaskGeneratorTSG():
-    def __init__(self, rand: random.Random, map_: MapHubs, tnow =0):
+    def __init__(self, rand: random.Random, map_: MapHubs, tnow=0):
         self.rand = rand
         self.tnow = tnow
         self.location = map_.generate_location_gauss_around_center()
@@ -213,16 +216,15 @@ class SingleTaskGeneratorTSG():
 
         key, value = self.get_relevant_key_and_value(parameters_dict)
         self.random_task = TSGEvent(event_id=rand_id_str(self.rand),
-                                 event_type=2,
-                                 damage_level=self.damage_level,
-                                 life_saving_potential=self.life_saving_potential,
-                                 event_creation_time=self.tnow,
-                                 event_update_time=self.tnow,
-                                 point=self.location,
-                                 workload=value["total_workload"],
-                                 mission_params=value["mission_params"],
-                                 importance=None)
-
+                                    event_type=2,
+                                    damage_level=self.damage_level,
+                                    life_saving_potential=self.life_saving_potential,
+                                    event_creation_time=self.tnow,
+                                    event_update_time=self.tnow,
+                                    point=self.location,
+                                    workload=value["total_workload"],
+                                    mission_params=value["mission_params"],
+                                    importance=None)
 
     def create_event_params_data_map(self, event_params):
         events_data = {}

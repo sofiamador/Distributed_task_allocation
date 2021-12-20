@@ -100,7 +100,7 @@ def calc_late_finish(player_entity:TSGPlayer):
     if player_entity.current_mission is None:
         return 0
 
-    return player_entity.agent.current_mission.expected_survival_late_finish_decrease()
+    return player_entity.current_mission.expected_survival_late_finish_decrease()
 
 def calculate_rij_tsg(player_entity :TSGPlayer, mission_entity:TSGMission, task_entity:TSGEvent,
                                                  t_now=0):

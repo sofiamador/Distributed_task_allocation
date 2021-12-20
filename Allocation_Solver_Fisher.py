@@ -421,7 +421,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         for allo in allocation_list:
             task = allo.task
             mission = allo.mission
-            time_ = allo.norm_xjk * self.simulation_entity.productivity
+            time_ = (mission.remaining_workload*allo.norm_xjk) / self.simulation_entity.productivity
             tuple_ = (task, mission, time_)
             self.simulation_entity.schedule.append(tuple_)  # [(task,mission,time)]
 
@@ -515,14 +515,14 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
                 r_ijk = self.r_i[task][mission].get_utility(1)
                 x_ijk = allocation
 
-                if x_ijk is None:
+                if x_ijk is None or x_ijk == 0:
                     bang_per_buck[task][mission] = 0
                 else:
                     numerator = r_ijk * x_ijk
 
                     remaining_workload = mission.remaining_workload
                     productivity = self.simulation_entity.productivity
-                    time_at_mission = allocation * remaining_workload / productivity
+                    time_at_mission = allocation * (remaining_workload / productivity)
                     denominator = time_to_task + time_at_mission
                     bang_per_buck[task][mission] = numerator / denominator
         return bang_per_buck

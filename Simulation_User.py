@@ -87,4 +87,4 @@ for simulation_number in simulations_range:
     players_list = create_players(rand_,map_)
     name = str(simulation_number)
 
-    simulation_created =  Simulation(name, players_list, solver, tasks_generator)
+    simulation_created =  Simulation(name = name, players_list=players_list, solver= solver, tasks_generator=tasks_generator,end_time = 1000,debug_mode=True)

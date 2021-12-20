@@ -1,6 +1,8 @@
 import enum
 import random
 import sys
+import abc
+from abc import ABC
 from datetime import time
 
 from typing import List
@@ -481,7 +483,7 @@ class MapHubs(MapSimple):
         return [rand_x, rand_y]
 
 
-class TaskGenerator:
+class TaskGenerator(ABC):
     def __init__(self, map_=MapSimple(seed=1), seed=1):
         """
 
@@ -491,12 +493,17 @@ class TaskGenerator:
         self.map = map_
         self.random = random.Random(seed)
 
+    @abc.abstractmethod
+
     def get_task(self, tnow):
         """
         :rtype: TaskSimple
         """
         return NotImplementedError
 
+    @abc.abstractmethod
+    def time_gap_between_tasks(self):
+        return NotImplementedError
 
 class SimulationEvent:
     """
@@ -536,8 +543,8 @@ class SimulationEvent:
         raise NotImplementedError
 
     def __str__(self):
-        return "time" + str(time) + "\tevent type:" + str(type(self)) + "\tplayer:" + str(self.player) + "\ttask" + str(
-            self.task) + "\tmission" + str(self.mission)
+        return "time:" + str(self.time) + "\tevent type:" + str(type(self)) + "\tplayer:" + str(self.player) + "\ttask:" + str(
+            self.task) + "\tmission:" + str(self.mission)
 
 
 class EndSimulationEvent(SimulationEvent):
@@ -589,7 +596,7 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time_=time_, task=task, mission=mission, player=player)
+        SimulationEvent.__init__(self,time_=time_, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
         self.mission.add_handling_player(self.player)
@@ -612,7 +619,7 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
         :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(time_=time_, task=task, mission=mission, player=player)
+        SimulationEvent.__init__(self,time_=time_, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
         if len(self.player.schedule) >= 1:
@@ -663,9 +670,12 @@ class Simulation:
         self.finished_tasks_list = []
         self.diary.append(EndSimulationEvent(time_=end_time))
         self.debug_mode = debug_mode
+        self.solver_counter = 0
+        self.run_simulation()
+
 
     def run_simulation(self):
-        while not self.diary:
+        while True:
             self.diary = sorted(self.diary, key=lambda event: event.time)
             self.last_event = self.diary.pop(0)
             if self.debug_mode:
@@ -677,10 +687,14 @@ class Simulation:
             self.update_workload()
             self.last_event.handle_event(self)
 
-    def solve(self):
 
+    def solve(self):
+        self.solver_counter = self.solver_counter + 1
+        if self.debug_mode:
+            print("SOLVER STARTS:", self.solver_counter)
         self.solver.solve(self.tnow)
         self.check_new_allocation()
+
 
     def check_new_allocation(self):
         for player in self.players_list:
@@ -711,7 +725,7 @@ class Simulation:
         player.current_mission.remove_handling_player(player)
         player.current_mission = None
         player.current_task = None
-        self.remove_player_finish_handle_mission_event_from_diary()
+        self.remove_player_finish_handle_mission_event_from_diary(player)
 
         # self.generate_finish_handle_mission_event(mission=mission)
 
@@ -755,4 +769,4 @@ class Simulation:
         player.location = task.location
         duration = player.schedule[0][2]
         player.schedule.pop(0)
-        self.diary.append(PlayerFinishHandleMissionEvent(time_=self.tnow + duration, mission=mission, task=task))
+        self.diary.append(PlayerFinishHandleMissionEvent(player=player,time_=self.tnow + duration, mission=mission, task=task))

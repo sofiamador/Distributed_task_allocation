@@ -1,8 +1,9 @@
 import abc
+from abc import ABC
+
 import math
 import threading
 import copy
-from abc import ABC
 debug_print_for_distribution = False
 from enum import Enum
 
@@ -962,15 +963,15 @@ class TaskAlgorithm(AgentAlgorithmTaskPlayers):
 class AllocationSolver:
     
     def __init__(self, tasks_simulation=[], players_simulation=[]):
+        self.centralized_computer = None
+
         self.tasks_simulation = []
-        
         for task in tasks_simulation:
             self.add_task_to_solver(task)
             
         self.players_simulation = []
         for player in players_simulation:
             self.add_player_to_solver(player)
-
         self.tnow = 0
 
 
@@ -982,8 +983,12 @@ class AllocationSolver:
         for player in players_simulation:
             self.add_player_to_solver(player)
 
-    def solve(self, tnow=0) -> {}:
+    def solve(self, tnow, centralized_computer = None ) -> {}:
         self.tnow = tnow
+        self.centralized_computer =centralized_computer
+
+
+
         return self.allocate()
 
     @abc.abstractmethod
@@ -1010,49 +1015,77 @@ class AllocationSolver:
         """
         raise NotImplementedError
 
+
+class CentralComputer:
+    pass
+
+
 class AllocationSolverCentralized(AllocationSolver):
-    def __init__(self, tasks_simulation=[], players_simulation=[]):
-        AllocationSolver.__init__(self, tasks_simulation=[], players_simulation=[])
+    def __init__(self, centralized_computer:CentralComputer= None):
+        AllocationSolver.__init__(self,centralized_computer)
+        self.centralized_computer = centralized_computer
+
+
+    def reset_centralized_computer_info(self):
+        tasks = self.centralized_computer.tasks
+        for tt in tasks:
+            task_copy = copy.copy(tt)
+            self.tasks_simulation.append(task_copy)
+
+        players = self.centralized_computer.players
+        for pp in players:
+            player_copy = copy.copy(pp)
+            self.players_simulation.append(player_copy)
+
+
+    def solve(self, tnow, centralized_computer=None) -> {}:
+        self.tnow = tnow
+        self.centralized_computer = centralized_computer
+        self.reset_centralized_computer_info()
+        return self.allocate()
+
 
     def add_player_to_solver(self, player: PlayerSimple):
-        player_copy = copy.copy(player)
-        self.players_simulation.append(player_copy)
+        pass
 
     def remove_player_from_solver(self, player: PlayerSimple):
-        player_id = player.id_
-        selected_player = None
-        for player_in in self.players_simulation:
-            if player_in.id_ == player_id:
-                selected_player = player_in
-                break
-        if selected_player is not None:
-            self.players_simulation.remove(selected_player)
+        pass
+        #player_id = player.id_
+        #selected_player = None
+        #for player_in in self.players_simulation:
+        #    if player_in.id_ == player_id:
+        #        selected_player = player_in
+        #        break
+        #if selected_player is not None:
+        #    self.players_simulation.remove(selected_player)
 
     def add_task_to_solver(self, task: TaskSimple):
-        task_copy = copy.copy(task)
-        self.tasks_simulation.append(task_copy)
+        pass
+        #task_copy = copy.copy(task)
+        #self.tasks_simulation.append(task_copy)
 
     def remove_task_from_solver(self, task: TaskSimple):
-        task_id = task.id_
-        selected_task = None
-        for task_in in self.tasks_simulation:
-            if task_in.id_ == task_id:
-                selected_task = task_in
-                break
-        if selected_task is not None:
-            self.tasks_simulation.remove(selected_task)
+        pass
+        #task_id = task.id_
+        #selected_task = None
+        #for task_in in self.tasks_simulation:
+        #    if task_in.id_ == task_id:
+        #        selected_task = task_in
+        #        break
+        #if selected_task is not None:
+        #    self.tasks_simulation.remove(selected_task)
 
-    def player_update_its_entity(self,player: PlayerSimple):
-        self.remove_player_from_solver(player)
-        self.add_player_to_solver(player)
+    #def player_update_its_entity(self,player: PlayerSimple):
+        #self.remove_player_from_solver(player)
+        #self.add_player_to_solver(player)
 
-    def task_update_its_entity(self,task: TaskSimple):
-        self.remove_task_from_solver(task)
-        self.add_task_to_solver(task)
+    #def task_update_its_entity(self,task: TaskSimple):
+        #self.remove_task_from_solver(task)
+        #self.add_task_to_solver(task)
 
 class AllocationSolverDistributed(AllocationSolver):
 
-    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+    def __init__(self,  f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
         """
         :param mailer: entity that simulates message delivery (given protocol) between agents
@@ -1061,18 +1094,39 @@ class AllocationSolverDistributed(AllocationSolver):
         :param f_communication_disturbance: function that returns None for msg loss, or a number for NCLO delay
         """
         AllocationSolver.__init__(self)
+        self.f_termination_condition =f_termination_condition
+        self.f_global_measurements =f_global_measurements
+        self.f_communication_disturbance =f_communication_disturbance
+
         self.agents_algorithm = []
+
         self.mailer = None
-        self.imply_mailer(mailer=mailer, f_termination_condition=f_termination_condition,
-                          f_global_measurements=f_global_measurements,
-                          f_communication_disturbance=f_communication_disturbance)
+        self.imply_mailer( )
 
     def get_measurements(self):
         return self.mailer.measurements
 
+    def solve(self, tnow, centralized_computer=None) -> {}:
+        self.tnow = tnow
+        self.centralized_computer = centralized_computer
+
+        self.agents_algorithm = []
+        self.players_algorithm = []
+        self.tasks_algorithm = []
+
+        self.imply_mailer()
+        for pp in self.players_simulation:
+            self.what_solver_does_when_player_is_added(pp)
+
+        for tt in self.tasks_simulation:
+            self.what_solver_does_when_task_is_added(tt)
+
+
+        return self.allocate()
+
     def add_player_to_solver(self, player: PlayerSimple):
         self.players_simulation.append(player)
-        self.what_solver_does_when_player_is_added(player)
+        #self.what_solver_does_when_player_is_added(player)
 
     def remove_player_from_solver(self, player: PlayerSimple):
         self.players_simulation.remove(player)
@@ -1080,7 +1134,7 @@ class AllocationSolverDistributed(AllocationSolver):
 
     def add_task_to_solver(self, task: TaskSimple):
         self.tasks_simulation.append(task)
-        self.what_solver_does_when_task_is_added(task)
+        #self.what_solver_does_when_task_is_added(task)
 
     def remove_task_from_solver(self, task: TaskSimple):
         self.tasks_simulation.remove(task)
@@ -1102,7 +1156,7 @@ class AllocationSolverDistributed(AllocationSolver):
     def what_solver_does_when_task_is_removed(self, task: TaskSimple):
         raise NotImplementedError
 
-    def imply_mailer(self, mailer, f_termination_condition, f_global_measurements, f_communication_disturbance):
+    def imply_mailer(self ):
         """
         if mailer is received in constructor then use it,
         otherwise use f_termination_condition,f_global_measurements, f_communication_disturbance  to create Mailer
@@ -1112,14 +1166,12 @@ class AllocationSolverDistributed(AllocationSolver):
         :param f_communication_disturbance: function that returns None for msg loss, or a number for NCLO delay
         :return: None
         """
-        if mailer is None:
-            if f_termination_condition is not None and f_global_measurements is not None:
-                self.mailer = Mailer(f_termination_condition, f_global_measurements, f_communication_disturbance)
-            else:
-                raise Exception(
-                    "Cannot create mailer instance without: dictionary of measurments with function and a termination condition")
+
+        if self.f_termination_condition is not None and self.f_global_measurements is not None:
+            self.mailer = Mailer(self.f_termination_condition, self.f_global_measurements, self.f_communication_disturbance)
         else:
-            self.mailer = mailer
+            raise Exception(
+                "Cannot create mailer instance without: dictionary of measurments with function and a termination condition")
 
     def get_algorithm_agent_by_entity(self, entity_input: Entity):
         """
@@ -1221,9 +1273,9 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
     solver were the tasks are also algorithm agents
     """
 
-    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+    def __init__(self,  f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
-        AllocationSolverDistributed.__init__(self,mailer, f_termination_condition, f_global_measurements,
+        AllocationSolverDistributed.__init__(self, f_termination_condition, f_global_measurements,
                                              f_communication_disturbance)
         self.tasks_algorithm = []
         self.players_algorithm = []
@@ -1360,7 +1412,7 @@ def get_task_arrival_time(task_entity:TaskSimple):
 class AllocationSolverTasksPlayersFullLatestTaskInit(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
-        AllocationSolverTasksPlayersSemi.__init__(self,mailer, f_termination_condition, f_global_measurements,
+        AllocationSolverTasksPlayersSemi.__init__(self, f_termination_condition, f_global_measurements,
                                              f_communication_disturbance)
 
     def agents_initialize(self):
