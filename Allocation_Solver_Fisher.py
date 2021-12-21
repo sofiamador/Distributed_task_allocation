@@ -1023,7 +1023,7 @@ class FisherAsynchronousSolver_TasksTogether(AllocationSolverTasksPlayersSemi):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
                  is_with_timestamp=True, ro=0.9, simulation_rep=0):
-        AllocationSolverTasksPlayersSemi.__init__(self, mailer, f_termination_condition, f_global_measurements,
+        AllocationSolverTasksPlayersSemi.__init__(self, f_termination_condition, f_global_measurements,
                                                   f_communication_disturbance)
         simulation_rep_received = simulation_rep
         self.util_structure_level = util_structure_level
