@@ -125,12 +125,12 @@ def calculate_rij_tsg(player_entity :TSGPlayer, mission_entity:TSGMission, task_
 
     productivity = player_entity.productivity  # [0,1] # TODO integration phase 2
 
-    shift_time_ratio = calc_shift_time_worth_ratio(player_entity,mission_entity,t_now)  # TODO cannot be larger then 1
-    if shift_time_ratio == 0:
-        return 0
+    #shift_time_ratio = calc_shift_time_worth_ratio(player_entity,mission_entity,t_now)  # TODO cannot be larger then 1
+    #if shift_time_ratio == 0:
+        #return 0
 
-    if shift_time_ratio > 1.001 or shift_time_ratio < 0:
-        raise ValueError
+    #if shift_time_ratio > 1.001 or shift_time_ratio < 0:
+        #raise ValueError
 
     w_ratio_penalty = task_entity.ro_coefficient
     if w_ratio_penalty is None:

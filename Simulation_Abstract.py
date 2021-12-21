@@ -767,6 +767,8 @@ class Simulation:
                                                    task: TaskSimple):
         player.status = Status.ON_MISSION
         player.location = task.location
+
         duration = player.schedule[0][2]
+
         player.schedule.pop(0)
         self.diary.append(PlayerFinishHandleMissionEvent(player=player,time_=self.tnow + duration, mission=mission, task=task))

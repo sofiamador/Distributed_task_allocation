@@ -549,7 +549,6 @@ class TSGPlayer(PlayerSimple):
 
         self.start_min_resting_time = None
         self.productivity = productivity
-        self.scheduled_missions = []
         self.current_mission = None
         self.did_agent_start_overtime = False
         self.address = address

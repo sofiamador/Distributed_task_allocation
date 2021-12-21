@@ -81,7 +81,7 @@ for simulation_number in simulations_range:
                        length_y=map_length, width_x=map_width)
     rand_ = random.Random(seed*17+1910)
 
-    tasks_generator = TaskGeneratorTSG(map_, seed)
+    tasks_generator = TaskGeneratorTSG(map_, seed, exp_lambda_parameter=2)
     communication_protocol = CommunicationProtocolDefault("Perfect Communication")
     solver = create_fisher_solver(communication_protocol)
     players_list = create_players(rand_,map_)

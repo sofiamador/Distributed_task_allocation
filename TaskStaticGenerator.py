@@ -165,7 +165,7 @@ def get_relevant_key_and_value(parameters_dict, damage_level, life_saving_potent
 
 
 class TaskGeneratorTSG(TaskGenerator):
-    def __init__(self, map_, seed, exp_lambda_parameter=0.3333):
+    def __init__(self, map_, seed, exp_lambda_parameter=2):
         """
 
         :param map_:
