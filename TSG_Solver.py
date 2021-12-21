@@ -330,12 +330,12 @@ class TSGMission(MissionSimple):
         self.update_workload(tnow)
         self.players_allocated_to_the_mission.append(new_player)
 
-
     def __eq__(self, other):
-        return self.mission_id==other.mission_id
+        return self.mission_id == other.mission_id
 
     def __hash__(self):
         return self.abilities[0].ability_type
+
 
 class TSGEvent(TaskSimple):
     def __init__(self, event_id, event_type, damage_level, life_saving_potential, importance,
