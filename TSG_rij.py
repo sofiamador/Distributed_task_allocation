@@ -136,10 +136,10 @@ def calculate_rij_tsg(player_entity :TSGPlayer, mission_entity:TSGMission, task_
     if w_ratio_penalty is None:
         w_ratio_penalty = task_entity.initial_ro_coefficient
 
-    if player_entity.current_mission is not None and player_entity.current_mission.mission_id == mission_entity.mission_id:
-        ratio_utility = calc_ratio_utility_for_current_mission(task_entity=task_entity,mission_entity=mission_entity,player_entity=player_entity)
-    else:
-        ratio_utility = calc_ratio_utility_for_other_missions(task_entity=task_entity,mission_entity=mission_entity)  # [0,1]
+    # if player_entity.current_mission is not None and player_entity.current_mission.mission_id == mission_entity.mission_id:
+    #     ratio_utility = calc_ratio_utility_for_current_mission(task_entity=task_entity,mission_entity=mission_entity,player_entity=player_entity)
+    # else:
+    #     ratio_utility = calc_ratio_utility_for_other_missions(task_entity=task_entity,mission_entity=mission_entity)  # [0,1]
 
     if player_entity.current_mission is not None and not mission_entity.is_passed_optimal_workload:
         interruption_penalty = calc_interruption_penalty(player_entity=player_entity)

@@ -364,9 +364,10 @@ class TaskSimple(Entity):
                 self.neighbours.append(a.id_)
 
     def update_workload_for_missions(self, tnow):
-        self.update_time(tnow)
+
         for m in self.missions_list:
             m.update_workload(tnow)
+        self.update_time(tnow)
 
     def mission_finished(self, mission):
         self.missions_list.remove(mission)
