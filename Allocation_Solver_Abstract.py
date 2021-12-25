@@ -114,6 +114,17 @@ class ClockObject():
         with self.lock:
             return self.clock
 
+class IterativeCentralisticMalier():
+    def __init__(self, termination_condition_f,players = [],tasks = []):
+
+        self.players_simulation_dict = {}
+        for pp in players:
+            self.players_simulation_dict[pp.id_] = pp
+
+        self.tasks_simulation_dict = {}
+        for tt in tasks:
+            self.tasks_simulation_dict[tt.id_] = tt
+
 class Mailer(threading.Thread):
 
     def __init__(self, f_termination_condition, f_global_measurements,
@@ -985,10 +996,7 @@ class AllocationSolver:
 
     def solve(self, tnow, centralized_computer = None ) -> {}:
         self.tnow = tnow
-        self.centralized_computer =centralized_computer
-
-
-
+        self.centralized_computer = centralized_computer
         return self.allocate()
 
     @abc.abstractmethod
@@ -1044,7 +1052,8 @@ class AllocationSolverCentralized(AllocationSolver):
         self.reset_centralized_computer_info()
         return self.allocate()
 
-
+    def allocate(self):
+        pass
     def add_player_to_solver(self, player: PlayerSimple):
         pass
 

@@ -320,11 +320,7 @@ class TSGMission(MissionSimple):
         optimal_threshold = self.initial_workload * self.damage_level_threshold  # Gets the required_workload and multiply by a agreed percentage.
         return optimal_threshold  # Store as threshold.
 
-    def workload_updating(self, delta):
-        productivity = 0
-        for p in self.players_allocated_to_the_mission:
-            productivity += p.productivity
-        self.remaining_workload -= delta * productivity
+
 
     def add_player(self, new_player, tnow):
         self.update_workload(tnow)

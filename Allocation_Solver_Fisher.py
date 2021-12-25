@@ -530,12 +530,15 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
 
     def list_of_info_to_send_beside_bids(self, task:TaskSimple) -> []:
         if is_with_scheduling:
-            dict_= self.allocation_data_dict[task]
-            ans = {}
-            for mission,allo in dict_.items():
-                ans[mission]=allo.time_player_arrives
+            try:
+                dict_= self.allocation_data_dict[task]
+                ans = {}
+                for mission,allo in dict_.items():
+                    ans[mission]=allo.time_player_arrives
 
-            return [ans]
+                return [ans]
+            except:
+                print("from Allocation Solver Fisher")
 
         else:
             pass

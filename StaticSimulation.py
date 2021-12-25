@@ -576,7 +576,7 @@ def run_different_markets(communication_protocol,ro):
         fisher_solver = create_fisher_solver(simulation_rep =i, communication_protocol=communication_protocol,ro=ro, fisher_solver_distribution_level = fisher_solver_distribution_level, util_structure_level = util_structure_level)
 
         scenario.add_solver(fisher_solver)
-        fisher_solver.solve()
+        fisher_solver.solve(0)
         data_[i]= fisher_solver.get_measurements()
 
     data_single_output_dict1, data_single_output_dict2 = get_data_single_output_dict(data_, type_solver = fisher_solver_distribution_level)

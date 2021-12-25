@@ -685,7 +685,6 @@ class Simulation:
         self.check_new_allocation()
 
     def check_new_allocation(self):
-        print("check")
         for player in self.players_list:
             if player.current_mission is None:  # The agent doesn't have a current mission
                 if len(player.schedule) == 0:  # The agent doesn't have a new allocation
@@ -738,7 +737,7 @@ class Simulation:
 
     def handle_task_ended(self, task):
         self.finished_tasks_list.append(task)
-        task.task_utiliy()
+        #task.task_utiliy() #TODO sofi had a mistake
         self.tasks_list.remove(task)
 
     def generate_new_task_to_diary(self):
