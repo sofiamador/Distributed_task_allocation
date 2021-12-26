@@ -7,6 +7,55 @@ from TSG_Solver import TSGEvent, Status, TSGPlayer
 import numpy as np
 
 
+
+class SimpleTaskGenerator(TaskGenerator):
+    def __init__(self, map_:MapHubs, seed,factor_initial_workload = 1.35,max_importance=10, exp_lambda_parameter=2):
+        """
+
+        :param map_: object to initiate location
+        :param seed: used for randomization
+        :param factor_initial_workload: initial_workload = self.factor_initial_workload**task_importance
+        :param max_importance: the maximum level of importance
+        :param exp_lambda_parameter: used to get random gap between tasks exp(exp_lambda_parameter)
+        """
+        TaskGenerator.__init__(self, map_, seed)
+        self.rnd_numpy = np.random.default_rng(seed=seed)
+        self.lambda_ = exp_lambda_parameter
+        self.id_task_counter = 0
+        self.id_mission_counter = 0
+        self.max_importance = max_importance
+        self.factor_initial_workload =factor_initial_workload
+
+    def time_gap_between_tasks(self):
+        return self.rnd_numpy.exponential(scale=self.lambda_, size=1)[0]
+
+    def get_task(self, tnow):
+        """
+        :rtype: TaskSimple
+        """
+        self.id_task_counter = self.id_task_counter + 1
+        id_ = str(self.id_task_counter)
+        location = self.map.generate_location_gauss_around_center()
+        importance = self.random.random()*self.max_importance
+        arrival_time = tnow+self.time_gap_between_tasks()
+        missions_list = [self.create_random_mission(task_importance = importance, arrival_time=arrival_time)]
+
+        return TaskSimple(id_=id_, location = location, importance =importance,
+                          missions_list = missions_list, arrival_time=arrival_time)
+
+    def create_random_mission(self,task_importance:float,arrival_time:float):
+
+        self.id_mission_counter = self.id_mission_counter+1
+        mission_id = str(self.id_mission_counter)
+        initial_workload = self.factor_initial_workload**task_importance
+        arrival_time_to_the_system = arrival_time
+        max_players = self.rnd_numpy.poisson(lam=task_importance/2,size=1)[0]
+        return  MissionSimple(mission_id, initial_workload, arrival_time_to_the_system, max_players=max_players)
+
+
+
+
+
 class TaskSimpleStatic(TaskSimple):
     def __init__(self, id_, location, importance, missions_list, name):
         TaskSimple.__init__(self, id_, location, importance, missions_list)
@@ -14,7 +63,6 @@ class TaskSimpleStatic(TaskSimple):
 
     def __str__(self):
         return self.name
-
 
 def rand_id_str(rand):
     ans = ''.join(rand.choices(string.ascii_uppercase + string.digits, k=10))
@@ -376,4 +424,9 @@ class SingleTaskStaticPoliceGenerator():
 if __name__ == '__main__':
     rnd = random.Random(1)
     mmm = MapHubs(number_of_centers=3, seed=1, length_y=9.0, width_x=9.0, sd_multiplier=0.5)
-    stgTSG = SingleTaskGeneratorTSG(rand=rnd, map_=mmm)
+    generator_ = SimpleTaskGenerator(map_=mmm, seed=1,factor_initial_workload = 1.35,max_importance=10, exp_lambda_parameter=2)
+    tasks = []
+    for _ in range(10):
+        tasks.append(generator_.get_task(0))
+
+    print(3)

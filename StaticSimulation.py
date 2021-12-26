@@ -12,7 +12,7 @@ from Communication_Protocols import CommunicationProtocol, CommunicationProtocol
     CommunicationProtocolDistanceBaseDelayExp, CommunicationProtocolExp
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
-from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
+from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
@@ -67,7 +67,7 @@ class SimulationStatic():
         self.solver = solver
         self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.05,
                            length_y=map_length, width_x=map_width)
-
+        self.task_generator = SimpleTaskGenerator(map_=self.map, seed=self.seed_number)
         self.tasks_per_center = tasks_per_center
 
         self.tasks = []
@@ -569,7 +569,7 @@ def run_different_markets(communication_protocol,ro):
 
         scenario = SimulationStatic(rep_number=i, solver=None, map_length=map_length, map_width=map_width,
                               players_required_ratio=players_required_ratio
-                              , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
+                              , tasks_per_center=tasks_per_center,  number_of_centers=number_of_centers)
 
         communication_protocol.set_seed(i)
 
