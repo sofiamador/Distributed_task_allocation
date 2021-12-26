@@ -12,7 +12,7 @@ from Communication_Protocols import CommunicationProtocol, CommunicationProtocol
     CommunicationProtocolDistanceBaseDelayExp, CommunicationProtocolExp
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
-from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
+from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd

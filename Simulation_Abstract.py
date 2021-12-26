@@ -121,11 +121,11 @@ def is_player_can_be_allocated_to_task(task, player):
     :param player: The player that is checked if it suitable for the task according to hos abilities.
     :return:
     """
-    for mission in task.missions_list:
-        for ability in mission.abilities:
-            if ability in player.abilities:
-                return True
-    return False
+    #for mission in task.missions_list:
+    #    for ability in mission.abilities:
+    #        if ability in player.abilities:
+    #            return True
+    return True
 
 
 class AbilitySimple:
@@ -383,10 +383,10 @@ def amount_of_task_responsible(player):
 def find_and_allocate_responsible_player(task: TaskSimple, players):
     distances = []
     for player in players:
-        for mission in task.missions_list:
-            for ability in mission.abilities:
-                if ability in player.abilities:
-                    distances.append(calculate_distance(task, player))
+        # for mission in task.missions_list:
+        #     for ability in mission.abilities:
+        #         if ability in player.abilities:
+        distances.append(calculate_distance(task, player))
 
     min_distance = min(distances)
 
@@ -394,10 +394,10 @@ def find_and_allocate_responsible_player(task: TaskSimple, players):
 
     for player in players:
         if calculate_distance(task, player) == min_distance:
-            for mission in task.missions_list:
-                for ability in mission.abilities:
-                    if ability in player.abilities:
-                        players_min_distances.append(player)
+            # for mission in task.missions_list:
+            #     for ability in mission.abilities:
+            #         if ability in player.abilities:
+            players_min_distances.append(player)
 
     selected_player = min(players_min_distances, key=amount_of_task_responsible)
     selected_player.tasks_responsible.append(task)
@@ -464,6 +464,24 @@ class MapHubs(MapSimple):
         y_sd = self.length * self.sd_multiplier
         rand_y = self.rand.gauss(mu=y_center, sigma=y_sd)
         return [rand_x, rand_y]
+
+class PlayerGenerator(ABC):
+    def __init__(self, map_=MapSimple(seed=1), seed=1):
+        """
+
+        :param map_:
+        :param seed:
+        """
+        self.map = map_
+        self.random = random.Random(seed)
+
+    @abc.abstractmethod
+    def get_player(self):
+        """
+        :rtype: TaskSimple
+        """
+        return NotImplementedError
+
 
 
 class TaskGenerator(ABC):

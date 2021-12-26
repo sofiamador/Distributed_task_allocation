@@ -1,7 +1,8 @@
 import string
 import random
 
-from Simulation_Abstract import MapHubs, MissionSimple, TaskSimple, AbilitySimple, TaskGenerator
+from Simulation_Abstract import MapHubs, MissionSimple, TaskSimple, AbilitySimple, TaskGenerator, PlayerGenerator, \
+    PlayerSimple
 # from StaticSimulation import TaskSimpleStatic, rand_id_str
 from TSG_Solver import TSGEvent, Status, TSGPlayer
 import numpy as np
@@ -53,8 +54,31 @@ class SimpleTaskGenerator(TaskGenerator):
         return  MissionSimple(mission_id, initial_workload, arrival_time_to_the_system, max_players=max_players)
 
 
+class SimplePlayerGenerator(PlayerGenerator):
+    def __init__(self,map_:MapHubs, seed,speed = 1, min_productivity = 0.5 ):
+        PlayerGenerator.__init__(self,map_,seed)
+        self.id_counter = 0
+        self.speed = speed
+        self.min_productivity = min_productivity
+
+    def get_player(self):
+        self.id_counter = self.id_counter +1
+        id_ = str(self.id_counter)
+        location = self.map.generate_location_gauss_around_center()
+        speed = self.speed
+        productivity = self.calc_productivity()
+        return PlayerSimple(id_=id_, current_location=location, speed=speed,  productivity=productivity)
 
 
+    def calc_productivity(self):
+        a = self.min_productivity
+        b = 1
+        x_min = 0
+        x_max = 1
+
+        x = self.random.random()
+        x_tag = a + (((x - x_min) * (b - a)) / (x_max - x_min))
+        return x_tag
 
 class TaskSimpleStatic(TaskSimple):
     def __init__(self, id_, location, importance, missions_list, name):
@@ -426,7 +450,12 @@ if __name__ == '__main__':
     mmm = MapHubs(number_of_centers=3, seed=1, length_y=9.0, width_x=9.0, sd_multiplier=0.5)
     generator_ = SimpleTaskGenerator(map_=mmm, seed=1,factor_initial_workload = 1.35,max_importance=10, exp_lambda_parameter=2)
     tasks = []
+
+    player_generator = SimplePlayerGenerator(map_=mmm, seed=1)
     for _ in range(10):
         tasks.append(generator_.get_task(0))
 
+    players = []
+    for _ in range(10):
+        players.append(player_generator.get_player())
     print(3)

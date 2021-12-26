@@ -12,7 +12,7 @@ from Communication_Protocols import CommunicationProtocol, CommunicationProtocol
     CommunicationProtocolDistanceBaseDelayExp, CommunicationProtocolExp
 from Data_fisher_market import get_data_fisher
 from TSG_rij import calculate_rij_tsg
-from TaskStaticGenerator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator
+from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
@@ -92,7 +92,7 @@ class SimulationStatic():
     def create_tasks(self):
         total_number_of_tasks = self.tasks_per_center * len(self.map.centers_location)
         for _ in range(total_number_of_tasks):
-            task = SingleTaskGeneratorTSG(rand=self.rand, map_=self.map).random_task
+            task = self.task_generator.get_task(0)#SingleTaskGeneratorTSG(rand=self.rand, map_=self.map).random_task
             self.tasks.append(task)
 
 
