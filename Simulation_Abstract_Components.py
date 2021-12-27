@@ -280,9 +280,8 @@ class MissionSimple:
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
         self.workload_updating(delta)
-        if self.remaining_workload < 0.0001:
+        if self.remaining_workload <= 0.00001 and len(self.players_handling_with_the_mission)==0:
             self.is_done = True
-
         self.last_updated = tnow
 
     def workload_updating(self, delta):

@@ -98,7 +98,6 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         SimulationEvent.__init__(self, time_=time_, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
-        self.mission.add_handling_player(self.player)
         simulation.generate_agent_finish_handle_mission_event(player=self.player)
 
 
@@ -199,6 +198,7 @@ class Simulation:
         self.remove_player_arrive_to_mission_event_from_diary()
         self.clean_tasks_form_agents()
         self.check_new_allocation()
+        #print(self.diary)
 
     def check_new_allocation(self):
         for player in self.players_list:
@@ -214,9 +214,11 @@ class Simulation:
                     player.update_status(Status.IDLE, self.tnow)
                 else:  # The player has a new allocation (missions in schedule)
                     if player.schedule[0][1] == player.current_mission: # The players remains in his current mission
-                        player.current_mission.players_allocated_to_the_mission.append(player)
                         if player.status == Status.ON_MISSION: # If the has already arrived to the mission
                             player.current_mission.players_allocated_to_the_mission.append(player)
+                            self.generate_agent_finish_handle_mission_event(player)
+                        elif player.status == Status.TO_MISSION:
+                            self.generate_player_arrives_to_mission_event(player=player)
                     else:  # The player abandons his current event to a new allocation
                         self.handle_abandonment_event(player=player)
                         self.generate_player_arrives_to_mission_event(player=player)
@@ -280,7 +282,7 @@ class Simulation:
         next_mission = player.schedule[0][1]
         player.current_mission = next_mission
         player.current_task = next_task
-        next_mission.add_allocated_player(player)
+        player.current_mission.players_allocated_to_the_mission.append(player)
         travel_time = self.f_calculate_distance(player, next_task) / player.speed
         self.diary.append(
             PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
@@ -291,7 +293,7 @@ class Simulation:
         task = player.current_task
         player.update_status(Status.ON_MISSION, self.tnow)
         player.update_location(task.location, self.tnow)
-
+        player.current_mission.players_handling_with_the_mission.append(player)
         duration = player.schedule[0][2]
         player.schedule.pop(0)
         self.diary.append(
