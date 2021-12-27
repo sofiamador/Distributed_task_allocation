@@ -240,14 +240,21 @@ class Simulation:
         self.tasks_list.remove(task)
 
     def remove_player_finish_handle_mission_event_from_diary(self):
+
+        to_remove = []
         for ev in self.diary:
             if type(ev) == PlayerFinishHandleMissionEvent:
-                self.diary.remove(ev)
+                to_remove.append(ev)
+        for ev in to_remove:
+            self.diary.remove(ev)
 
     def remove_player_arrive_to_mission_event_from_diary(self):
+        to_remove = []
         for ev in self.diary:
             if type(ev) == PlayerArriveToEMissionEvent:
-                self.diary.remove(ev)
+                to_remove.append(ev)
+        for ev in to_remove:
+            self.diary.remove(ev)
 
     def clean_tasks_form_agents(self):
         for t in self.tasks_list:
