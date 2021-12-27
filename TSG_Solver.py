@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from Simulation_Abstract import MissionSimple, TaskSimple, PlayerSimple
+from Simulation_Abstract_Components import MissionSimple, TaskSimple, PlayerSimple
 
 import math
 
@@ -319,8 +319,6 @@ class TSGMission(MissionSimple):
     def calculate_optimal_threshold(self):
         optimal_threshold = self.initial_workload * self.damage_level_threshold  # Gets the required_workload and multiply by a agreed percentage.
         return optimal_threshold  # Store as threshold.
-
-
 
     def add_player(self, new_player, tnow):
         self.update_workload(tnow)

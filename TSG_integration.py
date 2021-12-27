@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+
 import copy
 # import time
 import random
@@ -116,7 +116,7 @@ def create_events(events_list, event_params_map, agent_ids_list, t_now, host_age
         e = TSGEvent(event_id=t[0], event_type=t[1], damage_level=t[2], life_saving_potential=t[3], importance=t[4],
                      event_creation_time=t[5] / 3600, event_update_time=t[6] / 3600,
                      point=[t[7], t[8]], workload=event_params_map[(t[1], t[2], t[3])]["total_workload"],
-                     mission_params=event_params_map[(t[1], t[2], t[3])]["mission_params"], tnow=t_now)
+                     mission_params=event_params_map[(t[1], t[2], t[3])]["mission_params"])
         e.player_responsible = host_agent
         e.neighbours = agent_ids_list
         event_obj_list.append(e)
@@ -191,12 +191,12 @@ def create_list_of_tuples_allocations(new_obj_allocations):
 
 
 def calcAllocations(*args, **kwargs):
-    try:
-        return calcAllocationsInternal(*args, **kwargs)
-    except Exception as e:
-        f = open("error.txt", "w")
-        f.write(e)
-        f.write(e.__traceback__())
+    #try:
+    return calcAllocationsInternal(*args, **kwargs)
+    # except Exception as e:
+    #     f = open("error.txt", "w")
+    #     f.write(str(e))
+    #     f.write(e.__traceback__())
 
 
 def print_allocations(event_obj_list):

@@ -99,7 +99,7 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
 
     def handle_event(self, simulation):
         self.mission.add_handling_player(self.player)
-        simulation.generate_agent_finish_handle_mission_event(mission=self.mission, player=self.player, task=self.task)
+        simulation.generate_agent_finish_handle_mission_event(player=self.player)
 
 
 class PlayerFinishHandleMissionEvent(SimulationEvent):
@@ -194,6 +194,8 @@ class Simulation:
         if self.debug_mode:
             print("SOLVER STARTS:", self.solver_counter)
         self.update_locations_of_players()
+        self.remove_player_finish_handle_mission_event_from_diary()
+        self.remove_player_arrive_to_mission_event_from_diary()
         self.solver.solve(self.tnow)
         self.check_new_allocation()
 
@@ -209,12 +211,13 @@ class Simulation:
                 if len(player.schedule) == 0:  # Player doesn't have a new allocation (only the old one)
                     self.handle_abandonment_event(player=player)
                     player.update_status(Status.IDLE, self.tnow)
-                else:  # The player has a new allocation
-                    if player.schedule[0][1] == player.current_mission:
-                        if player.status == Status.ON_MISSION:
+                else:  # The player has a new allocation (missions in schedule)
+                    if player.schedule[0][1] == player.current_mission: # The players remains in his current mission
+                        if player.status == Status.ON_MISSION: # If the has already arrived to the mission
                             player.schedule.pop(0)
-                        # The current allocation is similar to old allocation
-                        pass
+                            self.generate_agent_finish_handle_mission_event(player=player)
+                        elif player.status == Status.TO_MISSION: # If the player on the way to his current mission
+                            self.generate_player_arrives_to_mission_event(player=player)
                     else:  # The player abandons his current event to a new allocation
                         self.handle_abandonment_event(player=player)
                         self.generate_player_arrives_to_mission_event(player=player)
@@ -231,21 +234,16 @@ class Simulation:
         player.current_mission.remove_handling_player(player)
         player.current_mission = None
         player.current_task = None
-        if player.status == Status.ON_MISSION:
-            self.remove_player_finish_handle_mission_event_from_diary(player)
-        else:
-            self.remove_player_arrive_to_mission_event_from_diary(player)
-
         # self.generate_finish_handle_mission_event(mission=mission)
 
-    def remove_player_finish_handle_mission_event_from_diary(self, player: PlayerSimple):
+    def remove_player_finish_handle_mission_event_from_diary(self):
         for ev in self.diary:
-            if type(ev) == PlayerFinishHandleMissionEvent and ev.player.id_ == player.id_:
+            if type(ev) == PlayerFinishHandleMissionEvent:
                 self.diary.remove(ev)
 
-    def remove_player_arrive_to_mission_event_from_diary(self, player: PlayerSimple):
+    def remove_player_arrive_to_mission_event_from_diary(self):
         for ev in self.diary:
-            if type(ev) == PlayerArriveToEMissionEvent and ev.player.id_ == player.id_:
+            if type(ev) == PlayerArriveToEMissionEvent:
                 self.diary.remove(ev)
 
     def handle_task_ended(self, task):
@@ -277,8 +275,9 @@ class Simulation:
             PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
                                         player=player))
 
-    def generate_agent_finish_handle_mission_event(self, player: PlayerSimple, mission: MissionSimple,
-                                                   task: TaskSimple):
+    def generate_agent_finish_handle_mission_event(self, player: PlayerSimple):
+        mission = player.current_mission
+        task = player.current_task
         player.update_status(Status.ON_MISSION, self.tnow)
         player.update_location(task.location, self.tnow)
 

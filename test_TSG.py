@@ -18,7 +18,7 @@ def input_from_file(file_name):
 
 
 if __name__ == '__main__':
-    file_name = "input.txt"
+    file_name = "RUN1.1_input.txt"
     host_name = "צוות_חילוץ_1"
     agent_list, event_list, allocation_list, event_params, force_type_data, discrete_params = input_from_file(file_name)
 
