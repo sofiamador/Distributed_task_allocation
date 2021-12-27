@@ -6,12 +6,12 @@ from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, \
 from Communication_Protocols import CommunicationProtocolDefault
 from Simulation_Abstract import Simulation, MapHubs
 from Entity_Generator import TaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator, SimplePlayerGenerator
-from TSG_rij import calculate_rij_tsg
+from R_ij import calculate_rij_tsg, calculate_rij_abstract
 
 simulations_range = range(100)
 number_of_centers = 4
-map_length = 90
-map_width = 90
+map_length = 10
+map_width = 10
 number_of_players = 10
 solver_selection = 2 #1 = all task init # 2= single latest task init
 termination_time_constant =5000
@@ -30,7 +30,7 @@ def create_fisher_solver(communication_protocol,ro=0.9, fisher_solver_distributi
         return FisherAsynchronousSolver_TasksTogether(
         f_termination_condition=f_termination_condition_constant_mailer_nclo,
         f_communication_disturbance=communication_protocol.get_communication_disturbance,
-        future_utility_function=calculate_rij_tsg,
+        future_utility_function=calculate_rij_abstract,
         is_with_timestamp=communication_protocol.is_with_timestamp,
         ro=ro,util_structure_level = util_structure_level)
 
@@ -38,7 +38,7 @@ def create_fisher_solver(communication_protocol,ro=0.9, fisher_solver_distributi
         return   FisherAsynchronousSolver_TaskLatestArriveInit(
         f_termination_condition=f_termination_condition_constant_mailer_nclo,
         f_communication_disturbance=communication_protocol.get_communication_disturbance,
-        future_utility_function=calculate_rij_tsg,
+        future_utility_function=calculate_rij_abstract,
         is_with_timestamp=communication_protocol.is_with_timestamp,
         ro=ro,util_structure_level = util_structure_level)
 

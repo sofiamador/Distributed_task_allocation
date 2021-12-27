@@ -11,7 +11,7 @@ from Communication_Protocols import CommunicationProtocol, CommunicationProtocol
     CommunicationProtocolMessageLossConstantAndUniform, CommunicationProtocolPois, \
     CommunicationProtocolDistanceBaseDelayExp, CommunicationProtocolExp
 from Data_fisher_market import get_data_fisher
-from TSG_rij import calculate_rij_tsg
+from R_ij import calculate_rij_tsg
 from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG
 
 plt.style.use('seaborn-whitegrid')

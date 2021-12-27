@@ -1,6 +1,39 @@
 import math
 
+import Simulation_Abstract
+from Simulation_Abstract import PlayerSimple, MissionSimple, TaskSimple
 from TSG_Solver import TSGPlayer, TSGMission, TSGEvent, late_finish_coefficient, interruption_coefficient
+
+
+
+def calculate_rij_abstract(player_entity :PlayerSimple, mission_entity:MissionSimple, task_entity:TaskSimple,
+                                                 t_now=0):
+    importance_parameter= task_entity.importance*1000
+
+    discount_factor = 0.9
+    distance = Simulation_Abstract.calculate_distance(player_entity,task_entity)
+    distance_parameter = (discount_factor**distance)
+
+    productivity_parameter = player_entity.productivity
+
+    abandonment_parameter = 0
+    current_mission = player_entity.current_mission
+    current_task = player_entity.current_task
+    if current_mission is not None:
+        remaining_workload_ratio = current_mission.remaining_workload/current_mission.initial_workload
+        abandonment_parameter = \
+            remaining_workload_ratio * current_task.importance*250
+
+    return importance_parameter*distance_parameter*productivity_parameter-abandonment_parameter
+
+
+
+
+
+
+
+
+
 
 
 def calc_ratio_utility_for_current_mission(task_entity,mission_entity,player_entity:TSGPlayer):
@@ -31,7 +64,6 @@ def calc_ratio_utility_for_current_mission(task_entity,mission_entity,player_ent
             return abs(opt_ratio - (current_team_size_non_sar - 1 / current_sar_size)) - abs(
                 opt_ratio - current_team_size_non_sar / current_sar_size)
     return ans
-
 
 def calc_distance_penalty(task_entity:TSGEvent,player_entity:TSGPlayer,tnow):
 

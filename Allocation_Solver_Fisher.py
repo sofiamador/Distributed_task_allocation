@@ -10,7 +10,7 @@ from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, Allocatio
     AllocationSolverTasksPlayersFullLatestTaskInit
 from Simulation_Abstract import Entity, TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg, MsgTaskEntity
-from TSG_rij import calculate_rij_tsg
+from R_ij import calculate_rij_tsg
 
 is_with_scheduling = True
 
