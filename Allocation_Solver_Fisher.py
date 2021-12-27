@@ -138,7 +138,7 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
 
         rnd = random.Random(rnd_seed)
 
-        calculated_util = calculate_rij_tsg(player_entity=self.simulation_entity, mission_entity=mission_entity,
+        calculated_util = self.future_utility_function(player_entity=self.simulation_entity, mission_entity=mission_entity,
                                             task_entity=task_entity,
                                             t_now=self.t_now)
 

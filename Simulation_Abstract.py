@@ -4,6 +4,7 @@ import sys
 import abc
 from abc import ABC
 from datetime import time
+import numpy as np
 
 from typing import List
 
@@ -493,6 +494,7 @@ class TaskGenerator(ABC):
         """
         self.map = map_
         self.random = random.Random(seed)
+        self.rnd_numpy = np.random.default_rng(seed=seed)
 
     @abc.abstractmethod
     def get_task(self, tnow):
