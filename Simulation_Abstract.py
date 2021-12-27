@@ -194,9 +194,10 @@ class Simulation:
         if self.debug_mode:
             print("SOLVER STARTS:", self.solver_counter)
         self.update_locations_of_players()
+        self.solver.solve(self.tnow)
         self.remove_player_finish_handle_mission_event_from_diary()
         self.remove_player_arrive_to_mission_event_from_diary()
-        self.solver.solve(self.tnow)
+        self.clean_tasks_form_agents()
         self.check_new_allocation()
 
     def check_new_allocation(self):
@@ -213,11 +214,9 @@ class Simulation:
                     player.update_status(Status.IDLE, self.tnow)
                 else:  # The player has a new allocation (missions in schedule)
                     if player.schedule[0][1] == player.current_mission: # The players remains in his current mission
+                        player.current_mission.players_allocated_to_the_mission.append(player)
                         if player.status == Status.ON_MISSION: # If the has already arrived to the mission
-                            player.schedule.pop(0)
-                            self.generate_agent_finish_handle_mission_event(player=player)
-                        elif player.status == Status.TO_MISSION: # If the player on the way to his current mission
-                            self.generate_player_arrives_to_mission_event(player=player)
+                            player.current_mission.players_allocated_to_the_mission.append(player)
                     else:  # The player abandons his current event to a new allocation
                         self.handle_abandonment_event(player=player)
                         self.generate_player_arrives_to_mission_event(player=player)
@@ -231,10 +230,14 @@ class Simulation:
             player.calculate_relative_location(self.tnow)
 
     def handle_abandonment_event(self, player: PlayerSimple):
-        player.current_mission.remove_handling_player(player)
         player.current_mission = None
         player.current_task = None
         # self.generate_finish_handle_mission_event(mission=mission)
+
+    def handle_task_ended(self, task):
+        self.finished_tasks_list.append(task)
+        #task.task_utiliy() #TODO sofi had a mistake
+        self.tasks_list.remove(task)
 
     def remove_player_finish_handle_mission_event_from_diary(self):
         for ev in self.diary:
@@ -246,10 +249,11 @@ class Simulation:
             if type(ev) == PlayerArriveToEMissionEvent:
                 self.diary.remove(ev)
 
-    def handle_task_ended(self, task):
-        self.finished_tasks_list.append(task)
-        #task.task_utiliy() #TODO sofi had a mistake
-        self.tasks_list.remove(task)
+    def clean_tasks_form_agents(self):
+        for t in self.tasks_list:
+            for m in t.missions_list:
+                m.players_allocated_to_the_mission.clear()
+                m.players_handling_with_the_mission.clear()
 
     def generate_new_task_to_diary(self):
         """
@@ -285,3 +289,5 @@ class Simulation:
         player.schedule.pop(0)
         self.diary.append(
             PlayerFinishHandleMissionEvent(player=player, time_=self.tnow + duration, mission=mission, task=task))
+
+

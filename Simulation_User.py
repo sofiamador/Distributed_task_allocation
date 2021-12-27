@@ -15,7 +15,7 @@ map_length = 10
 map_width = 10
 number_of_players = 5
 solver_selection = 2 #1 = all task init # 2= single latest task init
-termination_time_constant =5000
+termination_time_constant =500
 util_structure_levels = 1 # 1-calculated rij, DONT touch was relevant only for static simulation
 
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
