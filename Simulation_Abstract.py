@@ -98,15 +98,19 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         SimulationEvent.__init__(self, time_=time_, task=task, mission=mission, player=player)
 
     def handle_event(self, simulation):
-        simulation.generate_agent_finish_handle_mission_event(player=self.player)
+        self.player.update_status(Status.ON_MISSION, self.time)
+        self.player.update_location(self.task.location, self.time)
+        self.player.schedule.pop(0)
+        self.mission.players_handling_with_the_mission.append(self.player)
+        simulation.generate_mission_finished_event(mission=self.mission, task=self.task)
 
 
-class PlayerFinishHandleMissionEvent(SimulationEvent):
+class MissionFinishedEvent(SimulationEvent):
     """
     Class that represent an event of player finished to handle  with the mission.
     """
 
-    def __init__(self, time_, player, task, mission):
+    def __init__(self, time_, task, mission):
         """
         :param time:the time of the event
         :type: float
@@ -117,25 +121,25 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
         :param mission: The mission that the player arrives to.
         :type: MissionSimple
         """
-        SimulationEvent.__init__(self, time_=time_, task=task, mission=mission, player=player)
+        SimulationEvent.__init__(self, time_=time_, task=task, mission=mission)
 
     def handle_event(self, simulation):
-        self.mission.remove_handling_player(player=self.player)
-        if len(self.player.schedule) >= 1:
-            simulation.generate_player_arrives_to_mission_event(player=self.player)
-        else:
-            self.player.update_status(Status.IDLE, self.time)
-            self.player.current_mission = None
-            self.player.current_task = None
+        for player in self.mission.players_allocated_to_the_mission:
+            if len(player.schedule) >= 1:
+                simulation.generate_player_arrives_to_mission_event(player=player)
+            else:
+                player.update_status(Status.IDLE, self.time)
+                player.current_mission = None
+                player.current_task = None
 
-        if self.mission.is_done:
-            print("mission ended:", self.task.id_)
-            self.task.mission_finished(self.mission)
-            # TODO check palyers on the event
-            if self.task.is_done:
-                simulation.handle_task_ended(self.task)
-                print("task ended:", self.task.id_)
-                simulation.solver.remove_task_from_solver(self.task)
+        self.mission.players_allocated_to_the_mission.clear()
+        self.mission.players_handling_with_the_mission.clear()
+        print("mission ended:", self.task.id_)
+        self.task.mission_finished(self.mission)
+        if self.task.is_done:
+            simulation.handle_task_ended(self.task)
+            print("task ended:", self.task.id_)
+            simulation.solver.remove_task_from_solver(self.task)
 
 
 class Simulation:
@@ -194,11 +198,11 @@ class Simulation:
             print("SOLVER STARTS:", self.solver_counter)
         self.update_locations_of_players()
         self.solver.solve(self.tnow)
-        self.remove_player_finish_handle_mission_event_from_diary()
+        self.remove_mission_finished_events()
         self.remove_player_arrive_to_mission_event_from_diary()
         self.clean_tasks_form_agents()
         self.check_new_allocation()
-        #print(self.diary)
+        # print(self.diary)
 
     def check_new_allocation(self):
         for player in self.players_list:
@@ -210,17 +214,22 @@ class Simulation:
 
             else:  # The player has a current allocation
                 if len(player.schedule) == 0:  # Player doesn't have a new allocation (only the old one)
-                    self.handle_abandonment_event(player=player)
+                    self.handle_abandonment_event(player=player, mission=player.current_mission,
+                                                  task=player.current_task)
                     player.update_status(Status.IDLE, self.tnow)
                 else:  # The player has a new allocation (missions in schedule)
-                    if player.schedule[0][1] == player.current_mission: # The players remains in his current mission
-                        if player.status == Status.ON_MISSION: # If the has already arrived to the mission
-                            player.current_mission.players_allocated_to_the_mission.append(player)
-                            self.generate_agent_finish_handle_mission_event(player)
+                    if player.schedule[0][1] == player.current_mission:  # The players remains in his current mission
+                        player.current_mission.players_allocated_to_the_mission.append(player)
+                        if player.status == Status.ON_MISSION:  # If the has already arrived to the mission
+                            player.current_mission.players_handling_with_the_mission.append(player)
+                            self.generate_mission_finished_event(mission=player.current_mission,
+                                                                 task=player.current_task)
+                            player.schedule.pop(0)
                         elif player.status == Status.TO_MISSION:
                             self.generate_player_arrives_to_mission_event(player=player)
                     else:  # The player abandons his current event to a new allocation
-                        self.handle_abandonment_event(player=player)
+                        self.handle_abandonment_event(player=player, mission=player.current_mission,
+                                                      task=player.current_task)
                         self.generate_player_arrives_to_mission_event(player=player)
 
     def update_workload(self):
@@ -231,21 +240,28 @@ class Simulation:
         for player in self.players_list:
             player.calculate_relative_location(self.tnow)
 
-    def handle_abandonment_event(self, player: PlayerSimple):
+    def handle_abandonment_event(self, player: PlayerSimple, mission: MissionSimple, task: TaskSimple):
         player.current_mission = None
         player.current_task = None
-        # self.generate_finish_handle_mission_event(mission=mission)
+        self.generate_mission_finished_event(mission, task)
 
     def handle_task_ended(self, task):
         self.finished_tasks_list.append(task)
-        #task.task_utiliy() #TODO sofi had a mistake
+        # task.task_utiliy() #TODO sofi had a mistake
         self.tasks_list.remove(task)
 
-    def remove_player_finish_handle_mission_event_from_diary(self):
-
+    def remove_mission_finished_events(self):
         to_remove = []
         for ev in self.diary:
-            if type(ev) == PlayerFinishHandleMissionEvent:
+            if type(ev) == MissionFinishedEvent:
+                to_remove.append(ev)
+        for ev in to_remove:
+            self.diary.remove(ev)
+
+    def remove_mission_finished_event(self, mission: MissionSimple):
+        to_remove = []
+        for ev in self.diary:
+            if type(ev) == MissionFinishedEvent and ev.mission.mission_id == mission.mission_id:
                 to_remove.append(ev)
         for ev in to_remove:
             self.diary.remove(ev)
@@ -288,15 +304,13 @@ class Simulation:
             PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
                                         player=player))
 
-    def generate_agent_finish_handle_mission_event(self, player: PlayerSimple):
-        mission = player.current_mission
-        task = player.current_task
-        player.update_status(Status.ON_MISSION, self.tnow)
-        player.update_location(task.location, self.tnow)
-        player.current_mission.players_handling_with_the_mission.append(player)
-        duration = player.schedule[0][2]
-        player.schedule.pop(0)
+    def generate_mission_finished_event(self, mission, task):
+        self.remove_mission_finished_event(mission=mission)
+        sum_productivity = 0
+        if len(mission.players_handling_with_the_mission)==0:
+            return
+        for p in mission.players_handling_with_the_mission:
+            sum_productivity += p.productivity
+        duration = mission.remaining_workload / sum_productivity
         self.diary.append(
-            PlayerFinishHandleMissionEvent(player=player, time_=self.tnow + duration, mission=mission, task=task))
-
-
+            MissionFinishedEvent(time_=self.tnow + duration, mission=mission, task=task))
