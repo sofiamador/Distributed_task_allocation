@@ -4,12 +4,15 @@ from abc import ABC
 import math
 import threading
 import copy
+
+from Simulation_Abstract_Components import Entity
+
 debug_print_for_distribution = False
 from enum import Enum
 
 debug_fisher_market = False
 
-from Simulation_Abstract import PlayerSimple,TaskSimple,Entity
+from Simulation_Abstract import PlayerSimple,TaskSimple
 
 
 def default_communication_disturbance(msg,entity1,entity2):
@@ -495,6 +498,7 @@ class Mailer(threading.Thread):
             if isinstance(p,PlayerAlgorithm):
                 print()
                 with p.cond:
+                    #print(p.simulation_entity.id_)
                     for task, dict in p.r_i.items():
                         for mission,util in dict.items():
                             print(round(util.linear_utility,2),end=" ")

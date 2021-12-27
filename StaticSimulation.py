@@ -11,7 +11,7 @@ from Communication_Protocols import CommunicationProtocol, CommunicationProtocol
     CommunicationProtocolMessageLossConstantAndUniform, CommunicationProtocolPois, \
     CommunicationProtocolDistanceBaseDelayExp, CommunicationProtocolExp
 from Data_fisher_market import get_data_fisher
-from R_ij import calculate_rij_tsg
+from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator
 
 plt.style.use('seaborn-whitegrid')
@@ -24,7 +24,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant =1000000 #1000000# 100000 #1000000
+termination_time_constant =10000 #1000000# 100000 #1000000
 map_width = None
 map_length = None
 data_jumps = None
@@ -322,7 +322,7 @@ def create_fisher_solver(simulation_rep,communication_protocol,ro=1, fisher_solv
         f_termination_condition=f_termination_condition_constant_mailer_nclo,
         f_global_measurements=get_data_fisher(),
         f_communication_disturbance=communication_protocol.get_communication_disturbance,
-        future_utility_function=calculate_rij_tsg,
+        future_utility_function=calculate_rij_abstract,
         is_with_timestamp=communication_protocol.is_with_timestamp,
         ro=ro,util_structure_level = util_structure_level,simulation_rep=simulation_rep)
 
@@ -331,7 +331,7 @@ def create_fisher_solver(simulation_rep,communication_protocol,ro=1, fisher_solv
          f_termination_condition=f_termination_condition_constant_mailer_nclo,
          f_global_measurements=get_data_fisher(),
          f_communication_disturbance=communication_protocol.get_communication_disturbance,
-         future_utility_function=calculate_rij_tsg,
+         future_utility_function=calculate_rij_abstract,
          is_with_timestamp=communication_protocol.is_with_timestamp,
          ro=ro, util_structure_level =util_structure_level,simulation_rep = simulation_rep)
 

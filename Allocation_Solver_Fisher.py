@@ -8,9 +8,10 @@ import Simulation_Abstract
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
     default_communication_disturbance, AllocationSolverTasksPlayersFullRandTaskInit, \
     AllocationSolverTasksPlayersFullLatestTaskInit
-from Simulation_Abstract import Entity, TaskSimple, PlayerSimple
-from Allocation_Solver_Abstract import Msg, MsgTaskEntity
+from Simulation_Abstract import  TaskSimple, PlayerSimple
+from Allocation_Solver_Abstract import Msg
 from R_ij import calculate_rij_tsg
+from Simulation_Abstract_Components import Entity, calculate_distance_input_location
 
 is_with_scheduling = True
 
@@ -50,7 +51,7 @@ def calculate_distance(entity1: Entity, entity2: Entity):
     :rtype: float
     """
     distance = 0
-    n = min(len(entity1.location, len(entity2.location)))
+    n = min(len(entity1.location), len(entity2.location))
     for i in range(n):
         distance += (entity1.location[i] - entity2.location[i]) ** 2
     return distance ** 0.5
@@ -451,7 +452,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         location_task = other_mission_allocation.task.location
 
         ####---------travel time from current location
-        distance_to_task = Simulation_Abstract.calculate_distance_input_location(location_task, current_location)
+        distance_to_task = calculate_distance_input_location(location_task, current_location)
         absolute_time_to_task = distance_to_task / player_speed
         time_player_arrives = absolute_time_to_task
 
@@ -461,7 +462,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         time_at_mission = other_mission_allocation.norm_xjk * remaining_workload / productivity
 
         ###----------travel time to top location
-        distance_from_other_task_to_top = Simulation_Abstract.calculate_distance_input_location(location_task,
+        distance_from_other_task_to_top = calculate_distance_input_location(location_task,
                                                                                                 top_measure_task_location)
         absolute_time_to_task_from_other_task_to_top = distance_from_other_task_to_top / player_speed
 
@@ -500,7 +501,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         ans = {}
 
         for task in self.x_i_norm.keys():
-            distance_to_task = Simulation_Abstract.calculate_distance(self.simulation_entity, task)
+            distance_to_task = calculate_distance(self.simulation_entity, task)
             arrival_time = distance_to_task / self.simulation_entity.speed
             ans[task] = arrival_time
         return ans
@@ -552,7 +553,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
             if allocation.measure_ == 0:
                 allocation.time_player_arrives = None
             else:
-                distance_to_task = Simulation_Abstract.calculate_distance_input_location(location_task,current_location)
+                distance_to_task = calculate_distance_input_location(location_task,current_location)
                 absolute_time_to_task = distance_to_task/player_speed
 
                 ####---------

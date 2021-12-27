@@ -136,6 +136,7 @@ class PlayerFinishHandleMissionEvent(SimulationEvent):
             if self.task.is_done:
                 simulation.handle_task_ended(self.task)
                 print("task ended:", self.task.id_)
+                simulation.solver.remove_task_from_solver(self.task)
 
 
 class Simulation:

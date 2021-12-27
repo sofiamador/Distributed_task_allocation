@@ -2,9 +2,10 @@ import math
 import string
 import random
 
-from Simulation_Abstract import MapHubs, MissionSimple, TaskSimple, AbilitySimple, TaskGenerator, PlayerGenerator, \
+from Simulation_Abstract import  MissionSimple, TaskSimple,  TaskGenerator, \
     PlayerSimple
 # from StaticSimulation import TaskSimpleStatic, rand_id_str
+from Simulation_Abstract_Components import MapHubs, PlayerGenerator, AbilitySimple
 from TSG_Solver import TSGEvent, Status, TSGPlayer
 import numpy as np
 
@@ -61,7 +62,7 @@ class SimplePlayerGenerator(PlayerGenerator):
         self.min_productivity = min_productivity
 
     def get_player(self):
-        self.id_counter = self.id_counter + 1
+        self.id_counter = self.id_counter - 1
         id_ = str(self.id_counter)
         location = self.map.generate_location_gauss_around_center()
         speed = self.speed
@@ -459,4 +460,4 @@ if __name__ == '__main__':
     players = []
     for _ in range(10):
         players.append(player_generator.get_player())
-    print(3)
+

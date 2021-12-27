@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from Simulation_Abstract import MissionSimple, TaskSimple, AbilitySimple, PlayerSimple
+from Simulation_Abstract import MissionSimple, TaskSimple, PlayerSimple
 
 import math
 

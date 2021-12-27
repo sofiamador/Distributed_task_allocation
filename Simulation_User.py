@@ -4,15 +4,16 @@ import random
 from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, \
     FisherAsynchronousSolver_TaskLatestArriveInit
 from Communication_Protocols import CommunicationProtocolDefault
-from Simulation_Abstract import Simulation, MapHubs
-from Entity_Generator import TaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator, SimplePlayerGenerator
+from Simulation_Abstract import Simulation
+from Entity_Generator import  SimpleTaskGenerator, SimplePlayerGenerator
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
+from Simulation_Abstract_Components import MapHubs
 
 simulations_range = range(100)
 number_of_centers = 4
 map_length = 10
 map_width = 10
-number_of_players = 10
+number_of_players = 5
 solver_selection = 2 #1 = all task init # 2= single latest task init
 termination_time_constant =5000
 util_structure_levels = 1 # 1-calculated rij, DONT touch was relevant only for static simulation
