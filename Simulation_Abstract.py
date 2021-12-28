@@ -125,6 +125,9 @@ class MissionFinishedEvent(SimulationEvent):
 
     def handle_event(self, simulation):
         for player in self.mission.players_allocated_to_the_mission:
+            simulation.remove_events_when_mission_finished(self.mission)
+            if player.status == Status.TO_MISSION:
+                player.schedule.pop(0)
             if len(player.schedule) >= 1:
                 simulation.generate_player_arrives_to_mission_event(player=player)
             else:
@@ -132,8 +135,8 @@ class MissionFinishedEvent(SimulationEvent):
                 player.current_mission = None
                 player.current_task = None
 
-        self.mission.players_allocated_to_the_mission.clear()
-        self.mission.players_handling_with_the_mission.clear()
+        self.mission.players_allocated_to_the_mission = []
+        self.mission.players_handling_with_the_mission = []
         print("mission ended:", self.task.id_)
         self.task.mission_finished(self.mission)
         if self.task.is_done:
@@ -274,6 +277,14 @@ class Simulation:
         for ev in to_remove:
             self.diary.remove(ev)
 
+    def remove_events_when_mission_finished(self, mission: MissionSimple):
+        to_remove = []
+        for ev in self.diary:
+            if ev.mission is not None and ev.mission.mission_id == mission.mission_id:
+                to_remove.append(ev)
+        for ev in to_remove:
+            self.diary.remove(ev)
+
     def clean_tasks_form_agents(self):
         for t in self.tasks_list:
             for m in t.missions_list:
@@ -296,9 +307,9 @@ class Simulation:
         player.update_status(Status.TO_MISSION, self.tnow)
         next_task = player.schedule[0][0]
         next_mission = player.schedule[0][1]
+        next_mission.players_allocated_to_the_mission.append(player)
         player.current_mission = next_mission
         player.current_task = next_task
-        player.current_mission.players_allocated_to_the_mission.append(player)
         travel_time = self.f_calculate_distance(player, next_task) / player.speed
         self.diary.append(
             PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
@@ -307,7 +318,7 @@ class Simulation:
     def generate_mission_finished_event(self, mission, task):
         self.remove_mission_finished_event(mission=mission)
         sum_productivity = 0
-        if len(mission.players_handling_with_the_mission)==0:
+        if len(mission.players_handling_with_the_mission) == 0:
             return
         for p in mission.players_handling_with_the_mission:
             sum_productivity += p.productivity
