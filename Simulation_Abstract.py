@@ -136,11 +136,11 @@ class MissionFinishedEvent(SimulationEvent):
 
         self.mission.players_allocated_to_the_mission = []
         self.mission.players_handling_with_the_mission = []
-        print("mission ended:", self.task.id_)
+        #print("mission ended:", self.task.id_)
         self.task.mission_finished(self.mission)
         if self.task.is_done:
             simulation.handle_task_ended(self.task)
-            print("task ended:", self.task.id_)
+            #print("task ended:", self.task.id_)
             simulation.solver.remove_task_from_solver(self.task)
 
 

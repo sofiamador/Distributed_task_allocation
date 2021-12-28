@@ -78,7 +78,7 @@ def all_values_are_zero(values):
 
 
 for simulation_number in simulations_range:
-
+    print("Start Simulation Number",simulation_number)
     # rnd = random.Random(1)
     # mmm = MapHubs(number_of_centers=3, seed=1, length_y=9.0, width_x=9.0, sd_multiplier=0.5)
     # generator_ = SimpleTaskGenerator(map_=mmm, seed=1, factor_initial_workload=1.35, max_importance=10,
@@ -111,4 +111,4 @@ for simulation_number in simulations_range:
     name = str(simulation_number)
 
     simulation_created = Simulation(name=name, players_list=players_list, solver=solver,
-                                    tasks_generator=tasks_generator, end_time=200, debug_mode=True)
+                                    tasks_generator=tasks_generator, end_time=200, debug_mode=False)
