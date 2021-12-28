@@ -126,8 +126,9 @@ class MissionFinishedEvent(SimulationEvent):
     def handle_event(self, simulation):
         for player in self.mission.players_allocated_to_the_mission:
             simulation.remove_events_when_mission_finished(self.mission)
-            if player.status == Status.TO_MISSION:
-                player.schedule.pop(0)
+            for all in player.schedule:
+                if all[1].is_done:
+                    player.schedule.pop(0)
             if len(player.schedule) >= 1:
                 simulation.generate_player_arrives_to_mission_event(player=player)
             else:

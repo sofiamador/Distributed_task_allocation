@@ -280,7 +280,7 @@ class MissionSimple:
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
         self.workload_updating(delta)
-        if self.remaining_workload <= 0.00001 and len(self.players_handling_with_the_mission) == 0:
+        if self.remaining_workload <= 0.00001:
             self.is_done = True
         self.last_updated = tnow
 
@@ -371,6 +371,7 @@ class TaskSimple(Entity):
 
     def mission_finished(self, mission):
         # try:
+        mission.is_done = True
         self.missions_list.remove(mission)
         self.done_missions.append(mission)
         if len(self.missions_list) == 0:
