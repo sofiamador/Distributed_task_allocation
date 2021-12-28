@@ -1,6 +1,6 @@
 from Simulation_Abstract_Components import TaskSimple, find_and_allocate_responsible_player, Status, TaskGenerator, \
     calculate_distance, are_neighbours, is_player_can_be_allocated_to_task, PlayerSimple, MissionSimple
-
+from itertools import filterfalse
 
 class SimulationEvent:
     """
@@ -126,9 +126,7 @@ class MissionFinishedEvent(SimulationEvent):
     def handle_event(self, simulation):
         for player in self.mission.players_allocated_to_the_mission:
             simulation.remove_events_when_mission_finished(self.mission)
-            for all in player.schedule:
-                if all[1].is_done:
-                    player.schedule.pop(0)
+            player.schedule[:] = filterfalse(lambda a: a[1].is_done, player.schedule)
             if len(player.schedule) >= 1:
                 simulation.generate_player_arrives_to_mission_event(player=player)
             else:
@@ -223,8 +221,8 @@ class Simulation:
                     player.update_status(Status.IDLE, self.tnow)
                 else:  # The player has a new allocation (missions in schedule)
                     if player.schedule[0][1] == player.current_mission:  # The players remains in his current mission
-                        player.current_mission.players_allocated_to_the_mission.append(player)
                         if player.status == Status.ON_MISSION:  # If the has already arrived to the mission
+                            player.current_mission.add_allocated_player(player)
                             player.current_mission.players_handling_with_the_mission.append(player)
                             self.generate_mission_finished_event(mission=player.current_mission,
                                                                  task=player.current_task)
@@ -255,36 +253,16 @@ class Simulation:
         self.tasks_list.remove(task)
 
     def remove_mission_finished_events(self):
-        to_remove = []
-        for ev in self.diary:
-            if type(ev) == MissionFinishedEvent:
-                to_remove.append(ev)
-        for ev in to_remove:
-            self.diary.remove(ev)
+        self.diary[:] = filterfalse(lambda ev: type(ev) == MissionFinishedEvent, self.diary)
 
     def remove_mission_finished_event(self, mission: MissionSimple):
-        to_remove = []
-        for ev in self.diary:
-            if type(ev) == MissionFinishedEvent and ev.mission.mission_id == mission.mission_id:
-                to_remove.append(ev)
-        for ev in to_remove:
-            self.diary.remove(ev)
+        self.diary[:] = filterfalse(lambda ev: type(ev) == MissionFinishedEvent and ev.mission.mission_id == mission.mission_id, self.diary)
 
     def remove_player_arrive_to_mission_event_from_diary(self):
-        to_remove = []
-        for ev in self.diary:
-            if type(ev) == PlayerArriveToEMissionEvent:
-                to_remove.append(ev)
-        for ev in to_remove:
-            self.diary.remove(ev)
+        self.diary[:] = filterfalse(lambda ev: type(ev) == PlayerArriveToEMissionEvent, self.diary)
 
     def remove_events_when_mission_finished(self, mission: MissionSimple):
-        to_remove = []
-        for ev in self.diary:
-            if ev.mission is not None and ev.mission.mission_id == mission.mission_id:
-                to_remove.append(ev)
-        for ev in to_remove:
-            self.diary.remove(ev)
+        self.diary[:] = filterfalse(lambda ev: ev.mission is not None and ev.mission.mission_id == mission.mission_id, self.diary)
 
     def clean_tasks_form_agents(self):
         for t in self.tasks_list:
@@ -308,7 +286,7 @@ class Simulation:
         player.update_status(Status.TO_MISSION, self.tnow)
         next_task = player.schedule[0][0]
         next_mission = player.schedule[0][1]
-        next_mission.players_allocated_to_the_mission.append(player)
+        next_mission.add_allocated_player(player)
         player.current_mission = next_mission
         player.current_task = next_task
         travel_time = self.f_calculate_distance(player, next_task) / player.speed

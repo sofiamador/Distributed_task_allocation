@@ -15,7 +15,7 @@ map_length = 10
 map_width = 10
 number_of_players = 5
 solver_selection = 2  # 1 = all task init # 2= single latest task init
-termination_time_constant = 100
+termination_time_constant = 500
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
 
 
@@ -111,4 +111,4 @@ for simulation_number in simulations_range:
     name = str(simulation_number)
 
     simulation_created = Simulation(name=name, players_list=players_list, solver=solver,
-                                    tasks_generator=tasks_generator, end_time=1000, debug_mode=True)
+                                    tasks_generator=tasks_generator, end_time=200, debug_mode=True)
