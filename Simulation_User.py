@@ -111,4 +111,4 @@ for simulation_number in simulations_range:
     name = str(simulation_number)
 
     simulation_created = Simulation(name=name, players_list=players_list, solver=solver,
-                                    tasks_generator=tasks_generator, end_time=200, debug_mode=False)
+                                    tasks_generator=tasks_generator, end_time=500, debug_mode=False)

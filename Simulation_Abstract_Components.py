@@ -277,6 +277,28 @@ class MissionSimple:
         self.arrival_time_to_the_system = arrival_time_to_the_system
         self.last_updated = arrival_time_to_the_system
 
+        #####----------
+
+        self.x0_simulation_time_mission_enter_system = self.arrival_time_to_the_system
+        self.x1_simulation_time_first_player_arrive = None # update when mission finish
+        self.x2_delay = None #will be update x1-x0 when mission finish
+
+
+        self.simulation_time_of_first_agent = None
+        self.delay = None
+
+        self.abandonment_counter = 0
+        self.total_abandonment_counter = 0
+
+        self.simulation_time_finished = None
+        self.time_take_to_finish = None
+        self.finish_optimal_absolute_time = self.initial_workload/self.max_players
+
+        # optimal_time_of_missions = []
+        # for mission in self.missions_list:
+        #    mission.
+        # self.task_finish_optimal_time = max()
+
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
         self.workload_updating(delta)
@@ -347,9 +369,23 @@ class TaskSimple(Entity):
         self.missions_list = missions_list
         self.player_responsible = None
         self.importance = importance
-        self.arrival_time = arrival_time
+        self.arrival_time = arrival_time #arrival time to system
         self.done_missions = []
         self.is_done = False
+
+        #----------------
+        #self.simulation_time_of_first_agent = None
+        #self.delay = None
+
+        #self.abandonment_counter = 0
+        #self.total_abandonment_counter = 0
+
+        #self.simulation_time_of_task_finished = None
+        #optimal_time_of_missions = []
+        #for mission in self.missions_list:
+        #    mission.
+        #self.task_finish_optimal_time = max()
+
 
     def create_neighbours_list(self, players_list,
                                f_is_player_can_be_allocated_to_mission=is_player_can_be_allocated_to_task):
