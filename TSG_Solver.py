@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from Simulation_Abstract_Components import MissionSimple, TaskSimple, PlayerSimple
+from Simulation_Abstract_Components import MissionSimple, TaskSimple, PlayerSimple, AbilitySimple
 
 import math
 
@@ -251,8 +251,6 @@ class TSGMission(MissionSimple):
 
     def expected_survival_late_finish_decrease(self):
 
-        penalty_for_late_finish = 0
-
         # Phase 1 - Get the number of agents and remaining workload.
         number_of_agents = len(self.players_allocated_to_the_mission)
         remaining_workload = self.remaining_workload
@@ -273,7 +271,8 @@ class TSGMission(MissionSimple):
     def evaluate_optimal_finish_survival_for_number_of_agents(self, number_of_agents, remaining_workload,
                                                               workload_done):
 
-        # Case 1 - The method got 1 agent or 0 agent and will return the survival as if there are no agent from this point of time.
+        # Case 1 - The method got 1 agent or 0 agent and will return the survival as if there are no agent from this
+        # point of time.
         if number_of_agents <= 0:
             max_penalty = self.casualty.get_minimal_survival_probability(initial_RPM=self.initial_RPM)
             return max_penalty

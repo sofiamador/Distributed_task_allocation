@@ -17,9 +17,7 @@ def input_from_file(file_name):
     return lst
 
 
-if __name__ == '__main__':
-    file_name = "RUN1.1_input.txt"
-    host_name = "צוות_חילוץ_1"
+def test_TSG(file_name,host_name):
     agent_list, event_list, allocation_list, event_params, force_type_data, discrete_params = input_from_file(file_name)
 
     allocation_list_updated = TSG_integration.calcAllocations(host_agent=host_name, agent_list=agent_list,
@@ -30,3 +28,12 @@ if __name__ == '__main__':
                                                               event_params=event_params)
     print(allocation_list_updated)
     # print(len(allocation_list_updated))
+
+
+
+import threading
+
+x = threading.Thread(target=test_TSG, args=("RUN1.1_input.txt","צוות_חילוץ_1"))
+x.start()
+y = threading.Thread(target=test_TSG, args=("RUN1.7_input.txt","צוות_חילוץ_7"))
+y.start()

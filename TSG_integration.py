@@ -232,15 +232,6 @@ def calcAllocationsInternal(host_agent, agent_list, event_list, allocations_list
 
     # update the host agent
     h = get_agent_by_id(agents_obj_list, host_agent)
-    # if h is None:
-    #     h =  TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
-    #                       point=[t[3], t[4]], start_activity_time=start_activity_time,
-    #                       start_resting_time=start_resting_time,
-    #                       max_activity_time=force_data_map[type_]["max_activity_time"],
-    #                       extra_hours_allowed=force_data_map[type_]["extra_hours_allowed"],
-    #                       min_competence_time=force_data_map[type_]["min_competence_time"],
-    #                       competence_length=force_data_map[type_]["competence_length"], status=status,
-    #                       is_working_extra_hours=is_working_extra_hours, address=address, tnow=t_now)
     h.neighbours = agents_obj_list
     h.tasks_responsible = event_obj_list
 
