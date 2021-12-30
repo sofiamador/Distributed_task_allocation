@@ -281,23 +281,33 @@ class MissionSimple:
 
         self.x0_simulation_time_mission_enter_system = self.arrival_time_to_the_system
         self.x1_simulation_time_first_player_arrive = None # update when mission finish
-        self.x2_delay = None #will be update x1-x0 when mission finish
+        self.x2_delay = None
+
+        self.x3_abandonment_counter = 0 #each decrease in players present
+        self.x4_total_abandonment_counter = 0 #decrease from 1 to 0
+
+        self.x5_simulation_time_mission_end = None
+        self.x6_total_time_since_arrive_to_system = None
+        self.x7_total_time_since_first_agent_arrive = None
+
+        self.x8_optimal_time = self.initial_workload/self.max_players
+        self.x9_ratio_time_taken_arrive_to_system_and_opt = None
+        self.x10_ratio_time_taken_first_agent_arrive_and_opt = None
+
+        self.x11_time_amount_of_agents_from_first_agent = self.create_dict_of_players_amounts()
+        self.x12_time_amount_of_agents_and_time_mission_finish_ratio_first_agent = self.create_dict_of_players_amounts()
+
+        self.x13_time_amount_of_agents_from_system = self.create_dict_of_players_amounts()
+        self.x14_time_amount_of_agents_and_time_mission_finish_ratio_system = self.create_dict_of_players_amounts()
 
 
-        self.simulation_time_of_first_agent = None
-        self.delay = None
 
-        self.abandonment_counter = 0
-        self.total_abandonment_counter = 0
 
-        self.simulation_time_finished = None
-        self.time_take_to_finish = None
-        self.finish_optimal_absolute_time = self.initial_workload/self.max_players
-
-        # optimal_time_of_missions = []
-        # for mission in self.missions_list:
-        #    mission.
-        # self.task_finish_optimal_time = max()
+    def create_dict_of_players_amounts(self):
+        ans = {}
+        for i in range(self.max_players+1):
+            ans[i] = None
+        return ans
 
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
@@ -323,6 +333,7 @@ class MissionSimple:
         if player in self.players_handling_with_the_mission:
             raise Exception("Double handling of the the same player to one mission" + str(self.mission_id))
         self.players_handling_with_the_mission.append(player)
+
 
     def remove_allocated_player(self, player):
         if player not in self.players_allocated_to_the_mission:
@@ -374,17 +385,16 @@ class TaskSimple(Entity):
         self.is_done = False
 
         #----------------
-        #self.simulation_time_of_first_agent = None
-        #self.delay = None
+        self.x0_simulation_time_task_enter_system = self.arrival_time
+        self.x1_simulation_time_first_player_arrive_to_one_of_the_missions = None  # update when mission finish
+        self.x2_delay = None
 
-        #self.abandonment_counter = 0
-        #self.total_abandonment_counter = 0
+        self.x3_abandonment_counter_of_all_missions = 0  # sum_of_all_
+        self.x4_total_abandonment_counter_of_all_missions = 0  # decrease from 1 to 0
 
-        #self.simulation_time_of_task_finished = None
-        #optimal_time_of_missions = []
-        #for mission in self.missions_list:
-        #    mission.
-        #self.task_finish_optimal_time = max()
+        self.x5_simulation_time_task_end = None # max of missions
+        self.x6_total_time_since_arrive_to_system = None # min of missions
+        self.x7_total_time_since_first_agent_arrive = None # min of missions
 
 
     def create_neighbours_list(self, players_list,

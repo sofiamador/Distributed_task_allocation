@@ -151,6 +151,8 @@ def solve(agent_obj_list, event_obj_list, t_now):
             m.players_allocated_to_the_mission.clear()
     for a in agent_obj_list:
         a.current_mission = None
+
+
     for i in range(len(agent_obj_list)):
         agent = agent_obj_list[i]
         event = event_obj_list[i % len(event_obj_list)]
@@ -159,6 +161,8 @@ def solve(agent_obj_list, event_obj_list, t_now):
                         last_update_time=t_now, mission_status=1, event_id=event.id_,
                         agent_id=agent.id_, working_starting_time=t_now,
                         working_ending_time=t_now + 3600 * random.random())
+
+
         for m in event.missions_list:
             if m.abilities[0] == agent.abilities[0]:
                 m.add_player(agent, t_now)
