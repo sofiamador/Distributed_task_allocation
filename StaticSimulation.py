@@ -13,10 +13,11 @@ from Communication_Protocols import CommunicationProtocol, CommunicationProtocol
 from Data_fisher_market import get_data_fisher
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator
+from Simulation_Abstract_Components import MapHubs
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
-from Simulation_Abstract import MapHubs, TaskArrivalEvent, find_and_allocate_responsible_player, TaskSimple, AbilitySimple
+from Simulation_Abstract import  TaskArrivalEvent, find_and_allocate_responsible_player, TaskSimple
 from Allocation_Solver_Abstract import AllocationSolver
 import string
 
