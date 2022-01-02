@@ -245,6 +245,7 @@ class Simulation:
     def handle_abandonment_event(self, player: PlayerSimple, mission: MissionSimple, task: TaskSimple):
         player.current_mission = None
         player.current_task = None
+        mission.change_abandonment_measurements(player)
         self.generate_mission_finished_event(mission, task)
 
     def handle_task_ended(self, task):
@@ -267,8 +268,8 @@ class Simulation:
     def clean_tasks_form_agents(self):
         for t in self.tasks_list:
             for m in t.missions_list:
-                m.players_allocated_to_the_mission.clear()
-                m.players_handling_with_the_mission.clear()
+                m.clear_players_before_allocation()
+
 
     def generate_new_task_to_diary(self):
         """

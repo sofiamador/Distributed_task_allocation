@@ -1059,6 +1059,7 @@ class AllocationSolverCentralized(AllocationSolver):
 
     def allocate(self):
         while(self.f_termination_condition(self.agents_algorithm)):
+            pass
             #TODO
 
     @abc.abstractmethod

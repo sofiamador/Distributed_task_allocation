@@ -268,7 +268,18 @@ class MissionMeasurements:
         self.x13_time_amount_of_agents_from_system = self.create_dict_of_players_amounts()
         self.x14_time_amount_of_agents_and_time_mission_finish_ratio_system = self.create_dict_of_players_amounts()
 
+        self.players_allocated_to_the_mission_previous=[]
+        self.players_handling_with_the_mission_previous = []
 
+
+    def change_abandonment_measurements(self,player):
+        flag = False
+        if player in self.players_handling_with_the_mission_previous:
+            self.x3_abandonment_counter = self.x3_abandonment_counter+1
+            self.players_handling_with_the_mission_previous.remove(player)
+            flag = True
+        if flag and len(self.players_handling_with_the_mission_previous) == 0:
+            self.x4_total_abandonment_counter = self.x4_total_abandonment_counter + 1
 
     def create_dict_of_players_amounts(self):
         ans = {}
@@ -361,6 +372,13 @@ class MissionSimple:
             self.players_handling_with_the_mission.remove(player)
         self.remove_allocated_player(player)
 
+    def clear_players_before_allocation(self):
+        self.measurements.players_allocated_to_the_mission_previous = self.players_allocated_to_the_mission
+        self.measurements.players_handling_with_the_mission_previous = self.players_handling_with_the_mission
+
+
+        self.players_allocated_to_the_mission.clear()
+        self.players_handling_with_the_mission.clear()
     def __hash__(self):
         return hash(self.mission_id)
 
