@@ -117,16 +117,7 @@ class ClockObject():
         with self.lock:
             return self.clock
 
-class IterativeCentralisticMalier():
-    def __init__(self, termination_condition_f,players = [],tasks = []):
 
-        self.players_simulation_dict = {}
-        for pp in players:
-            self.players_simulation_dict[pp.id_] = pp
-
-        self.tasks_simulation_dict = {}
-        for tt in tasks:
-            self.tasks_simulation_dict[tt.id_] = tt
 
 class Mailer(threading.Thread):
 
@@ -979,6 +970,7 @@ class AllocationSolver:
     
     def __init__(self, tasks_simulation=[], players_simulation=[]):
         self.centralized_computer = None
+        self.agents_algorithm = []
 
         self.tasks_simulation = []
         for task in tasks_simulation:
@@ -1032,69 +1024,61 @@ class CentralComputer:
     pass
 
 
+
+
+
 class AllocationSolverCentralized(AllocationSolver):
-    def __init__(self, centralized_computer:CentralComputer= None):
+    def __init__(self, centralized_computer:CentralComputer,f_termination_condition):
         AllocationSolver.__init__(self,centralized_computer)
         self.centralized_computer = centralized_computer
+        self.f_termination_condition = f_termination_condition
 
 
     def reset_centralized_computer_info(self):
+        self.agents_algorithm = []
+
         tasks = self.centralized_computer.tasks
         for tt in tasks:
             task_copy = copy.copy(tt)
             self.tasks_simulation.append(task_copy)
+            self.add_task_to_solver()
 
         players = self.centralized_computer.players
         for pp in players:
             player_copy = copy.copy(pp)
             self.players_simulation.append(player_copy)
+            self.add_player_to_solver()
 
 
     def solve(self, tnow, centralized_computer=None) -> {}:
         self.tnow = tnow
         self.centralized_computer = centralized_computer
         self.reset_centralized_computer_info()
+        self.initialize_centralistic_algorithm()
         return self.allocate()
 
     def allocate(self):
-        pass
+        while(self.f_termination_condition(self.agents_algorithm)):
+            #TODO
+
+    @abc.abstractmethod
+    def initialize_centralistic_algorithm(self):
+        raise NotImplementedError
+
     def add_player_to_solver(self, player: PlayerSimple):
         pass
 
     def remove_player_from_solver(self, player: PlayerSimple):
         pass
-        #player_id = player.id_
-        #selected_player = None
-        #for player_in in self.players_simulation:
-        #    if player_in.id_ == player_id:
-        #        selected_player = player_in
-        #        break
-        #if selected_player is not None:
-        #    self.players_simulation.remove(selected_player)
 
     def add_task_to_solver(self, task: TaskSimple):
         pass
-        #task_copy = copy.copy(task)
-        #self.tasks_simulation.append(task_copy)
 
     def remove_task_from_solver(self, task: TaskSimple):
         pass
-        #task_id = task.id_
-        #selected_task = None
-        #for task_in in self.tasks_simulation:
-        #    if task_in.id_ == task_id:
-        #        selected_task = task_in
-        #        break
-        #if selected_task is not None:
-        #    self.tasks_simulation.remove(selected_task)
 
-    #def player_update_its_entity(self,player: PlayerSimple):
-        #self.remove_player_from_solver(player)
-        #self.add_player_to_solver(player)
 
-    #def task_update_its_entity(self,task: TaskSimple):
-        #self.remove_task_from_solver(task)
-        #self.add_task_to_solver(task)
+
 
 class AllocationSolverDistributed(AllocationSolver):
 
@@ -1111,7 +1095,6 @@ class AllocationSolverDistributed(AllocationSolver):
         self.f_global_measurements =f_global_measurements
         self.f_communication_disturbance =f_communication_disturbance
 
-        self.agents_algorithm = []
 
         self.mailer = None
         self.imply_mailer( )

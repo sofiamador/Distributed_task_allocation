@@ -13,11 +13,11 @@ simulations_range = range(100)
 number_of_centers = 4
 map_length = 10
 map_width = 10
-number_of_players = 5
+number_of_players = 50
 solver_selection = 2  # 1 = all task init # 2= single latest task init
 termination_time_constant = 500
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
-
+exp_lambda_parameter = 0.5
 
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
                                                  termination_time_constant=termination_time_constant):
@@ -98,8 +98,7 @@ for simulation_number in simulations_range:
     map_ = MapHubs(seed=seed * 17 + 17, number_of_centers=number_of_centers, sd_multiplier=0.05,
                    length_y=map_length, width_x=map_width)
     rand_ = random.Random(seed * 17 + 1910)
-    amount_of_players = 10
-    tasks_generator = SimpleTaskGenerator(map_=map_, seed=seed)  # TaskGeneratorTSG(map_, seed, exp_lambda_parameter=2)
+    tasks_generator = SimpleTaskGenerator(map_=map_, seed=seed,exp_lambda_parameter=exp_lambda_parameter )  # TaskGeneratorTSG(map_, seed, exp_lambda_parameter=2)
     player_generator = SimplePlayerGenerator(map_=map_, seed=seed)
 
     players_list = []
@@ -111,4 +110,4 @@ for simulation_number in simulations_range:
     name = str(simulation_number)
 
     simulation_created = Simulation(name=name, players_list=players_list, solver=solver,
-                                    tasks_generator=tasks_generator, end_time=500, debug_mode=False)
+                                    tasks_generator=tasks_generator, end_time=500, debug_mode=True)

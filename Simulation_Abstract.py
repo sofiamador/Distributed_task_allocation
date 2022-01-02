@@ -223,7 +223,7 @@ class Simulation:
                     if player.schedule[0][1] == player.current_mission:  # The players remains in his current mission
                         if player.status == Status.ON_MISSION:  # If the has already arrived to the mission
                             player.current_mission.add_allocated_player(player)
-                            player.current_mission.players_handling_with_the_mission.append(player)
+                            player.current_mission.add_handling_player(player,self.tnow)
                             self.generate_mission_finished_event(mission=player.current_mission,
                                                                  task=player.current_task)
                             player.schedule.pop(0)

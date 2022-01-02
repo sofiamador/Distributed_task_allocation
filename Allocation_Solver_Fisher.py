@@ -7,7 +7,7 @@ from abc import ABC
 import Simulation_Abstract
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
     default_communication_disturbance, AllocationSolverTasksPlayersFullRandTaskInit, \
-    AllocationSolverTasksPlayersFullLatestTaskInit
+    AllocationSolverTasksPlayersFullLatestTaskInit, AllocationSolverCentralized, CentralComputer
 from Simulation_Abstract import  TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg
 from R_ij import calculate_rij_tsg
@@ -579,8 +579,6 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
         return only_allo_missions
 
 
-
-
 class FisherTaskASY(TaskAlgorithm):
     def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges=2, Threshold=0.001):
         TaskAlgorithm.__init__(self, simulation_entity = agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
@@ -1089,3 +1087,21 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
                                                    agent_simulator=player, t_now=self.tnow,
                                                    future_utility_function=self.future_utility_function,
                                                    is_with_timestamp=self.is_with_timestamp, ro=self.ro)
+
+
+class FisherCentralized(AllocationSolverCentralized):
+    def __init__(self,centralized_computer:CentralComputer,f_termination_condition, mailer = None,  f_global_measurements = {},
+    future_utility_function = None, util_structure_level = 1,
+    is_with_timestamp = True, ro = 0.9, simulation_rep = 0):
+        AllocationSolverCentralized.__init__(self,centralized_computer,f_termination_condition)
+
+
+
+
+
+    def add_player_to_solver(self, player: PlayerSimple):
+        pass
+
+
+    def add_task_to_solver(self, task: TaskSimple):
+        pass
