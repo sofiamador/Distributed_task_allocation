@@ -1,8 +1,10 @@
-
 import copy
 # import time
 import random
 import uuid
+from time import sleep
+
+#from TSG_communication import SendAlgoData, GetAlgoData
 
 import TSG_Solver
 from TSG_Solver import TSGPlayer, TSGMission, TSGEvent, Allocations, Status
@@ -60,40 +62,39 @@ def create_agents(agents_list, force_data_map, t_now, host_agent):
         resting_hours = t[6]
         address = t[7]
 
-        if address == host_agent:
-            status = None
-            is_working_extra_hours = False
-            if resting_hours > 0 and working_hours > 0:
-                raise Exception
+        status = None
+        is_working_extra_hours = False
+        if resting_hours > 0 and working_hours > 0:
+            raise Exception
 
-            if 0 < resting_hours < force_data_map[type_]["min_competence_time"] or \
-                    working_hours >= force_data_map[type_]["max_activity_time"] + force_data_map[type_][
-                "extra_hours_allowed"] + remaining_working_time_threshold:
-                status = Status.TOTAL_RESTING
-                start_activity_time = None
-                start_resting_time = t[2] / 3600 - t[6]
-            elif force_data_map[type_]["min_competence_time"] <= resting_hours < force_data_map[type_][
-                "competence_length"]:
-                status = Status.RESTING
-                start_activity_time = None
-                start_resting_time = t[2] / 3600 - t[6]
-            else:
-                status = Status.IDLE
-                start_activity_time = t[2] / 3600 - t[5]
-                start_resting_time = None
-                if working_hours >= force_data_map[type_]["max_activity_time"]:
-                    is_working_extra_hours = True
+        if 0 < resting_hours < force_data_map[type_]["min_competence_time"] or \
+                working_hours >= force_data_map[type_]["max_activity_time"] + force_data_map[type_][
+            "extra_hours_allowed"] + remaining_working_time_threshold:
+            status = Status.TOTAL_RESTING
+            start_activity_time = None
+            start_resting_time = t[2] / 3600 - t[6]
+        elif force_data_map[type_]["min_competence_time"] <= resting_hours < force_data_map[type_][
+            "competence_length"]:
+            status = Status.RESTING
+            start_activity_time = None
+            start_resting_time = t[2] / 3600 - t[6]
+        else:
+            status = Status.IDLE
+            start_activity_time = t[2] / 3600 - t[5]
+            start_resting_time = None
+            if working_hours >= force_data_map[type_]["max_activity_time"]:
+                is_working_extra_hours = True
 
-            a = TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
-                          current_location=[t[3], t[4]], start_activity_time=start_activity_time,
-                          start_resting_time=start_resting_time,
-                          max_activity_time=force_data_map[type_]["max_activity_time"],
-                          extra_hours_allowed=force_data_map[type_]["extra_hours_allowed"],
-                          min_competence_time=force_data_map[type_]["min_competence_time"],
-                          competence_length=force_data_map[type_]["competence_length"], status=status,
-                          is_working_extra_hours=is_working_extra_hours, address=address)
+        a = TSGPlayer(agent_id=agent_id, agent_type=type_, last_update_time=last_update_time,
+                      current_location=[t[3], t[4]], start_activity_time=start_activity_time,
+                      start_resting_time=start_resting_time,
+                      max_activity_time=force_data_map[type_]["max_activity_time"],
+                      extra_hours_allowed=force_data_map[type_]["extra_hours_allowed"],
+                      min_competence_time=force_data_map[type_]["min_competence_time"],
+                      competence_length=force_data_map[type_]["competence_length"], status=status,
+                      is_working_extra_hours=is_working_extra_hours, address=address)
 
-            agents_obj_list.append(a)
+        agents_obj_list.append(a)
     return agents_obj_list, agents_id_list
 
 
@@ -144,7 +145,37 @@ def update_agents_status_and_missions_workload(agents_obj_list, events_obj_list,
     return
 
 
-def solve(agent_obj_list, event_obj_list, t_now):
+def communication(agent_obj_list, host_agent):
+    to = ""
+    for a in agent_obj_list:
+        if a.address != host_agent:
+            to = a.address
+            break
+    SendAlgoData("hello from:" + host_agent, to)
+    sleep(1)
+    while True:
+        msg = GetAlgoData()
+        if len(msg) == 0:
+            sleep(1)
+        else:
+            print(host_agent, "got message", msg)
+            break
+
+    SendAlgoData("hello again from:" + host_agent, to)
+    sleep(1)
+    counter = 0
+    while True:
+        msg = GetAlgoData()
+        if len(msg) == 0 and counter < 5:
+            sleep(1)
+            counter += 1
+        else:
+            print(host_agent, "got message", msg)
+            break
+    print(host_agent, "finish")
+
+def solve(agent_obj_list, event_obj_list, t_now, host_agent):
+    communication(agent_obj_list, host_agent)
     allocations = []
     for e in event_obj_list:
         for m in e.missions_list:
@@ -195,7 +226,7 @@ def create_list_of_tuples_allocations(new_obj_allocations):
 
 
 def calcAllocations(*args, **kwargs):
-    #try:
+    # try:
     return calcAllocationsInternal(*args, **kwargs)
     # except Exception as e:
     #     f = open("error.txt", "w")
@@ -246,7 +277,7 @@ def calcAllocationsInternal(host_agent, agent_list, event_list, allocations_list
                                                allocation_list_=allocation_obj_list,
                                                t_now=t_now)
     print_allocations(event_obj_list)
-    new_obj_allocations = solve(agents_obj_list, event_obj_list, t_now)
+    new_obj_allocations = solve(agents_obj_list, event_obj_list, t_now, host_agent)
     merge_new_and_prev_allocations(new_obj_allocations=new_obj_allocations, old_obj_alloctions=allocation_obj_list)
     print_allocations(event_obj_list)
     return create_list_of_tuples_allocations(new_obj_allocations)
