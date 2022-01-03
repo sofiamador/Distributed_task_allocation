@@ -2,6 +2,9 @@ from Simulation_Abstract_Components import TaskSimple, find_and_allocate_respons
     calculate_distance, are_neighbours, is_player_can_be_allocated_to_task, PlayerSimple, MissionSimple
 from itertools import filterfalse
 
+
+is_debug = False
+
 class SimulationEvent:
     """
     Class that represents an event in the simulation log.
@@ -101,7 +104,7 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         self.player.update_status(Status.ON_MISSION, self.time)
         self.player.update_location(self.task.location, self.time)
         self.player.schedule.pop(0)
-        self.mission.players_handling_with_the_mission.append(self.player)
+        self.mission.add_handling_player(self.player,self.time)
         simulation.generate_mission_finished_event(mission=self.mission, task=self.task)
 
 
@@ -202,7 +205,7 @@ class Simulation:
         self.solver.solve(self.tnow)
         self.remove_mission_finished_events()
         self.remove_player_arrive_to_mission_event_from_diary()
-        self.clean_tasks_form_agents()
+        self.clear_players_before_allocation()
         self.check_new_allocation()
         # print(self.diary)
 
@@ -243,9 +246,9 @@ class Simulation:
             player.calculate_relative_location(self.tnow)
 
     def handle_abandonment_event(self, player: PlayerSimple, mission: MissionSimple, task: TaskSimple):
+        mission.change_abandonment_measurements(player)
         player.current_mission = None
         player.current_task = None
-        mission.change_abandonment_measurements(player)
         self.generate_mission_finished_event(mission, task)
 
     def handle_task_ended(self, task):
@@ -265,7 +268,7 @@ class Simulation:
     def remove_events_when_mission_finished(self, mission: MissionSimple):
         self.diary[:] = filterfalse(lambda ev: ev.mission is not None and ev.mission.mission_id == mission.mission_id, self.diary)
 
-    def clean_tasks_form_agents(self):
+    def clear_players_before_allocation(self):
         for t in self.tasks_list:
             for m in t.missions_list:
                 m.clear_players_before_allocation()
@@ -303,5 +306,6 @@ class Simulation:
         for p in mission.players_handling_with_the_mission:
             sum_productivity += p.productivity
         duration = mission.remaining_workload / sum_productivity
+        mission_finish_simulation_time = self.tnow + duration
         self.diary.append(
-            MissionFinishedEvent(time_=self.tnow + duration, mission=mission, task=task))
+            MissionFinishedEvent(time_=mission_finish_simulation_time, mission=mission, task=task))

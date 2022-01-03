@@ -37,7 +37,7 @@ class SimpleTaskGenerator(TaskGenerator):
         self.id_task_counter = self.id_task_counter + 1
         id_ = str(self.id_task_counter)
         location = self.map.generate_location_gauss_around_center()
-        importance = 1 + math.floor(self.random.random() * self.max_importance)
+        importance = (1 + math.floor(self.random.random() * self.max_importance)) * 1000
         arrival_time = tnow + self.time_gap_between_tasks()
         missions_list = [self.create_random_mission(task_importance=importance, arrival_time=arrival_time)]
 
@@ -47,11 +47,12 @@ class SimpleTaskGenerator(TaskGenerator):
     def create_random_mission(self, task_importance: float, arrival_time: float):
         self.id_mission_counter = self.id_mission_counter + 1
         mission_id = str(self.id_mission_counter)
-        initial_workload = self.factor_initial_workload ** task_importance
+        initial_workload = self.factor_initial_workload ** (task_importance/1000)
         arrival_time_to_the_system = arrival_time
-        max_players = max(self.rnd_numpy.poisson(lam=task_importance / 2, size=1)[0], 1 )
+        max_players = max(self.rnd_numpy.poisson(lam=(task_importance/1000) / 2, size=1)[0], 2 )
 
-        return MissionSimple(mission_id, initial_workload, arrival_time_to_the_system, max_players=max_players)
+        return MissionSimple(task_importance = task_importance,mission_id= mission_id,
+                             initial_workload= initial_workload, arrival_time_to_the_system= arrival_time_to_the_system, max_players=max_players)
 
 
 class SimplePlayerGenerator(PlayerGenerator):

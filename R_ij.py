@@ -8,7 +8,7 @@ from TSG_Solver import TSGPlayer, TSGMission, TSGEvent, late_finish_coefficient,
 
 def calculate_rij_abstract(player_entity :PlayerSimple, mission_entity:MissionSimple, task_entity:TaskSimple,
                                                  t_now=0):
-    importance_parameter= task_entity.importance*1000
+    importance_parameter= task_entity.importance
 
     discount_factor = 0.9
     distance = Simulation_Abstract.calculate_distance(player_entity,task_entity)
@@ -24,7 +24,7 @@ def calculate_rij_abstract(player_entity :PlayerSimple, mission_entity:MissionSi
     if current_mission is not None:
         remaining_workload_ratio = current_mission.remaining_workload/current_mission.initial_workload
         abandonment_parameter = \
-            remaining_workload_ratio * current_task.importance*250
+            remaining_workload_ratio * current_task.importance/100
 
     return max(importance_parameter*distance_parameter*productivity_parameter-abandonment_parameter,50)
 
