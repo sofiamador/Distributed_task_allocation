@@ -2,39 +2,71 @@ import copy
 import random
 import pandas as pd
 
+from Allocation_Solver_Abstract import TaskAlgorithm
 from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, \
-    FisherAsynchronousSolver_TaskLatestArriveInit
+    FisherAsynchronousSolver_TaskLatestArriveInit, FisherTaskASY
 from Communication_Protocols import CommunicationProtocolDefault
 from Simulation_Abstract import Simulation
 from Entity_Generator import SimpleTaskGenerator, SimplePlayerGenerator
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
-from Simulation_Abstract_Components import MapHubs
+from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location
 
-simulations_range = range(2)
+simulations_range = range(3)
 number_of_centers = 4
 map_length = 10
 map_width = 10
 number_of_players = 10
 players_speed = 10
 solver_selection = 2  # 1 = all task init # 2= single latest task init
-termination_time_constant = 2000
+termination_time_constant = 1000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
-exp_lambda_parameter = 0.5
-time_per_simulation = 20
+exp_lambda_parameter = 1
+time_per_simulation = 10
 missions_information = {}
 missions_information["Simulation ID"] = []
+
+
+def determine_neighbor_by_third_map_radius(task:Entity, agent:Entity):
+
+    distance = calculate_distance(task,agent)
+    map_size = calculate_distance_input_location([map_width,0],[0,map_length])
+    ans = distance<(map_size/3)
+    return ans
+
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
                                                  termination_time_constant=termination_time_constant):
     if mailer.time_mailer.get_clock() < termination_time_constant:
         return False
     return True
 
+def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
+                                                 termination_time_constant=termination_time_constant):
+
+
+
+    tasks = []
+    for agent in agents_algorithm:
+        if isinstance(agent,FisherTaskASY):
+            tasks.append(agent)
+    if len(tasks)>2:
+        for task in tasks:
+            if not task.is_finish_phase_II:
+               return False
+        return True
+
+    #TODO take care of only 1 task in system
+    ahhhhhhhhhh
+    if mailer.time_mailer.get_clock() > termination_time_constant:
+        return True
+    else:
+        return False
+
 
 def create_fisher_solver(communication_protocol, ro=0.9, fisher_solver_distribution_level=solver_selection,
                          util_structure_level=util_structure_levels):
     if fisher_solver_distribution_level == 1:
         return FisherAsynchronousSolver_TasksTogether(
-            f_termination_condition=f_termination_condition_constant_mailer_nclo,
+            f_termination_condition=f_termination_condition_all_tasks_converged,
             f_communication_disturbance=communication_protocol.get_communication_disturbance,
             future_utility_function=calculate_rij_abstract,
             is_with_timestamp=communication_protocol.is_with_timestamp,
@@ -42,7 +74,7 @@ def create_fisher_solver(communication_protocol, ro=0.9, fisher_solver_distribut
 
     if fisher_solver_distribution_level == 2:
         return FisherAsynchronousSolver_TaskLatestArriveInit(
-            f_termination_condition=f_termination_condition_constant_mailer_nclo,
+            f_termination_condition=f_termination_condition_all_tasks_converged,
             f_communication_disturbance=communication_protocol.get_communication_disturbance,
             future_utility_function=calculate_rij_abstract,
             is_with_timestamp=communication_protocol.is_with_timestamp,
@@ -63,7 +95,7 @@ def all_values_are_zero(values):
 
 def get_initial_objects_for_simulation(simulation_number):
     seed = simulation_number
-    map_ = MapHubs(seed=seed * 17 + 17, number_of_centers=number_of_centers, sd_multiplier=0.05,
+    map_ = MapHubs(seed=seed * 17 + 17, number_of_centers=number_of_centers, sd_multiplier=0.2,
                    length_y=map_length, width_x=map_width)
     rand_ = random.Random(seed * 17 + 1910)
     return seed,map_,rand_
@@ -97,7 +129,8 @@ for simulation_number in simulations_range:
     communication_protocol = CommunicationProtocolDefault("Perfect Communication")
     solver = create_fisher_solver(communication_protocol)
     simulation_created = Simulation(name=str(simulation_number), players_list=players_list, solver=solver,
-                                    tasks_generator=tasks_generator, end_time=time_per_simulation, debug_mode=True)
+                                    tasks_generator=tasks_generator, end_time=time_per_simulation, debug_mode=True,
+                                    f_is_player_can_be_allocated_to_task=determine_neighbor_by_third_map_radius)
 
     add_simulation_to_extract_data(simulation_number,simulation_created.finished_tasks_list)
 
