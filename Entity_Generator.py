@@ -38,6 +38,7 @@ class SimpleTaskGenerator(TaskGenerator):
         id_ = str(self.id_task_counter)
         location = self.map.generate_location_gauss_around_center()
         importance = (1 + math.floor(self.random.random() * self.max_importance)) * 1000
+
         arrival_time = tnow + self.time_gap_between_tasks()
         missions_list = [self.create_random_mission(task_importance=importance, arrival_time=arrival_time)]
 

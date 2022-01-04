@@ -22,15 +22,17 @@ termination_time_constant = 1000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
 exp_lambda_parameter = 1
 time_per_simulation = 10
+
+neighbor_radius_parameter = 3# neighbor if distance<(map_size/neighbor_radius_parameter)
 missions_information = {}
 missions_information["Simulation ID"] = []
 
 
-def determine_neighbor_by_third_map_radius(task:Entity, agent:Entity):
+def determine_neighbor_by_map_radius(task:Entity, agent:Entity):
 
     distance = calculate_distance(task,agent)
     map_size = calculate_distance_input_location([map_width,0],[0,map_length])
-    ans = distance<(map_size/3)
+    ans = distance<(map_size/neighbor_radius_parameter)
     return ans
 
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
@@ -55,7 +57,6 @@ def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
         return True
 
     #TODO take care of only 1 task in system
-    ahhhhhhhhhh
     if mailer.time_mailer.get_clock() > termination_time_constant:
         return True
     else:
@@ -130,7 +131,7 @@ for simulation_number in simulations_range:
     solver = create_fisher_solver(communication_protocol)
     simulation_created = Simulation(name=str(simulation_number), players_list=players_list, solver=solver,
                                     tasks_generator=tasks_generator, end_time=time_per_simulation, debug_mode=True,
-                                    f_is_player_can_be_allocated_to_task=determine_neighbor_by_third_map_radius)
+                                    f_is_player_can_be_allocated_to_task=determine_neighbor_by_map_radius)
 
     add_simulation_to_extract_data(simulation_number,simulation_created.finished_tasks_list)
 

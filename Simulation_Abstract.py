@@ -104,7 +104,7 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         self.player.update_status(Status.ON_MISSION, self.time)
         self.player.update_location(self.task.location, self.time)
         self.player.schedule.pop(0)
-        self.mission.add_handling_player(self.player,self.time)
+        self.mission.add_handling_player(self.player, self.time)
         simulation.generate_mission_finished_event(mission=self.mission, task=self.task)
 
 

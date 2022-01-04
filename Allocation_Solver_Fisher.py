@@ -322,7 +322,7 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
     def get_list_of_msgs_to_send(self):
         ans = []
         for task, dict in self.bids.items():
-            information_to_send = [dict]
+            information_to_send = [dict,self.r_i[task]]
             additional_info = self.list_of_info_to_send_beside_bids(task)
             if additional_info is not None:
                 information_to_send = information_to_send + additional_info
@@ -602,7 +602,7 @@ class FisherTaskASY(TaskAlgorithm):
         self.price_t_minus = {}
         self.price_current = {}
         self.price_delta = {}
-
+        self.r_jk = {}
         for mission in self.simulation_entity.missions_list:
             self.price_t_minus[mission] = 9999999
             self.price_current[mission] = 0
@@ -636,12 +636,15 @@ class FisherTaskASY(TaskAlgorithm):
     def reset_x_jk(self):
         self.x_jk = {}
         self.x_jk_normal = {}
+        self.r_jk = {}
         for mission in self.simulation_entity.missions_list:
             self.x_jk[mission] = {}
             self.x_jk_normal[mission] = {}
+            self.r_jk[mission] = {}
             for n_id in self.potential_players_ids_list:
                 self.x_jk[mission][n_id] = None
                 self.x_jk_normal[mission][n_id] = None
+                self.r_jk[mission][n_id] = None
 
     def reset_bids(self):
         self.bids = {}
@@ -675,10 +678,18 @@ class FisherTaskASY(TaskAlgorithm):
         player_id = msg.sender
         self.msgs_from_players[player_id] = msg
         self.update_bids_info(bids_dict = msg.information[0], player_id=player_id)
-        self.update_more_information_index_1_and_above(player_id =player_id, msg=msg)
+        self.update_rij_info(rij_dict = msg.information[1], player_id=player_id)
+
+        self.update_more_information_index_2_and_above(player_id =player_id, msg=msg)
+
+
+    def update_rij_info(self, rij_dict,player_id):
+        for mission,rij_util in rij_dict.items():
+            self.r_jk[mission][player_id] = rij_util.get_utility()
+
 
     @abc.abstractmethod
-    def update_more_information_index_1_and_above(self,player_id , msg):
+    def update_more_information_index_2_and_above(self,player_id , msg):
         raise NotImplementedError
 
     def update_bids_info(self, bids_dict,player_id):
@@ -700,12 +711,28 @@ class FisherTaskASY(TaskAlgorithm):
             self.is_finish_phase_II = True
             flag = True
         self.compute_allocation()
+        #self.re_compute_allocation_for_single_missions()
         self.compute_normalize_allocation()
 
         self.compute_schedule()
         if flag:
             return True
         return False
+
+    def re_compute_allocation_for_single_missions(self):
+
+        for mission, dict_ in self.x_jk.items():
+            flag = False
+            for player_id, allocation in dict_.items():
+                if allocation==1:
+                    flag = True
+                    break
+            if flag:
+                self.base_allocation_directly_on_bids(mission)
+
+
+    def base_allocation_directly_on_bids(self,mission):
+        pass
 
     @abc.abstractmethod
     def compute_schedule(self):
@@ -716,6 +743,10 @@ class FisherTaskASY(TaskAlgorithm):
     def compute_normalize_allocation(self):
         # self.check_if_x_jk_per_mission_is_one()
         dict_non_zero_allocation = self.dict_non_zero_allocation()
+
+
+
+
         for mission, dict_ in dict_non_zero_allocation.items():
 
             if mission.max_players == 1:
@@ -728,6 +759,11 @@ class FisherTaskASY(TaskAlgorithm):
                 else:
                     self.copy_current_xij_to_normalized(mission)
 
+    def all_ones(self,dict_non_zero_allocation_per_mission):
+        for v in dict_non_zero_allocation_per_mission.values():
+            if v!=1:
+                return False
+        return True
     def compute_allocation(self):
         for mission in self.simulation_entity.missions_list:
             for player_id, bid in self.bids[mission].items():
@@ -921,8 +957,23 @@ class FisherTaskASY(TaskAlgorithm):
     def list_of_info_to_send_beside_allocation(self,player_id:str):
         raise NotImplementedError
 
+    def dict_non_zero_include_none_allocation(self):
+        ans = {}
+        for mission, dict in self.x_jk.items():
+            temp_ans = {}
+            for player_id, allocation in dict.items():
+                if allocation != 0:
+                    temp_ans[player_id] = allocation
+            ans[mission] = temp_ans
+
+        return ans
+
+
+
+
+
 class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
-    def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges=2, Threshold=0.001):
+    def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges=4, Threshold=0.001):
 
         TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
         if not isinstance(agent_simulator, TaskSimple):
@@ -973,10 +1024,10 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
         self.reset_mission_per_allocation_list()
 
 
-    def update_more_information_index_1_and_above(self, player_id, msg):
+    def update_more_information_index_2_and_above(self, player_id, msg):
         if is_with_scheduling:
 
-            allocations_dict = msg.information[1]
+            allocations_dict = msg.information[2]
             player_id_sender = msg.sender
             for mission,time_arrive in allocations_dict.items():
                 self.player_greedy_arrive_dict[mission][player_id_sender] = time_arrive

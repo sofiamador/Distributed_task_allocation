@@ -12,7 +12,8 @@ from Communication_Protocols import CommunicationProtocol, CommunicationProtocol
     CommunicationProtocolDistanceBaseDelayExp, CommunicationProtocolExp
 from Data_fisher_market import get_data_fisher
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
-from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator
+from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator, \
+    SimplePlayerGenerator
 from Simulation_Abstract_Components import MapHubs
 
 plt.style.use('seaborn-whitegrid')
@@ -75,6 +76,7 @@ class SimulationStatic():
         self.create_tasks()
 
         self.players = []
+        self.players_generator = SimplePlayerGenerator(map_=self.map, seed=self.seed_number)
         self.create_players_given_ratio()
         #self.draw_map() # show map of tasks location for debug
 
@@ -135,8 +137,10 @@ class SimulationStatic():
     def create_players_given_ratio(self):
         number_players_required = self.get_number_of_tasks_required()
         number_of_players = math.floor(self.players_required_ratio * number_players_required)
-        self.tasks = sorted(self.tasks, key=get_task_importance, reverse=True)
-        self.create_players(number_of_players)
+        for _ in range(number_of_players):
+            self.players.append(self.players_generator.get_player())
+        #self.tasks = sorted(self.tasks, key=get_task_importance, reverse=True)
+        #self.create_players(number_of_players)
         self.set_tasks_neighbors()
 
     def set_tasks_neighbors(self):
@@ -155,7 +159,7 @@ class SimulationStatic():
             else:
                 for k, v in dict_copy.items():
                     if v != 0:
-                        player = SinglePlayerGeneratorTSG(rand=self.rand, map_=self.map, ability_number=k,
+                        player = SimplePlayerGenerator(rand=self.rand, map_=self.map, ability_number=k,
                                                           is_static_simulation=True).rnd_player
                         self.players.append(player)
                         dict_copy[k] = v - 1
