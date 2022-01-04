@@ -136,6 +136,6 @@ for exp_lambda_parameter in exp_lambda_parameters:
                                         f_is_player_can_be_allocated_to_task=determine_neighbor_by_map_radius,number_of_initial_tasks = number_of_initial_tasks)
 
         add_simulation_to_extract_data(simulation_number,simulation_created.finished_tasks_list)
-
-    missions_data_frame = pd.DataFrame.from_dict(missions_information)
-    missions_data_frame.to_csv("distributed_rate_"+str(exp_lambda_parameter)+".csv", sep=',')
+        if simulation_number % 5 ==0:
+            missions_data_frame = pd.DataFrame.from_dict(missions_information)
+            missions_data_frame.to_csv("distributed_rate_"+str(exp_lambda_parameter)+"reps_"+str(simulation_number)+".csv", sep=',')
