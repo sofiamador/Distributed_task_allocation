@@ -274,6 +274,7 @@ class MissionMeasurements:
 
         self.players_allocated_to_the_mission_previous = []
         self.players_handling_with_the_mission_previous = []
+        self.is_mission_done = True
 
 
     def get_mission_measurements_dict(self):
@@ -290,7 +291,30 @@ class MissionMeasurements:
         ans["Time Taken (In System) Relative To Optimal"] = self.x9_ratio_time_taken_arrive_to_system_and_opt
         ans["Time Taken (First Arrival) Relative To Optimal"] = self.x10_ratio_time_taken_first_agent_arrive_and_opt
         ans["Utility"] = self.x16_workload_utility
+        ans["Is Done"] = self.is_mission_done
         return  ans
+
+    def close_measurements(self):
+
+        if self.x2_delay is None:
+            self.x2_delay = "NaN"
+
+
+
+        if  self.x6_total_time_since_arrive_to_system is None:
+            self.x6_total_time_since_arrive_to_system = "NaN"
+
+        if self.x7_total_time_since_first_agent_arrive is None:
+            self.x7_total_time_since_first_agent_arrive = "NaN"
+
+        if self.x10_ratio_time_taken_first_agent_arrive_and_opt is None:
+            self.x10_ratio_time_taken_first_agent_arrive_and_opt = "NaN"
+
+        if self.x10_ratio_time_taken_first_agent_arrive_and_opt is None:
+            self.x10_ratio_time_taken_first_agent_arrive_and_opt = "NaN"
+
+        self.calculate_mission_utility()
+        self.is_mission_done = False
 
     def change_abandonment_measurements(self,player):
         flag = False
@@ -397,17 +421,27 @@ class MissionSimple:
 
     def workload_updating(self, delta):
         productivity = 0
+        counter = 0
         for p in self.players_handling_with_the_mission:
-            productivity += p.productivity
+            counter = counter +1
+            if counter<=self.max_players:
+                productivity += p.productivity
         self.remaining_workload -= delta * productivity
         current_amount_of_players = len(self.players_handling_with_the_mission)
-        self.measurements.update_time_per_amount(current_amount_of_players,delta,productivity)
+        if counter <= self.max_players:
+            self.measurements.update_time_per_amount(current_amount_of_players,delta,productivity)
+        else:
+            self.measurements.update_time_per_amount(self.max_players,delta,productivity)
+
 
         if self.remaining_workload < -0.01:
             raise Exception("Negative workload to mission" + str(self.mission_id))
-        if len(self.players_handling_with_the_mission)>self.max_players or len(self.players_allocated_to_the_mission)>self.max_players:
-            raise Exception("Too many players allocated" + str(self.mission_id))
+        if len(self.players_handling_with_the_mission)>self.max_players :
+            pass
+            #raise Exception("Too many players allocated" + str(self.mission_id))
 
+    def close_measurements(self):
+        self.measurements.close_measurements()
     def add_allocated_player(self, player):
         if player in self.players_allocated_to_the_mission:
             raise Exception("Double allocation of the same player to one mission: player " + str(player.id_))
@@ -479,8 +513,6 @@ class TaskSimple(Entity):
         self.arrival_time = arrival_time #arrival time to system
         self.done_missions = []
         self.is_done = False
-
-
 
 
     def create_neighbours_list(self, players_list,

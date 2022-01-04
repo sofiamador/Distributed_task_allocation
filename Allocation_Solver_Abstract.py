@@ -880,6 +880,11 @@ class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
         self.tasks_log = []
         self.additional_tasks_in_log = []
 
+        if self.simulation_entity.current_task is not None:
+            self.tasks_log.append(self.simulation_entity.current_task)
+
+
+
 
     def check_if_msg_should_have_perfect_communication(self,msg:Msg):
         ids_ = []
@@ -910,17 +915,23 @@ class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
     def receive_msgs(self, msgs: []):
         super().receive_msgs(msgs)
         for msg in msgs:
-            if msg.task_entity not in self.tasks_log :
-                self.tasks_log.append(msg.task_entity)
-                self.additional_tasks_in_log.append(msg.task_entity)
-                self.add_neighbour_id(msg.task_entity.id_)
-            else:
-                for task_in_log in self.tasks_log:
-                    if task_in_log==msg.task_entity:
-                        if task_in_log.last_time_updated<msg.task_entity.last_time_updated:
-                            self.tasks_log.remove(task_in_log)
-                            self.tasks_log.append(msg.task_entity)
-                            #print(msg.task_entity+"is updated, Allocation_Solver_Abstract")
+
+            #if msg.task_entity not in self.tasks_log :
+            for task_in_log in self.tasks_log:
+                if task_in_log.id_ == msg.task_entity.id_:
+                    self.tasks_log.remove(task_in_log)
+                    break
+
+            self.tasks_log.append(msg.task_entity)
+            self.additional_tasks_in_log.append(msg.task_entity)
+            self.add_neighbour_id(msg.task_entity.id_)
+        else:
+            for task_in_log in self.tasks_log:
+                if task_in_log==msg.task_entity:
+                    if task_in_log.last_time_updated<msg.task_entity.last_time_updated:
+                        self.tasks_log.remove(task_in_log)
+                        self.tasks_log.append(msg.task_entity)
+                        #print(msg.task_entity+"is updated, Allocation_Solver_Abstract")
 
 
     def send_msgs(self):

@@ -24,7 +24,7 @@ def calculate_rij_abstract(player_entity :PlayerSimple, mission_entity:MissionSi
     if current_mission is not None:
         remaining_workload_ratio = current_mission.remaining_workload/current_mission.initial_workload
         abandonment_parameter = \
-            remaining_workload_ratio * current_task.importance/100
+            remaining_workload_ratio * current_task.importance/200
 
     return max(importance_parameter*distance_parameter*productivity_parameter-abandonment_parameter,50)
 

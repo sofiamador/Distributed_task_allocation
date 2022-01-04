@@ -11,19 +11,20 @@ from Entity_Generator import SimpleTaskGenerator, SimplePlayerGenerator
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location
 
-simulations_range = range(3)
-number_of_centers = 4
+simulations_range = range(2)
+number_of_centers = 10
 map_length = 10
 map_width = 10
-number_of_players = 10
+number_of_players = 50
 players_speed = 10
 solver_selection = 2  # 1 = all task init # 2= single latest task init
-termination_time_constant = 1000
+termination_time_constant = 5000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
-exp_lambda_parameter = 1
-time_per_simulation = 10
+exp_lambda_parameters = [0.1,0.2,0.25,0.4,0.5,0.75,1,1.25,1.50,1.75,2]
+time_per_simulation = 5
+number_of_initial_tasks = 10
 
-neighbor_radius_parameter = 3# neighbor if distance<(map_size/neighbor_radius_parameter)
+neighbor_radius_parameter = 2.5# neighbor if distance<(map_size/neighbor_radius_parameter)
 missions_information = {}
 missions_information["Simulation ID"] = []
 
@@ -50,17 +51,18 @@ def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
     for agent in agents_algorithm:
         if isinstance(agent,FisherTaskASY):
             tasks.append(agent)
-    if len(tasks)>2:
-        for task in tasks:
-            if not task.is_finish_phase_II:
-               return False
-        return True
+
+    #if len(tasks)>=2:
+    for task in tasks:
+        if not task.is_finish_phase_II and mailer.time_mailer.get_clock() < termination_time_constant:
+           return False
+    return True
 
     #TODO take care of only 1 task in system
-    if mailer.time_mailer.get_clock() > termination_time_constant:
-        return True
-    else:
-        return False
+    #if mailer.time_mailer.get_clock() > termination_time_constant:
+    #    return True
+    #else:
+    #    return False
 
 
 def create_fisher_solver(communication_protocol, ro=0.9, fisher_solver_distribution_level=solver_selection,
@@ -118,22 +120,22 @@ def add_simulation_to_extract_data(simulation_number,finished_tasks):
                     missions_information[k] = []
                 missions_information[k].append(v)
 
+for exp_lambda_parameter in exp_lambda_parameters:
+    for simulation_number in simulations_range:
+        print("Start Simulation Number",simulation_number)
+        seed,map_,rand_ = get_initial_objects_for_simulation(simulation_number)
 
-for simulation_number in simulations_range:
-    print("Start Simulation Number",simulation_number)
-    seed,map_,rand_ = get_initial_objects_for_simulation(simulation_number)
+        tasks_generator = SimpleTaskGenerator(map_=map_, seed=seed,exp_lambda_parameter=exp_lambda_parameter )  # TaskGeneratorTSG(map_, seed, exp_lambda_parameter=2)
+        player_generator = SimplePlayerGenerator(map_=map_, seed=seed,speed=players_speed)
 
-    tasks_generator = SimpleTaskGenerator(map_=map_, seed=seed,exp_lambda_parameter=exp_lambda_parameter )  # TaskGeneratorTSG(map_, seed, exp_lambda_parameter=2)
-    player_generator = SimplePlayerGenerator(map_=map_, seed=seed,speed=players_speed)
+        players_list = create_players(player_generator)
+        communication_protocol = CommunicationProtocolDefault("Perfect Communication")
+        solver = create_fisher_solver(communication_protocol)
+        simulation_created = Simulation(name=str(simulation_number), players_list=players_list, solver=solver,
+                                        tasks_generator=tasks_generator, end_time=time_per_simulation, debug_mode=True,
+                                        f_is_player_can_be_allocated_to_task=determine_neighbor_by_map_radius,number_of_initial_tasks = number_of_initial_tasks)
 
-    players_list = create_players(player_generator)
-    communication_protocol = CommunicationProtocolDefault("Perfect Communication")
-    solver = create_fisher_solver(communication_protocol)
-    simulation_created = Simulation(name=str(simulation_number), players_list=players_list, solver=solver,
-                                    tasks_generator=tasks_generator, end_time=time_per_simulation, debug_mode=True,
-                                    f_is_player_can_be_allocated_to_task=determine_neighbor_by_map_radius)
+        add_simulation_to_extract_data(simulation_number,simulation_created.finished_tasks_list)
 
-    add_simulation_to_extract_data(simulation_number,simulation_created.finished_tasks_list)
-
-missions_data_frame = pd.DataFrame.from_dict(missions_information)
-missions_data_frame.to_csv("first_data_frame.csv", sep=',')
+    missions_data_frame = pd.DataFrame.from_dict(missions_information)
+    missions_data_frame.to_csv("distributed_rate_"+str(exp_lambda_parameter)+".csv", sep=',')

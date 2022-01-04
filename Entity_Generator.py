@@ -30,7 +30,7 @@ class SimpleTaskGenerator(TaskGenerator):
     def time_gap_between_tasks(self):
         return self.rnd_numpy.exponential(scale=self.beta, size=1)[0]
 
-    def get_task(self, tnow):
+    def get_task(self, tnow,flag_time_zero = False):
         """
         :rtype: TaskSimple
         """
@@ -38,8 +38,10 @@ class SimpleTaskGenerator(TaskGenerator):
         id_ = str(self.id_task_counter)
         location = self.map.generate_location_gauss_around_center()
         importance = (1 + math.floor(self.random.random() * self.max_importance)) * 1000
-
-        arrival_time = tnow + self.time_gap_between_tasks()
+        if flag_time_zero:
+            arrival_time = tnow
+        else:
+            arrival_time = tnow + self.time_gap_between_tasks()
         missions_list = [self.create_random_mission(task_importance=importance, arrival_time=arrival_time)]
 
         return TaskSimple(id_=id_, location=location, importance=importance,

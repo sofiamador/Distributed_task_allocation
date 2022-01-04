@@ -81,6 +81,28 @@ class TaskArrivalEvent(SimulationEvent):
         simulation.solve()
         simulation.generate_new_task_to_diary()
 
+class NumberOfTasksArrivalEvent(SimulationEvent):
+    """
+    Class that represent an simulation event of new task arrival.
+    """
+
+    def __init__(self, time_: float,tasks:[TaskSimple],task = None):
+        """
+        :param time_:the time of the event
+        :type: float
+        :param task: The new task that arrives to simulation.
+        :type: TaskSimple
+        """
+        SimulationEvent.__init__(self, time_=time_, task=task)
+        self.tasks = tasks
+    def handle_event(self, simulation):
+        for task in self.tasks:
+            find_and_allocate_responsible_player(task=task, players=simulation.players_list)
+            simulation.tasks_list.append(task)
+            simulation.solver.add_task_to_solver(task)
+        simulation.solve()
+        simulation.generate_new_task_to_diary()
+
 
 class PlayerArriveToEMissionEvent(SimulationEvent):
     """
@@ -151,7 +173,7 @@ class Simulation:
     def __init__(self, name: str, players_list: list, solver, tasks_generator: TaskGenerator, end_time: float,
                  f_are_players_neighbours=are_neighbours,
                  f_is_player_can_be_allocated_to_task=is_player_can_be_allocated_to_task,
-                 f_calculate_distance=calculate_distance, debug_mode=False):
+                 f_calculate_distance=calculate_distance, debug_mode=False,number_of_initial_tasks = 1):
         """
         :param name: The name of simulation
         :param players_list: The list of the players(players) that are participate
@@ -176,7 +198,7 @@ class Simulation:
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_task
         self.tasks_generator = tasks_generator
         self.f_calculate_distance = f_calculate_distance
-        self.generate_new_task_to_diary()
+        self.generate_new_task_to_diary(number_of_tasks = number_of_initial_tasks)
         self.tasks_list = []
         self.finished_tasks_list = []
         self.diary.append(EndSimulationEvent(time_=end_time))
@@ -191,11 +213,22 @@ class Simulation:
             if self.debug_mode:
                 print(self.last_event)
             if type(self.last_event) == EndSimulationEvent:
+                self.close_mission_measurements()
                 break
             self.prev_time = self.tnow
             self.tnow = self.last_event.time
             self.update_workload()
             self.last_event.handle_event(self)
+
+    def close_mission_measurements(self):
+        for task in self.tasks_list:
+            for mission in task.missions_list:
+                mission.close_measurements()
+                #done_missions
+                task.done_missions.append(mission)
+            task.missions_list.clear()
+            self.finished_tasks_list.append(task)
+
 
     def solve(self):
         self.solver_counter = self.solver_counter + 1
@@ -274,17 +307,28 @@ class Simulation:
                 m.clear_players_before_allocation()
 
 
-    def generate_new_task_to_diary(self):
+    def generate_new_task_to_diary(self,number_of_tasks = 1):
         """
         The method generates new task from task generator, creates neighbour list for the task and add TaskArrivalEvent
         to the diary.
         """
-        task: TaskSimple = self.tasks_generator.get_task(self.tnow)
-        task.create_neighbours_list(players_list=self.players_list,
-                                    f_is_player_can_be_allocated_to_mission=
-                                    self.f_is_player_can_be_allocated_to_mission)
-        event = TaskArrivalEvent(task=task, time_=task.arrival_time)
-        self.diary.append(event)
+        if number_of_tasks == 1:
+            task: TaskSimple = self.tasks_generator.get_task(self.tnow)
+            task.create_neighbours_list(players_list=self.players_list,
+                                        f_is_player_can_be_allocated_to_mission=
+                                        self.f_is_player_can_be_allocated_to_mission)
+            event = TaskArrivalEvent(task=task, time_=task.arrival_time)
+            self.diary.append(event)
+        else:
+            tasks = []
+            for _ in range(number_of_tasks):
+                task: TaskSimple = self.tasks_generator.get_task(self.tnow,flag_time_zero = True)
+                task.create_neighbours_list(players_list=self.players_list,
+                                            f_is_player_can_be_allocated_to_mission=
+                                            self.f_is_player_can_be_allocated_to_mission)
+                tasks.append(task)
+            event = NumberOfTasksArrivalEvent(tasks = tasks, time_=task.arrival_time)
+            self.diary.append(event)
 
     def generate_player_arrives_to_mission_event(self, player):
         player.update_status(Status.TO_MISSION, self.tnow)
