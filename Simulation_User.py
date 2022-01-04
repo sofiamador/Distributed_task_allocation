@@ -139,3 +139,5 @@ for exp_lambda_parameter in exp_lambda_parameters:
         if simulation_number % 5 ==0:
             missions_data_frame = pd.DataFrame.from_dict(missions_information)
             missions_data_frame.to_csv("distributed_rate_"+str(exp_lambda_parameter)+"reps_"+str(simulation_number)+".csv", sep=',')
+    missions_data_frame = pd.DataFrame.from_dict(missions_information)
+    missions_data_frame.to_csv("distributed_rate_" + str(exp_lambda_parameter) + "_reps_" + str(simulation_number) + ".csv", sep=',')
