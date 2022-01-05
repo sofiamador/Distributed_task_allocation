@@ -10,7 +10,7 @@ def calculate_rij_abstract(player_entity :PlayerSimple, mission_entity:MissionSi
                                                  t_now=0):
     importance_parameter= task_entity.importance
 
-    discount_factor = 0.9
+    discount_factor = 0.8
     distance = Simulation_Abstract.calculate_distance(player_entity,task_entity)
     distance_parameter = (discount_factor**distance)
 

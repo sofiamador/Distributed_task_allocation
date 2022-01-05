@@ -1114,6 +1114,7 @@ class AllocationSolverDistributed(AllocationSolver):
     def get_measurements(self):
         return self.mailer.measurements
 
+
     def solve(self, tnow, centralized_computer=None) -> {}:
         self.tnow = tnow
         self.centralized_computer = centralized_computer
@@ -1226,7 +1227,7 @@ class AllocationSolverDistributed(AllocationSolver):
         self.start_all_threads()
         self.mailer.start()
         self.mailer.join()
-        return self.mailer.get_allocation_dictionary()  # TODO
+        #return self.mailer.get_allocation_dictionary()  # TODO
 
 
 
@@ -1287,6 +1288,19 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
                                              f_communication_disturbance)
         self.tasks_algorithm = []
         self.players_algorithm = []
+
+    def get_player_entity(self,player_id):
+        for player_entity in self.players_simulation:
+            if player_entity.id_ == player_id:
+                return player_entity
+
+        raise Exception("how come the id does not exists? you have a mistake")
+
+    def get_players_entity(self,neighbors_id):
+        ans = []
+        for player_id in neighbors_id:
+            ans.append(self.get_player_entity(player_id))
+        return ans
 
     def what_solver_does_when_player_is_added(self, player: PlayerSimple):
         algorithm_player = self.create_algorithm_player(player)

@@ -12,12 +12,12 @@ from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
     MapSimple
 
-simulations_range = range(100)
+simulations_range = range(1,2)
 number_of_centers = 10
 map_length = 10
 map_width = 10
 number_of_players = 50
-players_speed = 10
+players_speed = 5
 solver_selection = 2  # 1 = all task init # 2= single latest task init
 termination_time_constant = 5000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
@@ -25,7 +25,7 @@ exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
 time_per_simulation = 10
 number_of_initial_tasks = 15
 
-neighbor_radius_parameter = 2# neighbor if distance<(map_size/neighbor_radius_parameter)
+neighbor_radius_parameter = 3 # neighbor if distance<(map_size/neighbor_radius_parameter)
 missions_information = {}
 missions_information["Simulation ID"] = []
 
@@ -33,8 +33,9 @@ missions_information["Simulation ID"] = []
 def determine_neighbor_by_map_radius(task:Entity, agent:Entity):
 
     distance = calculate_distance(task,agent)
-    map_size = calculate_distance_input_location([map_width,0],[0,map_length])
-    ans = distance<(map_size/neighbor_radius_parameter)
+    radius_size = map_length/neighbor_radius_parameter
+
+    ans = distance<radius_size
     return ans
 
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,

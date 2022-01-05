@@ -378,7 +378,7 @@ class MissionSimple:
     """
 
     def __init__(self, mission_id, initial_workload, arrival_time_to_the_system,task_importance,
-                 abilities=(AbilitySimple(ability_type=0)),
+                 abilities=[AbilitySimple(ability_type=0)],
                  min_players=1, max_players=1):
         """
         Simple mission constructor

@@ -1072,6 +1072,7 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
 # self.norm_xjk = norm_xjk
 
 
+
 class FisherAsynchronousSolver_TasksTogether(AllocationSolverTasksPlayersSemi):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
@@ -1092,6 +1093,7 @@ class FisherAsynchronousSolver_TasksTogether(AllocationSolverTasksPlayersSemi):
                                                    agent_simulator=player, t_now=self.tnow,
                                                    future_utility_function=self.future_utility_function,
                                                    is_with_timestamp=self.is_with_timestamp, ro=self.ro)
+
 
 
 class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRandTaskInit):
@@ -1139,14 +1141,35 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
                                                    future_utility_function=self.future_utility_function,
                                                    is_with_timestamp=self.is_with_timestamp, ro=self.ro)
 
+    def allocate(self):
+        self.remove_tasks_where_players_have_no_alternative()
+
+        super().allocate()
+
+    def remove_tasks_where_players_have_no_alternative(self):
+        for task in self.tasks_simulation:
+            #neighbors = task.neighbours
+            neighbors_by_skill = self.neighbors_by_skill(task)
+            #for n in neighbors:
+            #    for other_task
+        remove tasks with players that have not other tasks, and then remove the players
+    def neighbors_by_skill(self,task):
+        ans = {}
+        neighbors_ids = task.neighbours
+        neighbors_entities = self.get_players_entity(neighbors_ids)
+        missions = task.missions_list
+        for mission in missions:
+            for ability in mission.abilities:
+                ans[ability] = []
+        for neighbor_entity in neighbors_entities:
+            for
+
 
 class FisherCentralized(AllocationSolverCentralized):
     def __init__(self,centralized_computer:CentralComputer,f_termination_condition, mailer = None,  f_global_measurements = {},
     future_utility_function = None, util_structure_level = 1,
     is_with_timestamp = True, ro = 0.9, simulation_rep = 0):
         AllocationSolverCentralized.__init__(self,centralized_computer,f_termination_condition)
-
-
 
 
 
