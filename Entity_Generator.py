@@ -11,7 +11,7 @@ import numpy as np
 
 
 class SimpleTaskGenerator(TaskGenerator):
-    def __init__(self, map_: MapHubs, seed, factor_initial_workload=1.25, max_importance=10, exp_lambda_parameter=2):
+    def __init__(self, map_: MapHubs, seed, factor_initial_workload=1.15, max_importance=10, exp_lambda_parameter=2):
         """
 
         :param map_: object to initiate location
@@ -36,7 +36,7 @@ class SimpleTaskGenerator(TaskGenerator):
         """
         self.id_task_counter = self.id_task_counter + 1
         id_ = str(self.id_task_counter)
-        location = self.map.generate_location_gauss_around_center()
+        location = self.map.generate_location()#self.map.generate_location_gauss_around_center()
         importance = (1 + math.floor(self.random.random() * self.max_importance)) * 1000
         if flag_time_zero:
             arrival_time = tnow
@@ -52,7 +52,7 @@ class SimpleTaskGenerator(TaskGenerator):
         mission_id = str(self.id_mission_counter)
         initial_workload = self.factor_initial_workload ** (task_importance/1000)
         arrival_time_to_the_system = arrival_time
-        max_players = max(self.rnd_numpy.poisson(lam=(task_importance/1000) / 2, size=1)[0], 2 )
+        max_players = min(max(self.rnd_numpy.poisson(lam=(task_importance/1500) / 2, size=1)[0], 2 ),5)
 
         return MissionSimple(task_importance = task_importance,mission_id= mission_id,
                              initial_workload= initial_workload, arrival_time_to_the_system= arrival_time_to_the_system, max_players=max_players)
@@ -68,9 +68,10 @@ class SimplePlayerGenerator(PlayerGenerator):
     def get_player(self):
         self.id_counter = self.id_counter - 1
         id_ = str(self.id_counter)
-        location = self.map.generate_location_gauss_around_center()
+        #location = self.map.generate_location_gauss_around_center()
+        location = self.map.generate_location()
         speed = self.speed
-        productivity = self.calc_productivity()
+        productivity = 1#self.calc_productivity()
         return PlayerSimple(id_=id_, current_location=location, speed=speed, productivity=productivity)
 
     def calc_productivity(self):
@@ -453,7 +454,7 @@ class SingleTaskStaticPoliceGenerator():
 if __name__ == '__main__':
     rnd = random.Random(1)
     mmm = MapHubs(number_of_centers=3, seed=1, length_y=9.0, width_x=9.0, sd_multiplier=0.5)
-    generator_ = SimpleTaskGenerator(map_=mmm, seed=1, factor_initial_workload=1.35, max_importance=10,
+    generator_ = SimpleTaskGenerator(map_=mmm, seed=1, factor_initial_workload=1.15, max_importance=10,
                                      exp_lambda_parameter=2)
     tasks = []
 

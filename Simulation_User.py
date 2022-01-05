@@ -9,9 +9,10 @@ from Communication_Protocols import CommunicationProtocolDefault
 from Simulation_Abstract import Simulation
 from Entity_Generator import SimpleTaskGenerator, SimplePlayerGenerator
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
-from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location
+from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
+    MapSimple
 
-simulations_range = range(2)
+simulations_range = range(100)
 number_of_centers = 10
 map_length = 10
 map_width = 10
@@ -20,11 +21,11 @@ players_speed = 10
 solver_selection = 2  # 1 = all task init # 2= single latest task init
 termination_time_constant = 5000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
-exp_lambda_parameters = [0.1,0.2,0.25,0.4,0.5,0.75,1,1.25,1.50,1.75,2]
-time_per_simulation = 5
-number_of_initial_tasks = 10
+exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
+time_per_simulation = 10
+number_of_initial_tasks = 15
 
-neighbor_radius_parameter = 2.5# neighbor if distance<(map_size/neighbor_radius_parameter)
+neighbor_radius_parameter = 2# neighbor if distance<(map_size/neighbor_radius_parameter)
 missions_information = {}
 missions_information["Simulation ID"] = []
 
@@ -44,8 +45,9 @@ def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
 
 def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
                                                  termination_time_constant=termination_time_constant):
-
-
+    # TODO take care of only 1 task in system
+    if mailer.time_mailer.get_clock() > termination_time_constant:
+        return True
 
     tasks = []
     for agent in agents_algorithm:
@@ -56,13 +58,11 @@ def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
     for task in tasks:
         if not task.is_finish_phase_II and mailer.time_mailer.get_clock() < termination_time_constant:
            return False
+
     return True
 
-    #TODO take care of only 1 task in system
-    #if mailer.time_mailer.get_clock() > termination_time_constant:
-    #    return True
-    #else:
-    #    return False
+
+
 
 
 def create_fisher_solver(communication_protocol, ro=0.9, fisher_solver_distribution_level=solver_selection,
@@ -98,8 +98,7 @@ def all_values_are_zero(values):
 
 def get_initial_objects_for_simulation(simulation_number):
     seed = simulation_number
-    map_ = MapHubs(seed=seed * 17 + 17, number_of_centers=number_of_centers, sd_multiplier=0.2,
-                   length_y=map_length, width_x=map_width)
+    map_ = MapSimple(seed=seed * 17 + 17)
     rand_ = random.Random(seed * 17 + 1910)
     return seed,map_,rand_
 

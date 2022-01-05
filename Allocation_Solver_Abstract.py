@@ -105,7 +105,7 @@ class ClockObject():
 
     def change_clock_if_required(self, time_of_received_msg: float):
         with self.lock:
-            if self.clock <= time_of_received_msg:
+            if self.clock < time_of_received_msg:
                 self.idle_time = self.idle_time + (time_of_received_msg - self.clock)
                 self.clock = time_of_received_msg
 
