@@ -49,6 +49,49 @@ class CommunicationProtocolDefault(CommunicationProtocol):
         return 0
 
 
+def quad_distance(entity1,entity2):
+    l1 =entity1.location
+    l2 =entity2.location
+
+    delta_x_square = (l1[0] - l2[0]) ** 2
+    delta_y_square = (l1[1] - l2[1]) ** 2
+    quad_distance = math.sqrt(delta_x_square + delta_y_square)
+    return quad_distance
+
+class CommunicationProtocolDistance(CommunicationProtocol):
+    def __init__(self, name,alpha, is_with_timestamp=False):
+        CommunicationProtocol.__init__(self, is_with_timestamp, name)
+        self.alpha = alpha
+
+    def get_x(self,entity1,entity2):
+        avg = quad_distance(entity1,entity2)
+        return self.rnd_numpy.normal(avg, 0.1, 1)[0]
+
+class CommunicationProtocolExponentialDelayV1(CommunicationProtocolDistance):
+    def __init__(self, alpha, is_with_timestamp=False,name=None):
+        name1 = "delay = distance^"+str(alpha)
+        CommunicationProtocolDistance.__init__(self, name =name1,alpha=alpha, is_with_timestamp=is_with_timestamp)
+
+    def get_communication_disturbance_by_protocol(self, entity1: Entity, entity2: Entity):
+        x = self.get_x(entity1,entity2)
+        return x**self.alpha
+
+
+class CommunicationProtocolLossDecay(CommunicationProtocolDistance):
+    def __init__(self, alpha,where_50_percent = 5, is_with_timestamp=False,name="distance^alpha"):
+        self.where_50_percent = where_50_percent
+        name1 = "p = 1/str(alpha) distance^"+str(alpha)
+        CommunicationProtocolDistance.__init__(self, name =name1,alpha=alpha, is_with_timestamp=is_with_timestamp)
+
+    def get_communication_disturbance_by_protocol(self, entity1: Entity, entity2: Entity):
+        x = self.get_x(entity1,entity2)
+        P = 1/(1+(x/self.where_50_percent)**self.alpha)
+        p = self.rnd.random()
+        if p<P:
+            return 0
+        else:
+            return None
+
 class CommunicationProtocolUniform(CommunicationProtocol):
     def __init__(self, is_with_timestamp, name, UB):
         CommunicationProtocol.__init__(self, is_with_timestamp, name)

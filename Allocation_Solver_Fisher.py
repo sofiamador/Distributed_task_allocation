@@ -2,6 +2,7 @@ import abc
 import copy
 import math
 import random
+import sys
 from abc import ABC
 
 import Simulation_Abstract
@@ -875,7 +876,7 @@ class FisherTaskASY(TaskAlgorithm):
 
     def task_phase_I_over(self):
         for mission, counter in self.counter_of_converges_dict.items():
-            if counter > 0:
+            if counter > 0 and counter< sys.maxsize-99999:
                 if not self.allocation_all_zero(mission) and not self.allocation_single_one(mission):
                     return False
 
@@ -1096,6 +1097,7 @@ class FisherAsynchronousSolver_TasksTogether(AllocationSolverTasksPlayersSemi):
 
 
 
+
 class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRandTaskInit):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
@@ -1109,6 +1111,20 @@ class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRand
         self.future_utility_function = future_utility_function
         self.is_with_timestamp = is_with_timestamp
 
+
+
+    def allocate(self):
+        self.reset_algorithm_agents()
+        self.mailer.reset(self.tnow)
+        should_allocate = self.solve_tasks_with_players_that_pay_them_all_bug()
+        if should_allocate:
+            self.connect_entities()
+            self.agents_initialize()
+            self.start_all_threads()
+            self.mailer.start()
+            self.mailer.join()
+
+
     def create_algorithm_task(self, task: TaskSimple):
         return FisherTaskASY_TSG_greedy_Schedual(agent_simulator=task, t_now=self.tnow, is_with_timestamp=self.is_with_timestamp)
 
@@ -1119,7 +1135,7 @@ class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRand
                                                    is_with_timestamp=self.is_with_timestamp, ro=self.ro)
 
 
-class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayersFullRandTaskInit):
+class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayersFullLatestTaskInit):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
                  is_with_timestamp=True, ro=0.9, simulation_rep=0):
@@ -1142,17 +1158,15 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
                                                    is_with_timestamp=self.is_with_timestamp, ro=self.ro)
 
     def allocate(self):
-
-        self.remove_tasks_where_players_have_no_alternative()
-        super().allocate()
-
-    def remove_tasks_where_players_have_no_alternative(self):
-        for task in self.tasks_simulation:
-            #neighbors = task.neighbours
-            neighbors_by_skill = self.neighbors_by_skill(task)
-            #for n in neighbors:
-            #    for other_task
-
+        self.reset_algorithm_agents()
+        self.mailer.reset(self.tnow)
+        should_allocate = self.solve_tasks_with_players_that_pay_them_all_bug()
+        if should_allocate:
+            self.connect_entities()
+            self.agents_initialize()
+            self.start_all_threads()
+            self.mailer.start()
+            self.mailer.join()
 
 
 class FisherCentralized(AllocationSolverCentralized):

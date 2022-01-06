@@ -1,4 +1,5 @@
 import abc
+import sys
 from abc import ABC
 
 import math
@@ -199,6 +200,15 @@ class Mailer(threading.Thread):
 
     def set_inbox(self, inbox_input: UnboundedBuffer):
         self.inbox = inbox_input
+
+
+    def remove_agent(self,entity_input):
+
+        for agent in self.agents_algorithm:
+            if agent.simulation_entity.id_ == entity_input.id_:
+                self.agents_algorithm.remove(agent)
+                return
+
 
     def run(self) -> None:
 
@@ -1140,6 +1150,7 @@ class AllocationSolverDistributed(AllocationSolver):
     def remove_player_from_solver(self, player: PlayerSimple):
         self.players_simulation.remove(player)
         self.what_solver_does_when_player_is_removed(player)
+        self.mailer.remove_agent(player)
 
     def add_task_to_solver(self, task: TaskSimple):
         self.tasks_simulation.append(task)
@@ -1148,6 +1159,7 @@ class AllocationSolverDistributed(AllocationSolver):
     def remove_task_from_solver(self, task: TaskSimple):
         self.tasks_simulation.remove(task)
         self.what_solver_does_when_task_is_removed(task)
+        self.mailer.remove_agent(task)
 
     @abc.abstractmethod
     def what_solver_does_when_player_is_added(self, player: PlayerSimple):
@@ -1289,6 +1301,79 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         self.tasks_algorithm = []
         self.players_algorithm = []
 
+
+    def get_task_algorithm(self,task_entity):
+        for task_algo in self.tasks_algorithm:
+            if task_algo.simulation_entity.id_ == task_entity.id_:
+                return  task_algo
+
+    def get_disconnected_tasks_via_responsible_players(self):
+        ans = {}
+        for task in self.tasks_simulation:
+            if  task.arrival_time != self.tnow:
+                flag = False
+                for other_task in self.tasks_simulation :
+                    if other_task.id_ !=task.id_ :
+                        if task.player_responsible.id_ in other_task.neighbours:
+                            flag = True
+                            break
+                if not flag:
+                    ans[task] = task.player_responsible
+        return ans
+
+    def solve_tasks_with_players_that_pay_them_all_bug(self):
+        tasks_with_players_that_pay_them_all = self.get_tasks_with_players_that_pay_them_all()
+        dict_tasks_and_missions_that_need_to_be_allocated, new_tasks, tasks_to_remove = self.get_information_what_to_remove_and_allocate(
+            tasks_with_players_that_pay_them_all)
+
+
+        self.create_synthetic_allocation_using_rij(
+            dict_tasks_and_missions_that_need_to_be_allocated)
+
+        for task in dict_tasks_and_missions_that_need_to_be_allocated.keys():
+            if task.arrival_time ==self.tnow:
+                return False
+
+        task_responsible_players_dict = self.get_disconnected_tasks_via_responsible_players()
+        for task_to_add in task_responsible_players_dict.keys():
+            tasks_to_remove.append(task_to_add)
+        for task in tasks_to_remove:
+            task_algorithm = self.get_task_algorithm(task)
+            task_algorithm.is_finish_phase_II = True
+
+
+        for task,missions_list in dict_tasks_and_missions_that_need_to_be_allocated.items():
+            if task not in tasks_to_remove:
+                for mission in missions_list:
+                    task.counter_of_converges_dict[mission] = sys.maxsize
+
+        return  True
+        #self.replace_new_tasks(new_tasks)
+        #self.remove_tasks(tasks_to_remove)
+        #self.remove_players(players_to_remove)
+
+
+    def replace_new_tasks(self, new_tasks):
+
+        for new_task in new_tasks:
+            for old_task in self.tasks_simulation:
+                if new_task.id_ == old_task.id_:
+                    self.remove_task_from_solver(old_task)
+                    self.add_task_to_solver(new_task)
+                    break
+
+        return
+
+    def remove_tasks(self, tasks_to_remove):
+        for task in tasks_to_remove:
+            self.remove_task_from_solver(task)
+
+    def remove_players(self, players_to_remove):
+        for player in players_to_remove:
+            self.remove_player_from_solver(player)
+
+
+
     def get_player_entity(self,player_id):
         for player_entity in self.players_simulation:
             if player_entity.id_ == player_id:
@@ -1301,6 +1386,92 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
         for player_id in neighbors_id:
             ans.append(self.get_player_entity(player_id))
         return ans
+
+    def get_information_what_to_remove_and_allocate(self, tasks_with_players_that_pay_them_all):
+        tasks_to_remove = []
+        new_tasks = []
+        dict_tasks_and_missions_that_need_to_be_allocated = {}
+
+        for task, ability in tasks_with_players_that_pay_them_all.items():
+            new_task = copy.copy(task)
+            missions_to_remove = []
+            new_missions_list = []
+            for mission in new_task.missions_list:
+                if mission.abilities[0] == ability:
+                    missions_to_remove.append(mission)
+            for mission in new_task.missions_list:
+                if mission not in missions_to_remove:
+                    new_missions_list.append(mission)
+            if len(new_missions_list) == 0:
+                tasks_to_remove.append(task)
+            else:
+                new_task.missions_list = new_missions_list
+                new_tasks.append(new_task)
+            dict_tasks_and_missions_that_need_to_be_allocated[task] = missions_to_remove
+
+        return dict_tasks_and_missions_that_need_to_be_allocated, new_tasks, tasks_to_remove
+
+    def create_synthetic_allocation_using_rij(self, dict_tasks_and_missions_that_need_to_be_allocated):
+        players_to_remove = []
+        for task, missions_list in dict_tasks_and_missions_that_need_to_be_allocated.items():
+            players_entities = self.get_players_entity(task.neighbours)
+            for mission in missions_list:
+                relevant_players = []
+
+                ability = mission.abilities[0]
+                for player in players_entities:
+                    if player.abilities[0] == ability:
+                        relevant_players.append(player)
+
+                rijs_dict = {}
+                for player in relevant_players:
+                    util = self.future_utility_function(player_entity=player, mission_entity=mission, task_entity=task)
+                    rijs_dict[player] = util
+
+                sorted_players = sorted(relevant_players, key=rijs_dict.get, reverse=True)
+                allocated_players = []
+                for i in range(mission.max_players):
+                    if i < len(sorted_players):
+                        allocated_players.append(sorted_players[i])
+
+                for player in allocated_players:
+                    player.schedule.append((task, mission, self.tnow))
+
+                if len(relevant_players) > 0:
+                    players_to_remove = players_to_remove+relevant_players
+        return  players_to_remove
+
+    def create_tasks_dicts_of_neighbors_by_ability(self):
+        ans = {}
+        for task in self.tasks_simulation:
+            neighbors_by_ability = self.neighbors_by_skill(task)
+            ans[task] = neighbors_by_ability
+        return ans
+
+    def check_if_mission_should_stay(self, task, players_list, tasks_dicts_of_neighbors_by_ability, ability):
+        for other_task in self.tasks_simulation:
+            if other_task.id_ != task.id_:
+                for player_entity in players_list:
+                    other_neighbors_by_ability = tasks_dicts_of_neighbors_by_ability[other_task]
+                    if ability in other_neighbors_by_ability.keys():
+                        is_player_in_task = player_entity in other_neighbors_by_ability[ability]
+                        if is_player_in_task:
+                            return True
+        return False
+
+    def get_tasks_with_players_that_pay_them_all(self):
+        tasks_and_missions_that_should_be_removed = {}
+        tasks_dicts_of_neighbors_by_ability = self.create_tasks_dicts_of_neighbors_by_ability()
+        for task in self.tasks_simulation:
+            neighbors_by_ability = tasks_dicts_of_neighbors_by_ability[task]
+            for ability, players_list in neighbors_by_ability.items():
+                should_mission_with_ability_stay = self.check_if_mission_should_stay(task, players_list,
+                                                                                     tasks_dicts_of_neighbors_by_ability,
+                                                                                     ability)
+                if not should_mission_with_ability_stay:
+                    tasks_and_missions_that_should_be_removed[task] = ability
+
+        return tasks_and_missions_that_should_be_removed
 
     def neighbors_by_skill(self,task):
         ans = {}
@@ -1317,7 +1488,8 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
                     ids_to_remove.append(neighbor_entity.id_)
                 else:
                     ans[ability].append(neighbor_entity)
-
+        if len(ids_to_remove)!=0:
+            raise Exception("was taken care of in simulation user, if you other simulation user script igonre this exception")
         updated_neighbors_list = []
         for player_id in task.neighbours:
             if player_id not in ids_to_remove:
@@ -1452,8 +1624,8 @@ class AllocationSolverTasksPlayersFullRandTaskInit(AllocationSolverTasksPlayersS
         max_task.initiate_algorithm()
 
 
-def get_task_arrival_time(task_entity:TaskSimple):
-    return task_entity.arrival_time
+def get_task_arrival_time(task_agent:TaskSimple):
+    return task_agent.simulation_entity.arrival_time
 
 class AllocationSolverTasksPlayersFullLatestTaskInit(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
@@ -1462,9 +1634,10 @@ class AllocationSolverTasksPlayersFullLatestTaskInit(AllocationSolverTasksPlayer
                                              f_communication_disturbance)
 
     def agents_initialize(self):
-        task_entities = []
-        for task_algo in self.tasks_algorithm:
-            task_entities.append(task_algo.simulation_entity)
+        #task_entities = []
+        #for task_algo in self.tasks_algorithm:
+            #task_entities.append(task_algo.simulation_entity)
 
-        max_task = max(task_entities,key = get_task_arrival_time)
+        max_task = max(self.tasks_algorithm,key = get_task_arrival_time)
+
         max_task.initiate_algorithm()

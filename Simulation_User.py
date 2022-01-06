@@ -12,7 +12,7 @@ from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
     MapSimple
 
-simulations_range = range(1,2)
+simulations_range = range(2,3)
 number_of_centers = 10
 map_length = 10
 map_width = 10
@@ -24,14 +24,29 @@ util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for 
 exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
 time_per_simulation = 10
 number_of_initial_tasks = 15
-max_number_of_abilities = 3
+max_number_of_abilities = 1
 
 neighbor_radius_parameter = 3 # neighbor if distance<(map_size/neighbor_radius_parameter)
 missions_information = {}
 missions_information["Simulation ID"] = []
 
+def get_task_has_mission_with_required_skill(task,agent):
+    abilities_in_task = []
+    for mission in task.missions_list:
+        for ability in mission.abilities:
+            abilities_in_task.append(ability)
+
+    for player_ability in agent.abilities:
+        if player_ability in abilities_in_task:
+            return True
+    return False
+
 
 def determine_neighbor_by_map_radius(task:Entity, agent:Entity):
+
+    #task_has_mission_with_required_skill = get_task_has_mission_with_required_skill(task,agent)
+    #if not task_has_mission_with_required_skill:
+    #    return False
 
     distance = calculate_distance(task,agent)
     radius_size = map_length/neighbor_radius_parameter
@@ -45,6 +60,25 @@ def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
         return False
     return True
 
+
+def get_have_at_list_one_task_that_converged(tasks):
+    for task in tasks:
+
+        if task.is_finish_phase_II:
+            return True
+    return False
+
+def get_tasks_that_were_out_of_the_market(tasks):
+    ans = []
+    for task in tasks:
+        for msg in task.msgs_from_players.values():
+            if msg is not None:
+                break
+        ans.append(task)
+    return ans
+
+
+
 def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
                                                  termination_time_constant=termination_time_constant):
     # TODO take care of only 1 task in system
@@ -52,10 +86,18 @@ def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
         return True
 
     tasks = []
+    players = []
     for agent in agents_algorithm:
         if isinstance(agent,FisherTaskASY):
             tasks.append(agent)
+        else:
+            players.append(agent)
 
+    #have_at_list_one_task_that_converged = get_have_at_list_one_task_that_converged(tasks)
+    #tasks_that_were_out_of_the_market = get_tasks_that_were_out_of_the_market(tasks,players)
+    #if have_at_list_one_task_that_converged and len(tasks_that_were_out_of_the_market)>0:
+        #for  task in tasks_that_were_out_of_the_market:
+            #task.is_finish_phase_II = True
     #if len(tasks)>=2:
     for task in tasks:
         if not task.is_finish_phase_II and mailer.time_mailer.get_clock() < termination_time_constant:
@@ -100,7 +142,10 @@ def all_values_are_zero(values):
 
 def get_initial_objects_for_simulation(simulation_number):
     seed = simulation_number
-    map_ = MapSimple(seed=seed * 17 + 17)
+    map_ = MapSimple(number_of_centers=number_of_centers,seed=simulation_number)#MapHubs( number_of_centers=number_of_centers, seed=simulation_number,
+                    #length_y=map_length, width_x=map_width, sd_multiplier=0.5)
+
+
     rand_ = random.Random(seed * 17 + 1910)
     return seed,map_,rand_
 
