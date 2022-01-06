@@ -15,7 +15,7 @@ from Data_fisher_market import get_data_fisher
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator, \
     SimplePlayerGenerator
-from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance
+from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, MapSimple
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
@@ -79,8 +79,8 @@ class SimulationStatic():
 
         self.seed_number = rep_number
         self.solver = solver
-        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.05,
-                           length_y=map_length, width_x=map_width)
+        self.map = MapSimple(seed=self.seed_number * 1717, length=map_length, width=map_width)#MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.05,
+                           #length_y=map_length, width_x=map_width)
         self.task_generator = SimpleTaskGenerator(map_=self.map, seed=self.seed_number,max_number_of_missions=max_number_of_missions)
         self.tasks_per_center = tasks_per_center
 
@@ -685,8 +685,8 @@ if __name__ == '__main__':
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
-    simulation_reps = range(5)
-    players_required_ratios = [0.5]
+    simulation_reps = range(100)
+    players_required_ratios = [1]
     tasks_per_center = 2
     number_of_centers = 4
 
