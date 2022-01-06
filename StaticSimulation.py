@@ -23,11 +23,12 @@ from Simulation_Abstract import  TaskArrivalEvent, find_and_allocate_responsible
 from Allocation_Solver_Abstract import AllocationSolver
 import string
 
+number_of_tasks = 15
 different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant =50000 #1000000# 100000 #1000000
+termination_time_constant =100000 #1000000# 100000 #1000000
 map_width = None
 map_length = None
 data_jumps = None
@@ -105,7 +106,7 @@ class SimulationStatic():
             self.solver.add_task_to_solver(task)
 
     def create_tasks(self):
-        total_number_of_tasks = self.tasks_per_center * len(self.map.centers_location)
+        total_number_of_tasks = number_of_tasks#self.tasks_per_center * len(self.map.centers_location)
         for _ in range(total_number_of_tasks):
             task = self.task_generator.get_task(0)#SingleTaskGeneratorTSG(rand=self.rand, map_=self.map).random_task
             self.tasks.append(task)
@@ -686,19 +687,19 @@ if __name__ == '__main__':
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
     simulation_reps = range(100)
-    players_required_ratios = [1]
+    players_required_ratios = [0.75]
     tasks_per_center = 2
     number_of_centers = 4
-
+    number_of_tasks =15
     data_jumps = 100
     map_width = 10
     map_length = 10
     algo_name = "FMC_ASY"
     ros = [0.9]
-    is_with_timestamp = False #False #True
+    is_with_timestamp = True #False #True
     perfect_communication = True  #False
     max_number_of_missions = 3
-    alpha_for_delay = [0.5,1,1.2,1.5,2,3]
+    alpha_for_delay = []#[0.5,1,1.2,1.5,2,3]
     alpha_for_loss = []
     #ubs = []#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #p_losses = [0.1,0.2,0.3]  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
