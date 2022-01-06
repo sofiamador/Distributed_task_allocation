@@ -24,7 +24,7 @@ util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for 
 exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
 time_per_simulation = 10
 number_of_initial_tasks = 15
-max_number_of_abilities = 1
+max_number_of_abilities = 3
 
 neighbor_radius_parameter = 3 # neighbor if distance<(map_size/neighbor_radius_parameter)
 missions_information = {}

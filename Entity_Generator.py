@@ -11,7 +11,7 @@ import numpy as np
 
 
 class SimpleTaskGenerator(TaskGenerator):
-    def __init__(self, map_: MapHubs, seed, factor_initial_workload=1.15, max_importance=10, exp_lambda_parameter=2):
+    def __init__(self, max_number_of_missions ,map_: MapHubs, seed, factor_initial_workload=1.15, max_importance=10, exp_lambda_parameter=2):
         """
 
         :param map_: object to initiate location
@@ -26,6 +26,12 @@ class SimpleTaskGenerator(TaskGenerator):
         self.id_mission_counter = 0
         self.max_importance = max_importance
         self.factor_initial_workload = factor_initial_workload
+        self.skill_range =  []
+
+        self.max_number_of_missions = max_number_of_missions
+        for skill_number in range(max_number_of_missions):
+            self.skill_range.append(skill_number)
+
 
     def time_gap_between_tasks(self):
         return self.rnd_numpy.exponential(scale=self.beta, size=1)[0]
@@ -34,6 +40,9 @@ class SimpleTaskGenerator(TaskGenerator):
         """
         :rtype: TaskSimple
         """
+
+        amount_of_missions = random.randint(1, self.max_number_of_missions)
+        required_abilities = self.random.sample(self.skill_range ,amount_of_missions)
         self.id_task_counter = self.id_task_counter + 1
         id_ = str(self.id_task_counter)
         location = self.map.generate_location()#self.map.generate_location_gauss_around_center()
@@ -42,37 +51,44 @@ class SimpleTaskGenerator(TaskGenerator):
             arrival_time = tnow
         else:
             arrival_time = tnow + self.time_gap_between_tasks()
-        missions_list = [self.create_random_mission(task_importance=importance, arrival_time=arrival_time)]
+        missions_list = []
+        for ability in required_abilities:
+            mission_created = self.create_random_mission(task_importance=importance, arrival_time=arrival_time,ability = ability)
+            missions_list.append(mission_created)
 
         return TaskSimple(id_=id_, location=location, importance=importance,
                           missions_list=missions_list, arrival_time=arrival_time)
 
-    def create_random_mission(self, task_importance: float, arrival_time: float):
+    def create_random_mission(self, task_importance: float, arrival_time: float,ability):
+        created_ability = AbilitySimple(ability_type=ability)
         self.id_mission_counter = self.id_mission_counter + 1
         mission_id = str(self.id_mission_counter)
         initial_workload = self.factor_initial_workload ** (task_importance/1000)
         arrival_time_to_the_system = arrival_time
-        max_players = min(max(self.rnd_numpy.poisson(lam=(task_importance/1500) / 2, size=1)[0], 2 ),5)
+        max_players = min(max(self.rnd_numpy.poisson(lam=(task_importance/1500) / 2, size=1)[0], 2 ),4)
 
         return MissionSimple(task_importance = task_importance,mission_id= mission_id,
-                             initial_workload= initial_workload, arrival_time_to_the_system= arrival_time_to_the_system, max_players=max_players)
+                             initial_workload= initial_workload, arrival_time_to_the_system= arrival_time_to_the_system, max_players=max_players,abilities=[created_ability])
 
 
 class SimplePlayerGenerator(PlayerGenerator):
-    def __init__(self, map_: MapHubs, seed, speed=1, min_productivity=0.5):
+    def __init__(self, max_number_of_abilities,map_: MapHubs, seed, speed=1, min_productivity=0.5):
         PlayerGenerator.__init__(self, map_, seed)
         self.id_counter = 0
         self.speed = speed
         self.min_productivity = min_productivity
-
+        self.max_number_of_abilities = max_number_of_abilities
     def get_player(self):
+        ability_number = random.randint(0, self.max_number_of_abilities-1)
+        ability = AbilitySimple(ability_type=ability_number)
+
         self.id_counter = self.id_counter - 1
         id_ = str(self.id_counter)
         #location = self.map.generate_location_gauss_around_center()
         location = self.map.generate_location()
         speed = self.speed
         productivity = 1#self.calc_productivity()
-        return PlayerSimple(id_=id_, current_location=location, speed=speed, productivity=productivity)
+        return PlayerSimple(id_=id_, current_location=location, speed=speed, productivity=productivity, abilities=[ability])
 
     def calc_productivity(self):
         a = self.min_productivity
