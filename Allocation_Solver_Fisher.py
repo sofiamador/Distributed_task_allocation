@@ -1116,13 +1116,13 @@ class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRand
     def allocate(self):
         self.reset_algorithm_agents()
         self.mailer.reset(self.tnow)
-        should_allocate = self.solve_tasks_with_players_that_pay_them_all_bug()
-        if should_allocate:
-            self.connect_entities()
-            self.agents_initialize()
-            self.start_all_threads()
-            self.mailer.start()
-            self.mailer.join()
+        #should_allocate = self.solve_tasks_with_players_that_pay_them_all_bug()
+        #if should_allocate:
+        self.connect_entities()
+        self.agents_initialize()
+        self.start_all_threads()
+        self.mailer.start()
+        self.mailer.join()
 
 
     def create_algorithm_task(self, task: TaskSimple):
