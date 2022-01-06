@@ -1142,8 +1142,8 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
                                                    is_with_timestamp=self.is_with_timestamp, ro=self.ro)
 
     def allocate(self):
-        self.remove_tasks_where_players_have_no_alternative()
 
+        self.remove_tasks_where_players_have_no_alternative()
         super().allocate()
 
     def remove_tasks_where_players_have_no_alternative(self):
@@ -1152,17 +1152,7 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
             neighbors_by_skill = self.neighbors_by_skill(task)
             #for n in neighbors:
             #    for other_task
-        remove tasks with players that have not other tasks, and then remove the players
-    def neighbors_by_skill(self,task):
-        ans = {}
-        neighbors_ids = task.neighbours
-        neighbors_entities = self.get_players_entity(neighbors_ids)
-        missions = task.missions_list
-        for mission in missions:
-            for ability in mission.abilities:
-                ans[ability] = []
-        for neighbor_entity in neighbors_entities:
-            for
+
 
 
 class FisherCentralized(AllocationSolverCentralized):

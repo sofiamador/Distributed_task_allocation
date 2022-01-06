@@ -24,6 +24,7 @@ util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for 
 exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
 time_per_simulation = 10
 number_of_initial_tasks = 15
+max_number_of_abilities = 1
 
 neighbor_radius_parameter = 3 # neighbor if distance<(map_size/neighbor_radius_parameter)
 missions_information = {}
@@ -125,8 +126,8 @@ for exp_lambda_parameter in exp_lambda_parameters:
         print("Start Simulation Number",simulation_number)
         seed,map_,rand_ = get_initial_objects_for_simulation(simulation_number)
 
-        tasks_generator = SimpleTaskGenerator(map_=map_, seed=seed,exp_lambda_parameter=exp_lambda_parameter )  # TaskGeneratorTSG(map_, seed, exp_lambda_parameter=2)
-        player_generator = SimplePlayerGenerator(map_=map_, seed=seed,speed=players_speed)
+        tasks_generator = SimpleTaskGenerator(max_number_of_missions = max_number_of_abilities,map_=map_, seed=seed,exp_lambda_parameter=exp_lambda_parameter )  # TaskGeneratorTSG(map_, seed, exp_lambda_parameter=2)
+        player_generator = SimplePlayerGenerator(max_number_of_abilities = max_number_of_abilities,map_=map_, seed=seed,speed=players_speed)
 
         players_list = create_players(player_generator)
         communication_protocol = CommunicationProtocolDefault("Perfect Communication")

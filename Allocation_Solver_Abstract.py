@@ -1302,6 +1302,30 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
             ans.append(self.get_player_entity(player_id))
         return ans
 
+    def neighbors_by_skill(self,task):
+        ans = {}
+        neighbors_ids = task.neighbours
+        neighbors_entities = self.get_players_entity(neighbors_ids)
+        missions = task.missions_list
+        for mission in missions:
+            for ability in mission.abilities:
+                ans[ability] = []
+        ids_to_remove = []
+        for neighbor_entity in neighbors_entities:
+            for ability in neighbor_entity.abilities:
+                if ability not in ans.keys():
+                    ids_to_remove.append(neighbor_entity.id_)
+                else:
+                    ans[ability].append(neighbor_entity)
+
+        updated_neighbors_list = []
+        for player_id in task.neighbours:
+            if player_id not in ids_to_remove:
+                updated_neighbors_list.append(player_id)
+
+        task.neighbours = updated_neighbors_list
+        return ans
+
     def what_solver_does_when_player_is_added(self, player: PlayerSimple):
         algorithm_player = self.create_algorithm_player(player)
         self.agents_algorithm.append(algorithm_player)

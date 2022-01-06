@@ -8,6 +8,9 @@ from TSG_Solver import TSGPlayer, TSGMission, TSGEvent, late_finish_coefficient,
 
 def calculate_rij_abstract(player_entity :PlayerSimple, mission_entity:MissionSimple, task_entity:TaskSimple,
                                                  t_now=0):
+
+    if player_entity.abilities[0] != mission_entity.abilities[0]:
+        return 0
     importance_parameter= task_entity.importance
 
     discount_factor = 0.8
