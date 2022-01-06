@@ -27,7 +27,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant =100000 #1000000# 100000 #1000000
+termination_time_constant =50000 #1000000# 100000 #1000000
 map_width = None
 map_length = None
 data_jumps = None
@@ -160,7 +160,7 @@ class SimulationStatic():
         for player in self.players:
             ids_.append(player)
         for task in self.tasks:
-            task.create_neighbours_list(ids_,determine_neighbor_by_map_radius)
+            task.create_neighbours_list(ids_)
 
     def create_players(self, number_of_players, dict_input={1: 14, 4: 6, 8: 1}):
         dict_copy = copy.deepcopy(dict_input)
@@ -698,8 +698,8 @@ if __name__ == '__main__':
     is_with_timestamp = False #False #True
     perfect_communication = True  #False
     max_number_of_missions = 3
-    alpha_for_delay = [0.5,1,2,2.5,3,4]
-    alpha_for_loss = [2,2.5,5,7.5,10]
+    alpha_for_delay = [0.5,1,1.2,1.5,2,3]
+    alpha_for_loss = []
     #ubs = []#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #p_losses = [0.1,0.2,0.3]  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
     #p_loss_and_ubs = []  # [[0.25,1000]]
