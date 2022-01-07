@@ -686,7 +686,8 @@ if __name__ == '__main__':
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
-    simulation_reps = range(100)
+    simulation_reps = range(
+        3,4    )
     players_required_ratios = [0.75]
     tasks_per_center = 2
     number_of_centers = 4
@@ -699,7 +700,7 @@ if __name__ == '__main__':
     is_with_timestamp = True #False #True
     perfect_communication = True  #False
     max_number_of_missions = 3
-    alpha_for_delay = []#[0.5,1,1.2,1.5,2,3]
+    alpha_for_delay = [0.75]#[0.5,1,1.2,1.5,2,3]
     alpha_for_loss = []
     #ubs = []#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #p_losses = [0.1,0.2,0.3]  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]

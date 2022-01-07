@@ -65,7 +65,7 @@ class CommunicationProtocolDistance(CommunicationProtocol):
 
     def get_x(self,entity1,entity2):
         avg = quad_distance(entity1,entity2)
-        return self.rnd_numpy.normal(avg, 0.1, 1)[0]
+        return max(self.rnd_numpy.normal(avg, 0.1, 1)[0],0)
 
 class CommunicationProtocolExponentialDelayV1(CommunicationProtocolDistance):
     def __init__(self, alpha, is_with_timestamp=False,name=None):
@@ -73,9 +73,11 @@ class CommunicationProtocolExponentialDelayV1(CommunicationProtocolDistance):
         CommunicationProtocolDistance.__init__(self, name =name1,alpha=alpha, is_with_timestamp=is_with_timestamp)
 
     def get_communication_disturbance_by_protocol(self, entity1: Entity, entity2: Entity):
-        x = self.get_x(entity1,entity2)
-        return x**self.alpha
-
+        try:
+            x = self.get_x(entity1,entity2)
+            return x**self.alpha
+        except RuntimeWarning:
+            print(3)
 
 class CommunicationProtocolLossDecay(CommunicationProtocolDistance):
     def __init__(self, alpha,where_50_percent = 5, is_with_timestamp=False,name="distance^alpha"):
