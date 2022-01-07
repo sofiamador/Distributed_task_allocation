@@ -254,7 +254,7 @@ class Mailer(threading.Thread):
 
     def create_measurements(self):
         current_clock = self.time_mailer.get_clock()  # TODO check if immutable
-        print("line 257 ",current_clock)
+        #print("line 257 ",current_clock)
         if debug_fisher_market:
             print("******MAILER CLOCK", self.time_mailer.clock,"******")
             self.print_fisher_input()
