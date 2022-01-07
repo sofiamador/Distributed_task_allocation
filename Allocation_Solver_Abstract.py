@@ -254,7 +254,7 @@ class Mailer(threading.Thread):
 
     def create_measurements(self):
         current_clock = self.time_mailer.get_clock()  # TODO check if immutable
-
+        print("line 257 ",current_clock)
         if debug_fisher_market:
             print("******MAILER CLOCK", self.time_mailer.clock,"******")
             self.print_fisher_input()
@@ -387,7 +387,7 @@ class Mailer(threading.Thread):
 
         if not flag and communication_disturbance_output is not None:
             delay = communication_disturbance_output
-
+            delay = int(delay)
 
             msg.set_time_of_msg(delay)
             if debug_print_for_distribution:

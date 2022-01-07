@@ -28,7 +28,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant =200000 #1000000# 100000 #1000000
+termination_time_constant =5000 #1000000# 100000 #1000000
 map_width = None
 map_length = None
 data_jumps = None
@@ -80,7 +80,7 @@ class SimulationStatic():
 
         self.seed_number = rep_number
         self.solver = solver
-        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.2,
+        self.map = MapHubs(seed=self.seed_number * 1717, number_of_centers=number_of_centers, sd_multiplier=0.1,
                            length_y=map_length, width_x=map_width)
         self.task_generator = SimpleTaskGenerator(map_=self.map, seed=self.seed_number,max_number_of_missions=max_number_of_missions)
         self.tasks_per_center = tasks_per_center
@@ -688,19 +688,19 @@ if __name__ == '__main__':
     which_markets = [0,1,2,3]
     simulation_reps = range(
         3,4    )
-    players_required_ratios = [0.75]
+    players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
     number_of_tasks =15
-    data_jumps = 1000
+    data_jumps = 100
     map_width = 10
     map_length = 10
     algo_name = "FMC_ASY"
     ros = [0.9]
     is_with_timestamp = True #False #True
     perfect_communication = True  #False
-    max_number_of_missions = 3
-    alpha_for_delay = [1.5]#[0.5,1,1.2,1.5,2,3]
+    max_number_of_missions = 1
+    alpha_for_delay = [0.5]#[0.5,1,1.2,1.5,2,3]
     alpha_for_loss = []
     #ubs = []#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #p_losses = [0.1,0.2,0.3]  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
