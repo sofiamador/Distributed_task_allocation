@@ -1617,7 +1617,7 @@ def task_by_id(task_algo:TaskAlgorithm):
 class AllocationSolverTasksPlayersFullRandTaskInit(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
-        AllocationSolverTasksPlayersSemi.__init__(self,mailer, f_termination_condition, f_global_measurements,
+        AllocationSolverTasksPlayersSemi.__init__(self, f_termination_condition, f_global_measurements,
                                              f_communication_disturbance)
 
     def agents_initialize(self):
