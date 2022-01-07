@@ -28,7 +28,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant =100000 #1000000# 100000 #1000000
+termination_time_constant =200000 #1000000# 100000 #1000000
 map_width = None
 map_length = None
 data_jumps = None
@@ -545,7 +545,7 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,alpha
     #                                                               width=map_width,distance_loss_ratio=distance_loss_ratio))
 
     for alpha in alpha_for_delay:
-        ans.append(CommunicationProtocolExponentialDelayV1(alpha = alpha,is_with_timestamp=False))
+        ans.append(CommunicationProtocolExponentialDelayV1(alpha = alpha,is_with_timestamp=is_with_timestamp))
 
     for alpha in alpha_for_loss:
         ans.append(CommunicationProtocolLossDecay(alpha, is_with_timestamp=is_with_timestamp,name="distance^alpha"))
@@ -680,7 +680,7 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
-    fisher_solver_distribution_levels = [1,2]#[1,2] # 1 = semi distributed, 2 = one task distributed
+    fisher_solver_distribution_levels = [2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed
     util_structure_levels = [1,3]#[1,2,3] # 1-calculated rij, 2-random when importance determines, 3-random completely
 
     different_reps_market_bool = True
@@ -692,7 +692,7 @@ if __name__ == '__main__':
     tasks_per_center = 2
     number_of_centers = 4
     number_of_tasks =15
-    data_jumps = 100
+    data_jumps = 1000
     map_width = 10
     map_length = 10
     algo_name = "FMC_ASY"
@@ -700,7 +700,7 @@ if __name__ == '__main__':
     is_with_timestamp = True #False #True
     perfect_communication = True  #False
     max_number_of_missions = 3
-    alpha_for_delay = [0.75]#[0.5,1,1.2,1.5,2,3]
+    alpha_for_delay = [1.5]#[0.5,1,1.2,1.5,2,3]
     alpha_for_loss = []
     #ubs = []#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #p_losses = [0.1,0.2,0.3]  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]

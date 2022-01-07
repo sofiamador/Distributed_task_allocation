@@ -355,12 +355,12 @@ def get_data_fisher():
 
     # ---Price---
 
-    ans["Price_Single_Mission"] = calculate_price_single_task_view
-    ans["Price_Single_Mission_Players_View"] = calculate_price_single_player_view
+    #ans["Price_Single_Mission"] = calculate_price_single_task_view
+    #ans["Price_Single_Mission_Players_View"] = calculate_price_single_player_view
 
     # ---bpb
-    ans["Sum BPB"] = calc_sum_sum_bpb
-    ans["Max BPB"] = calc_sum_max_bpb
+    #ans["Sum BPB"] = calc_sum_sum_bpb
+    #ans["Max BPB"] = calc_sum_max_bpb
 
     return ans
 

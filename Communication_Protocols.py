@@ -73,11 +73,9 @@ class CommunicationProtocolExponentialDelayV1(CommunicationProtocolDistance):
         CommunicationProtocolDistance.__init__(self, name =name1,alpha=alpha, is_with_timestamp=is_with_timestamp)
 
     def get_communication_disturbance_by_protocol(self, entity1: Entity, entity2: Entity):
-        try:
             x = self.get_x(entity1,entity2)
             return x**self.alpha
-        except RuntimeWarning:
-            print(3)
+
 
 class CommunicationProtocolLossDecay(CommunicationProtocolDistance):
     def __init__(self, alpha,where_50_percent = 5, is_with_timestamp=False,name="distance^alpha"):
