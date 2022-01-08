@@ -78,14 +78,14 @@ class CommunicationProtocolExponentialDelayV1(CommunicationProtocolDistance):
 
 
 class CommunicationProtocolLossDecay(CommunicationProtocolDistance):
-    def __init__(self, alpha,where_50_percent = 5, is_with_timestamp=False,name="distance^alpha"):
-        self.where_50_percent = where_50_percent
-        name1 = "p = 1/str(alpha) distance^"+str(alpha)
+    def __init__(self, alpha,k_power_of = 3, is_with_timestamp=False,name="distance^alpha"):
+        self.k_power_of = k_power_of
+        name1 = "loss_"+str(alpha)
         CommunicationProtocolDistance.__init__(self, name =name1,alpha=alpha, is_with_timestamp=is_with_timestamp)
 
     def get_communication_disturbance_by_protocol(self, entity1: Entity, entity2: Entity):
         x = self.get_x(entity1,entity2)
-        P = 1/(1+(x/self.where_50_percent)**self.alpha)
+        P = 1/(1+((x/self.alpha)**self.k_power_of))
         p = self.rnd.random()
         if p<P:
             return 0
