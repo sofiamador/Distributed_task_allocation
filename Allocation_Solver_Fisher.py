@@ -8,11 +8,11 @@ from abc import ABC
 import Simulation_Abstract
 from Allocation_Solver_Abstract import PlayerAlgorithm, TaskAlgorithm, AllocationSolverTasksPlayersSemi, \
     default_communication_disturbance, AllocationSolverTasksPlayersFullRandTaskInit, \
-    AllocationSolverTasksPlayersFullLatestTaskInit, AllocationSolverCentralized, CentralComputer
+    AllocationSolverTasksPlayersFullLatestTaskInit, AllocationSolverCentralized, MsgTaskEntity
 from Simulation_Abstract import  TaskSimple, PlayerSimple
 from Allocation_Solver_Abstract import Msg
 from R_ij import calculate_rij_tsg
-from Simulation_Abstract_Components import Entity, calculate_distance_input_location
+from Simulation_Abstract_Components import Entity, calculate_distance_input_location, CentralizedComputer
 
 is_with_scheduling = True
 
@@ -193,6 +193,12 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
                                                             future_utility_function=self.future_utility_function,
                                                             util=util_value)
 
+    def add_task_entity_to_log_centralistic(self,task_entity):
+        self.add_task_entity_to_log(task_entity = task_entity)
+        for mission_entity in task_entity.missions_list:
+            self.x_i[task_entity] = {mission_entity:None}
+            self.x_i_norm[task_entity] = {mission_entity:None}
+
     def initiate_algorithm(self):
         raise Exception("only tasks initiate the algorithm")
 
@@ -208,6 +214,7 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
             return self.msgs_from_tasks[task_id].timestamp
 
     def update_message_in_context(self, msg):
+
         task_simulation = self.set_information_prior_to_computation(msg)
         self.update_xij(task_simulation, msg.information[0])
         self.update_xij_norm(task_simulation, msg.information[1])
@@ -685,8 +692,10 @@ class FisherTaskASY(TaskAlgorithm):
 
 
     def update_rij_info(self, rij_dict,player_id):
-        for mission,rij_util in rij_dict.items():
-            self.r_jk[mission][player_id] = rij_util.get_utility()
+        pass
+        #for mission,rij_util in rij_dict.items():
+        #    self.r_jk[mission][player_id] = rij_util.get_utility()
+
 
 
     @abc.abstractmethod
@@ -1123,6 +1132,7 @@ class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRand
         self.start_all_threads()
         self.mailer.start()
         self.mailer.join()
+        return  self.mailer.time_mailer.clock
 
 
     def create_algorithm_task(self, task: TaskSimple):
@@ -1167,19 +1177,110 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
             self.start_all_threads()
             self.mailer.start()
             self.mailer.join()
+        return  self.mailer.time_mailer.clock
 
 
-class FisherCentralized(AllocationSolverCentralized):
-    def __init__(self,centralized_computer:CentralComputer,f_termination_condition, mailer = None,  f_global_measurements = {},
+class FisherCentralizedSolver(AllocationSolverCentralized):
+    def __init__(self,centralized_computer:CentralizedComputer,f_termination_condition,  f_global_measurements = {},
     future_utility_function = None, util_structure_level = 1,
     is_with_timestamp = True, ro = 0.9, simulation_rep = 0):
-        AllocationSolverCentralized.__init__(self,centralized_computer,f_termination_condition)
 
+
+        AllocationSolverCentralized.__init__(self,centralized_computer,f_termination_condition)
+        self.future_utility_function =future_utility_function
+        self.util_structure_level =util_structure_level
+        self.is_with_timestamp = is_with_timestamp
+        self.ro = ro
+        self.simulation_rep =simulation_rep
+        self.f_global_measurements =f_global_measurements
 
 
     def add_player_to_solver(self, player: PlayerSimple):
-        pass
+        player_algorithm = FisherPlayerASY_TSG_greedy_Schedual(util_structure_level=self.util_structure_level,
+                                                   agent_simulator=player, t_now=self.tnow,
+                                                   future_utility_function=self.future_utility_function,
+                                                   is_with_timestamp=self.is_with_timestamp, ro=self.ro)
 
+        self.players_algorithm.append(player_algorithm)
+        self.agents_algorithm.append(player_algorithm)
 
     def add_task_to_solver(self, task: TaskSimple):
-        pass
+
+
+        task_algorithm = FisherTaskASY_TSG_greedy_Schedual(agent_simulator=task, t_now=self.tnow,
+                                                           is_with_timestamp=self.is_with_timestamp)
+        self.tasks_algorithm.append(task_algorithm)
+        self.agents_algorithm.append(task_algorithm)
+
+    def get_player_algorithm(self,player_id):
+        for player_algorithm in self.players_algorithm:
+            player_simulation= player_algorithm.simulation_entity
+            if player_simulation.id_ == player_id:
+                return player_algorithm
+
+
+
+    def players_meet_tasks(self):
+        for task in self.tasks_simulation:
+            neighbors_list = task.neighbours
+            for player_id in neighbors_list:
+                algorithm_player = self.get_player_algorithm(player_id)
+                algorithm_player.add_task_entity_to_log_centralistic(task)
+
+
+    def initialize_centralistic_algorithm(self):
+        self.players_meet_tasks()
+        for player_algo in self.players_algorithm:
+            player_algo.compute()
+            msgs = player_algo.get_list_of_msgs_to_send()
+            self.place_msgs_in_msg_box(msgs)
+
+
+    def extract_msgs_and_place_in_context(self,agent_algo):
+        simulation_entity = agent_algo.simulation_entity
+        id_ = simulation_entity.id_
+        msgs = self.msgs_box[id_]
+        self.msgs_box[id_] = []
+        for msg in msgs:
+            agent_algo.update_message_in_context(msg)
+
+    def print_x(self):
+        for task in self.tasks_algorithm:
+            for mission in task.simulation_entity.missions_list:
+                for player_id,val in task.x_jk[mission].items():
+                    if val is not None:
+                        print(round(val,ndigits= 2),end=",")
+            print()
+
+        print()
+        print()
+
+
+    def allocate(self):
+
+        while (True):
+            for task_algo in self.tasks_algorithm:
+                self.extract_msgs_and_place_in_context(task_algo) #TODO
+                task_algo.compute()
+                msgs = task_algo.get_list_of_msgs_to_send()
+                task_msgs_creation = self.get_task_msgs(msgs,task_algo.simulation_entity)
+                self.place_msgs_in_msg_box(task_msgs_creation)
+
+            self.print_x()
+            for player_algo in self.players_algorithm:
+                self.extract_msgs_and_place_in_context(player_algo) #TODO
+                player_algo.compute()
+                msgs = player_algo.get_list_of_msgs_to_send()
+                self.place_msgs_in_msg_box(msgs)
+
+
+    def get_task_msgs(self,msgs,simulation_entity):
+        ans = []
+
+        for msg in msgs:
+            temp_msg = MsgTaskEntity(msg, copy.copy(simulation_entity))
+            #temp_msg.add_current_NCLO(self.NCLO.clock)
+            #temp_msg.add_timestamp(self.timestamp_counter)
+            #temp_msg.is_with_perfect_communication = self.check_if_msg_should_have_perfect_communication(msg)
+            ans.append(temp_msg)
+        return  ans

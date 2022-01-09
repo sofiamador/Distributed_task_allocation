@@ -635,6 +635,41 @@ class MapHubs(MapSimple):
         return [rand_x, rand_y]
 
 
+class CentralizedComputer:
+    def __init__(self, players_simulation:[PlayerSimple]=[],tasks_simulation:[TaskSimple]=[]):
+        self.players_simulation = players_simulation
+        self.tasks_simulation = tasks_simulation
+
+    def find_current_player_in_computer(self,player_simulation):
+        for pp in self.players_simulation:
+            if pp.id_==player_simulation.id_:
+                return pp
+    def update_player_simulation(self,player_simulation:PlayerSimple):
+        current_player = self.find_current_player_in_computer(player_simulation)
+        if current_player is not None:
+            self.players_simulation.remove(current_player)
+        else:
+            print("if this is showen in dynamic simulation I forgot to add player as an event in simulation")
+
+        self.players_simulation.append(player_simulation)
+
+
+    def find_current_task_in_computer(self,task_simulation):
+        for tt in self.tasks_simulation:
+            if tt.id_==task_simulation.id_:
+                return tt
+
+
+    def update_task_simulation(self, task_simulation: PlayerSimple):
+        current_task = self.find_current_task_in_computer(task_simulation)
+        if current_task is not None:
+            self.tasks_simulation.remove(current_task)
+        else:
+            print("if this is showen in dynamic simulation I forgot to add task as an event in simulation")
+
+        self.tasks_simulation.append(task_simulation)
+
+
 class PlayerGenerator(ABC):
     def __init__(self, map_=MapSimple(seed=1), seed=1):
         """

@@ -4,7 +4,8 @@ import random
 import matplotlib.pyplot as plt
 
 from Allocation_Solver_Abstract import Mailer
-from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, FisherAsynchronousSolver_TaskRandInit
+from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, FisherAsynchronousSolver_TaskRandInit, \
+    FisherCentralizedSolver
 from Communication_Protocols import CommunicationProtocol, CommunicationProtocolUniform, CommunicationProtocolDefault, \
     CommunicationProtocolDistanceBaseDelayPois, CommunicationProtocolMessageLossConstant, \
     CommunicationProtocolDistanceBaseMessageLoss, CommunicationProtocolDistanceBaseDelayPoisAndLoss, \
@@ -15,7 +16,7 @@ from Data_fisher_market import get_data_fisher
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Entity_Generator import SingleTaskGeneratorTSG, SinglePlayerGeneratorTSG, SimpleTaskGenerator, \
     SimplePlayerGenerator
-from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, MapSimple
+from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, MapSimple, CentralizedComputer
 
 plt.style.use('seaborn-whitegrid')
 import pandas as pd
@@ -96,14 +97,27 @@ class SimulationStatic():
     def add_solver(self, solver: AllocationSolver):
         self.solver = solver
 
-        for task in self.tasks:
-            find_and_allocate_responsible_player(task=task, players=self.players)
+        if fisher_solver_distribution_level == 3:
 
-        for player in self.players:
-            self.solver.add_player_to_solver(player)
+            for player in self.players:
+                solver.centralized_computer.update_player_simulation(player)
+            #solver.centralized_computer.players_simulation=self.players
+            for task in self.tasks:
+                solver.centralized_computer.update_task_simulation(task)
 
-        for task in self.tasks:
-            self.solver.add_task_to_solver(task)
+                find_and_allocate_responsible_player(task=task, players=self.players)
+
+            #solver.centralized_computer.tasks_simulation=self.tasks
+
+        else:
+            for task in self.tasks:
+                find_and_allocate_responsible_player(task=task, players=self.players)
+
+            for player in self.players:
+                self.solver.add_player_to_solver(player)
+
+            for task in self.tasks:
+                self.solver.add_task_to_solver(task)
 
     def create_tasks(self):
         total_number_of_tasks = number_of_tasks#self.tasks_per_center * len(self.map.centers_location)
@@ -353,7 +367,13 @@ def create_fisher_solver(simulation_rep,communication_protocol,ro=1, fisher_solv
          is_with_timestamp=communication_protocol.is_with_timestamp,
          ro=ro, util_structure_level =util_structure_level,simulation_rep = simulation_rep)
 
-
+    if fisher_solver_distribution_level == 3:
+        centralized_computer = CentralizedComputer()
+        return FisherCentralizedSolver( centralized_computer=centralized_computer,f_termination_condition=f_termination_condition_constant_mailer_nclo,
+        f_global_measurements=get_data_fisher(),
+        future_utility_function=calculate_rij_abstract,
+        is_with_timestamp=None,
+        ro=ro, util_structure_level =util_structure_level,simulation_rep = simulation_rep)
 
 
 
@@ -584,7 +604,7 @@ def additions_to_names(file_name1,file_name2, fisher_solver_distribution_level, 
 
     return file_name1,file_name2
 
-def run_different_markets(communication_protocol,ro):
+def run_different_markets(ro,communication_protocol=None):
     data_ = {}
     for i in simulation_reps:#range(simulation_reps):
         simulation_rep = i
@@ -595,12 +615,16 @@ def run_different_markets(communication_protocol,ro):
                               players_required_ratio=players_required_ratio
                               , tasks_per_center=tasks_per_center,  number_of_centers=number_of_centers)
 
-        communication_protocol.set_seed(i)
+        #communication_protocol.set_seed(i)
 
         fisher_solver = create_fisher_solver(simulation_rep =i, communication_protocol=communication_protocol,ro=ro, fisher_solver_distribution_level = fisher_solver_distribution_level, util_structure_level = util_structure_level)
 
         scenario.add_solver(fisher_solver)
-        fisher_solver.solve(0)
+        if fisher_solver_distribution_level == 3:
+            fisher_solver.solve(tnow = 0,centralized_computer= fisher_solver.centralized_computer )
+
+        else:
+            fisher_solver.solve(tnow = 0)
         data_[i]= fisher_solver.get_measurements()
 
     data_single_output_dict1, data_single_output_dict2 = get_data_single_output_dict(data_, type_solver = fisher_solver_distribution_level)
@@ -680,7 +704,7 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
-    fisher_solver_distribution_levels = [2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed
+    fisher_solver_distribution_levels = [3,2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed, 3 =centralistic
     util_structure_levels = [1,3]#[1,2,3] # 1-calculated rij, 2-random when importance determines, 3-random completely
 
     different_reps_market_bool = True
@@ -697,10 +721,10 @@ if __name__ == '__main__':
     algo_name = "FMC_ASY"
     ros = [0.9]
     is_with_timestamp = False #False #True
-    perfect_communication = False  #False
+    perfect_communication = True  #False
     max_number_of_missions = 1
     alpha_for_delay = []#[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3]
-    alpha_for_loss = [10,9,8,7,6,5,4,3,2]
+    alpha_for_loss = []#[10,9,8,7,6,5,4,3,2,1]
     #ubs = []#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #p_losses = [0.1,0.2,0.3]  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
     #p_loss_and_ubs = []  # [[0.25,1000]]
@@ -718,22 +742,25 @@ if __name__ == '__main__':
     data_output_list_avg = []
     data_output_list_last = []
 
-    for util_structure in util_structure_levels:
-        util_structure_level = util_structure
-        for dist_ratio in fisher_solver_distribution_levels:
-            fisher_solver_distribution_level = dist_ratio
+    for fisher_solver in fisher_solver_distribution_levels:
+        fisher_solver_distribution_level = fisher_solver
+        for util_structure in util_structure_levels:
+            util_structure_level = util_structure
             for players_required_ratio in players_required_ratios:
                 for ro in ros:
                     current_ro = ro
-                    for communication_protocol in communication_protocols:
-                        if process_debug:
-                            print("players_required_ratios =", players_required_ratio, ";", "communication protocol =",
-                                  communication_protocol.name)
+                    if fisher_solver == 3:
+                        run_different_markets(ro)
+                    else:
+                        for communication_protocol in communication_protocols:
+                            if process_debug:
+                                print("players_required_ratios =", players_required_ratio, ";", "communication protocol =",
+                                      communication_protocol.name)
+                            run_different_markets( ro,communication_protocol = communication_protocol,)
+                            #if different_reps_market_bool:
 
-                        if different_reps_market_bool:
-                            run_different_markets(communication_protocol,ro)
-                        else:
-                            run_same_market_diff_communication_experiment(communication_protocol,ro)
+                            #else:
+                            #    run_same_market_diff_communication_experiment(communication_protocol,ro)
 
 
         #data_output1 = pd.concat(data_output_list_avg)

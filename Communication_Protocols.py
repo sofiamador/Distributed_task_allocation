@@ -88,8 +88,12 @@ class CommunicationProtocolLossDecay(CommunicationProtocolDistance):
         P = 1/(1+((x/self.alpha)**self.k_power_of))
         p = self.rnd.random()
         if p<P:
+
+            #print("yes")
             return 0
         else:
+            #print("no")
+
             return None
 
 class CommunicationProtocolUniform(CommunicationProtocol):

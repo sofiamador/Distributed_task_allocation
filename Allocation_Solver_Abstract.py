@@ -6,7 +6,7 @@ import math
 import threading
 import copy
 
-from Simulation_Abstract_Components import Entity
+from Simulation_Abstract_Components import Entity, CentralizedComputer
 
 debug_print_for_distribution = False
 from enum import Enum
@@ -1042,34 +1042,44 @@ class AllocationSolver:
         raise NotImplementedError
 
 
-class CentralComputer:
-    pass
-
-
-
-
 
 class AllocationSolverCentralized(AllocationSolver):
-    def __init__(self, centralized_computer:CentralComputer,f_termination_condition):
-        AllocationSolver.__init__(self,centralized_computer)
+    def __init__(self, centralized_computer:CentralizedComputer,f_termination_condition):
+        AllocationSolver.__init__(self)
         self.centralized_computer = centralized_computer
         self.f_termination_condition = f_termination_condition
+        self.tasks_algorithm = []
+        self.players_algorithm = []
+        self.msgs_box = {}
+
+
+    def place_msgs_in_msg_box(self,msgs):
+        for msg in msgs:
+            receiver_id = msg.receiver
+            self.msgs_box[receiver_id].append(msg)
 
 
     def reset_centralized_computer_info(self):
         self.agents_algorithm = []
+        self.tasks_algorithm = []
+        self.players_algorithm = []
+        self.msgs_box = {}
 
-        tasks = self.centralized_computer.tasks
+
+        tasks = self.centralized_computer.tasks_simulation
         for tt in tasks:
             task_copy = copy.copy(tt)
             self.tasks_simulation.append(task_copy)
-            self.add_task_to_solver()
+            self.msgs_box[task_copy.id_] = []
+            self.add_task_to_solver(task_copy)
 
-        players = self.centralized_computer.players
+        players = self.centralized_computer.players_simulation
         for pp in players:
             player_copy = copy.copy(pp)
             self.players_simulation.append(player_copy)
-            self.add_player_to_solver()
+            self.msgs_box[player_copy.id_] = []
+
+            self.add_player_to_solver(player_copy)
 
 
     def solve(self, tnow, centralized_computer=None) -> {}:
@@ -1079,23 +1089,17 @@ class AllocationSolverCentralized(AllocationSolver):
         self.initialize_centralistic_algorithm()
         return self.allocate()
 
-    def allocate(self):
-        while(self.f_termination_condition(self.agents_algorithm)):
-            pass
-            #TODO
 
     @abc.abstractmethod
     def initialize_centralistic_algorithm(self):
         raise NotImplementedError
 
-    def add_player_to_solver(self, player: PlayerSimple):
-        pass
+
 
     def remove_player_from_solver(self, player: PlayerSimple):
         pass
 
-    def add_task_to_solver(self, task: TaskSimple):
-        pass
+
 
     def remove_task_from_solver(self, task: TaskSimple):
         pass
