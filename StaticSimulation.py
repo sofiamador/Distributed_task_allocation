@@ -704,13 +704,13 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
-    fisher_solver_distribution_levels = [3,2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed, 3 =centralistic
+    fisher_solver_distribution_levels = [2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed, 3 =centralistic
     util_structure_levels = [1,3]#[1,2,3] # 1-calculated rij, 2-random when importance determines, 3-random completely
 
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
-    simulation_reps = range(2)
+    simulation_reps = range(100)
     players_required_ratios = [0.5]
     tasks_per_center = 2
     number_of_centers = 4
