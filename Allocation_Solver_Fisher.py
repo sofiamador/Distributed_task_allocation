@@ -1181,7 +1181,7 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
 
 
 class FisherCentralizedSolver(AllocationSolverCentralized):
-    def __init__(self,centralized_computer:CentralizedComputer,f_termination_condition,  f_global_measurements = {},
+    def __init__(self,centralized_computer:CentralizedComputer,f_termination_condition = centralized_constant_clock,  f_global_measurements = {},
     future_utility_function = None, util_structure_level = 1,
     is_with_timestamp = True, ro = 0.9, simulation_rep = 0):
 
@@ -1193,6 +1193,10 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
         self.ro = ro
         self.simulation_rep =simulation_rep
         self.f_global_measurements =f_global_measurements
+        self.measurements= {}
+        for key in self.f_global_measurements.keys():
+            self.measurements[key] = {}
+        self.solver_counter = 0
 
 
     def add_player_to_solver(self, player: PlayerSimple):
@@ -1259,21 +1263,36 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
     def allocate(self):
 
         while (True):
+            self.create_measurements()
+
             for task_algo in self.tasks_algorithm:
                 self.extract_msgs_and_place_in_context(task_algo) #TODO
                 task_algo.compute()
                 msgs = task_algo.get_list_of_msgs_to_send()
                 task_msgs_creation = self.get_task_msgs(msgs,task_algo.simulation_entity)
                 self.place_msgs_in_msg_box(task_msgs_creation)
-
+                self.solver_counter = self.solver_counter+ task_algo.atomic_counter
+                task_algo.atomic_counter = 0
             self.print_x()
+            self.create_measurements()
+
             for player_algo in self.players_algorithm:
-                self.extract_msgs_and_place_in_context(player_algo) #TODO
+                self.extract_msgs_and_place_in_context(player_algo)
                 player_algo.compute()
                 msgs = player_algo.get_list_of_msgs_to_send()
                 self.place_msgs_in_msg_box(msgs)
+                self.solver_counter = self.solver_counter + player_algo.atomic_counter
+                player_algo.atomic_counter = 0
 
 
+    def create_measurements(self):
+        current_clock =5  # TODO check if immutable
+
+
+        for measurement_name, measurement_function in self.f_global_measurements.items():
+            measured_value = measurement_function(self.agents_algorithm)
+
+            self.measurements[measurement_name][current_clock] = measured_value
     def get_task_msgs(self,msgs,simulation_entity):
         ans = []
 

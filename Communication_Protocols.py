@@ -74,7 +74,7 @@ class CommunicationProtocolExponentialDelayV1(CommunicationProtocolDistance):
 
     def get_communication_disturbance_by_protocol(self, entity1: Entity, entity2: Entity):
             x = self.get_x(entity1,entity2)
-            return x**self.alpha
+            return self.alpha**x
 
 
 class CommunicationProtocolLossDecay(CommunicationProtocolDistance):
