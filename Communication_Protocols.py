@@ -69,7 +69,7 @@ class CommunicationProtocolDistance(CommunicationProtocol):
 
 class CommunicationProtocolExponentialDelayV1(CommunicationProtocolDistance):
     def __init__(self, alpha, is_with_timestamp=False,name=None):
-        name1 = "delay = distance^"+str(alpha)
+        name1 = "delay = "+str(alpha)+"^distance"
         CommunicationProtocolDistance.__init__(self, name =name1,alpha=alpha, is_with_timestamp=is_with_timestamp)
 
     def get_communication_disturbance_by_protocol(self, entity1: Entity, entity2: Entity):
