@@ -1179,6 +1179,8 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
             self.mailer.join()
         return  self.mailer.time_mailer.clock
 
+def centralized_constant_clock():
+    return True
 
 class FisherCentralizedSolver(AllocationSolverCentralized):
     def __init__(self,centralized_computer:CentralizedComputer,f_termination_condition = centralized_constant_clock,  f_global_measurements = {},

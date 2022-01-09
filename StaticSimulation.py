@@ -29,7 +29,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant =30000#100000
+termination_time_constant =100000#100000
 map_width = None
 map_length = None
 data_jumps = None
@@ -615,7 +615,7 @@ def run_different_markets(ro,communication_protocol=None):
                               players_required_ratio=players_required_ratio
                               , tasks_per_center=tasks_per_center,  number_of_centers=number_of_centers)
 
-        #communication_protocol.set_seed(i)
+        communication_protocol.set_seed(i)
 
         fisher_solver = create_fisher_solver(simulation_rep =i, communication_protocol=communication_protocol,ro=ro, fisher_solver_distribution_level = fisher_solver_distribution_level, util_structure_level = util_structure_level)
 
@@ -720,10 +720,10 @@ if __name__ == '__main__':
     map_length = 10
     algo_name = "FMC_ASY"
     ros = [0.9]
-    is_with_timestamp = False #False #True
-    perfect_communication = True  #False
+    is_with_timestamp = True #False #False #True
+    perfect_communication = False #True  #False
     max_number_of_missions = 1
-    alpha_for_delay = []#[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3]
+    alpha_for_delay = [2]#[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3]
     alpha_for_loss = []#[10,9,8,7,6,5,4,3,2,1]
     #ubs = []#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #p_losses = [0.1,0.2,0.3]  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
