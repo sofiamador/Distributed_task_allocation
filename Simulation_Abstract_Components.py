@@ -406,10 +406,30 @@ class MissionSimple:
         self.measurements = MissionMeasurements(task_importance= self.task_importance, mission_id=self.mission_id,arrival_time_to_the_system=self.arrival_time_to_the_system,initial_workload=self.initial_workload,max_players=self.max_players)
         #####----------
 
+        self.x0_simulation_time_mission_enter_system = self.arrival_time_to_the_system
+        self.x1_simulation_time_first_player_arrive = None # update when mission finish
+        self.x2_delay = None
+
+        self.x3_abandonment_counter = 0 #each decrease in players present
+        self.x4_total_abandonment_counter = 0 #decrease from 1 to 0
+
+
+        self.x8_optimal_time = self.initial_workload/self.max_players
+        self.x9_ratio_time_taken_arrive_to_system_and_opt = None
+        self.x10_ratio_time_taken_first_agent_arrive_and_opt = None
+
+
+        self.x13_time_amount_of_agents_from_system = self.create_dict_of_players_amounts()
+        self.x14_time_amount_of_agents_and_time_mission_finish_ratio_system = self.create_dict_of_players_amounts()
 
 
 
 
+    def create_dict_of_players_amounts(self):
+        ans = {}
+        for i in range(self.max_players+1):
+            ans[i] = None
+        return ans
 
     def update_workload(self, tnow):
         delta = tnow - self.last_updated
@@ -452,7 +472,6 @@ class MissionSimple:
             raise Exception("Double handling of the the same player to one mission" + str(self.mission_id))
         self.players_handling_with_the_mission.append(player)
         self.measurements.check_and_update_first_player_present(tnow)
-
 
 
 
@@ -510,7 +529,7 @@ class TaskSimple(Entity):
         self.missions_list = missions_list
         self.player_responsible = None
         self.importance = importance
-        self.arrival_time = arrival_time #arrival time to system
+        self.arrival_time = arrival_time  # arrival time to system
         self.done_missions = []
         self.is_done = False
 
@@ -534,13 +553,13 @@ class TaskSimple(Entity):
         self.update_time(tnow)
 
     def mission_finished(self, mission):
-        #try:
+        # try:
         mission.is_done = True
         self.missions_list.remove(mission)
         self.done_missions.append(mission)
         if len(self.missions_list) == 0:
             self.is_done = True
-        #except:
+        # except:
         #    print("from sim comp line 380")
 
 

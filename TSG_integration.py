@@ -4,7 +4,7 @@ import random
 import uuid
 from time import sleep
 
-#from TSG_communication import SendAlgoData, GetAlgoData
+from TSG_communication import SendAlgoData, GetAlgoData
 
 import TSG_Solver
 from TSG_Solver import TSGPlayer, TSGMission, TSGEvent, Allocations, Status
@@ -154,7 +154,7 @@ def communication(agent_obj_list, host_agent):
     SendAlgoData("hello from:" + host_agent, to)
     sleep(1)
     while True:
-        msg = GetAlgoData()
+        msg = GetAlgoData(host_agent)
         if len(msg) == 0:
             sleep(1)
         else:
@@ -174,6 +174,7 @@ def communication(agent_obj_list, host_agent):
             break
     print(host_agent, "finish")
 
+
 def solve(agent_obj_list, event_obj_list, t_now, host_agent):
     communication(agent_obj_list, host_agent)
     allocations = []
@@ -183,7 +184,6 @@ def solve(agent_obj_list, event_obj_list, t_now, host_agent):
     for a in agent_obj_list:
         a.current_mission = None
 
-
     for i in range(len(agent_obj_list)):
         agent = agent_obj_list[i]
         event = event_obj_list[i % len(event_obj_list)]
@@ -192,7 +192,6 @@ def solve(agent_obj_list, event_obj_list, t_now, host_agent):
                         last_update_time=t_now, mission_status=1, event_id=event.id_,
                         agent_id=agent.id_, working_starting_time=t_now,
                         working_ending_time=t_now + 3600 * random.random())
-
 
         for m in event.missions_list:
             if m.abilities[0] == agent.abilities[0]:
@@ -226,12 +225,13 @@ def create_list_of_tuples_allocations(new_obj_allocations):
 
 
 def calcAllocations(*args, **kwargs):
-    # try:
-    return calcAllocationsInternal(*args, **kwargs)
-    # except Exception as e:
-    #     f = open("error.txt", "w")
-    #     f.write(str(e))
-    #     f.write(e.__traceback__())
+    try:
+        return calcAllocationsInternal(*args, **kwargs)
+    #
+    except Exception as e:
+        f = open("error.txt", "w")
+        f.write(str(e))
+        f.write(e.__doc__)
 
 
 def print_allocations(event_obj_list):
