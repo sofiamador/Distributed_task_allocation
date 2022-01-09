@@ -2,8 +2,9 @@ from Simulation_Abstract_Components import TaskSimple, find_and_allocate_respons
     calculate_distance, are_neighbours, is_player_can_be_allocated_to_task, PlayerSimple, MissionSimple
 from itertools import filterfalse
 
-
 is_debug = False
+NCLO_casting = (1/50000)*0.1
+
 
 class SimulationEvent:
     """
@@ -78,15 +79,17 @@ class TaskArrivalEvent(SimulationEvent):
         find_and_allocate_responsible_player(task=self.task, players=simulation.players_list)
         simulation.tasks_list.append(self.task)
         simulation.solver.add_task_to_solver(self.task)
+        simulation.remove_solver_finish_event()
         simulation.solve()
         simulation.generate_new_task_to_diary()
+
 
 class NumberOfTasksArrivalEvent(SimulationEvent):
     """
     Class that represent an simulation event of new task arrival.
     """
 
-    def __init__(self, time_: float,tasks:[TaskSimple],task = None):
+    def __init__(self, time_: float, tasks: [TaskSimple], task=None):
         """
         :param time_:the time of the event
         :type: float
@@ -95,6 +98,7 @@ class NumberOfTasksArrivalEvent(SimulationEvent):
         """
         SimulationEvent.__init__(self, time_=time_, task=task)
         self.tasks = tasks
+
     def handle_event(self, simulation):
         for task in self.tasks:
             find_and_allocate_responsible_player(task=task, players=simulation.players_list)
@@ -161,19 +165,41 @@ class MissionFinishedEvent(SimulationEvent):
 
         self.mission.players_allocated_to_the_mission = []
         self.mission.players_handling_with_the_mission = []
-        #print("mission ended:", self.task.id_)
+        # print("mission ended:", self.task.id_)
         self.task.mission_finished(self.mission)
         if self.task.is_done:
             simulation.handle_task_ended(self.task)
-            #print("task ended:", self.task.id_)
+            # print("task ended:", self.task.id_)
             simulation.solver.remove_task_from_solver(self.task)
+
+
+class Solver_finish_event(SimulationEvent):
+    def __init__(self, time_):
+        """
+        :param time:the time of the event
+        :type: float
+        :param player: The relevant player that arrives to the given mission on the given task.
+        :type: PlayerSimple
+        :param task: The relevant task that contain the given mission
+        :type: TaskSimple
+        :param mission: The mission that the player arrives to.
+        :type: MissionSimple
+        """
+        SimulationEvent.__init__(self, time_=time_)
+
+    def handle_event(self, simulation):
+        simulation.remove_mission_finished_events()
+        simulation.remove_player_arrive_to_mission_event_from_diary()
+        simulation.clear_players_before_allocation()
+        simulation.check_new_allocation()
+
 
 
 class Simulation:
     def __init__(self, name: str, players_list: list, solver, tasks_generator: TaskGenerator, end_time: float,
                  f_are_players_neighbours=are_neighbours,
                  f_is_player_can_be_allocated_to_task=is_player_can_be_allocated_to_task,
-                 f_calculate_distance=calculate_distance, debug_mode=False,number_of_initial_tasks = 1):
+                 f_calculate_distance=calculate_distance, debug_mode=False, number_of_initial_tasks=1):
         """
         :param name: The name of simulation
         :param players_list: The list of the players(players) that are participate
@@ -198,7 +224,7 @@ class Simulation:
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_task
         self.tasks_generator = tasks_generator
         self.f_calculate_distance = f_calculate_distance
-        self.generate_new_task_to_diary(number_of_tasks = number_of_initial_tasks)
+        self.generate_new_task_to_diary(number_of_tasks=number_of_initial_tasks)
         self.tasks_list = []
         self.finished_tasks_list = []
         self.diary.append(EndSimulationEvent(time_=end_time))
@@ -224,18 +250,21 @@ class Simulation:
         for task in self.tasks_list:
             for mission in task.missions_list:
                 mission.close_measurements()
-                #done_missions
+                # done_missions
                 task.done_missions.append(mission)
             task.missions_list.clear()
             self.finished_tasks_list.append(task)
-
 
     def solve(self):
         self.solver_counter = self.solver_counter + 1
         if self.debug_mode:
             print("SOLVER STARTS:", self.solver_counter)
         self.update_locations_of_players()
-        self.solver.solve(self.tnow)
+        solver_duration_NCLO = self.solver.solve(self.tnow)
+        time = self.tnow + solver_duration_NCLO * NCLO_casting
+        if self.check_diary_during_solver(time):
+            self.diary.append(Solver_finish_event(time_=time))
+            return
         self.remove_mission_finished_events()
         self.remove_player_arrive_to_mission_event_from_diary()
         self.clear_players_before_allocation()
@@ -259,7 +288,7 @@ class Simulation:
                     if player.schedule[0][1] == player.current_mission:  # The players remains in his current mission
                         if player.status == Status.ON_MISSION:  # If the has already arrived to the mission
                             player.current_mission.add_allocated_player(player)
-                            player.current_mission.add_handling_player(player,self.tnow)
+                            player.current_mission.add_handling_player(player, self.tnow)
                             self.generate_mission_finished_event(mission=player.current_mission,
                                                                  task=player.current_task)
                             player.schedule.pop(0)
@@ -293,21 +322,25 @@ class Simulation:
         self.diary[:] = filterfalse(lambda ev: type(ev) == MissionFinishedEvent, self.diary)
 
     def remove_mission_finished_event(self, mission: MissionSimple):
-        self.diary[:] = filterfalse(lambda ev: type(ev) == MissionFinishedEvent and ev.mission.mission_id == mission.mission_id, self.diary)
+        self.diary[:] = filterfalse(
+            lambda ev: type(ev) == MissionFinishedEvent and ev.mission.mission_id == mission.mission_id, self.diary)
 
     def remove_player_arrive_to_mission_event_from_diary(self):
         self.diary[:] = filterfalse(lambda ev: type(ev) == PlayerArriveToEMissionEvent, self.diary)
 
+    def remove_solver_finish_event(self):
+        self.diary[:] = filterfalse(lambda ev: type(ev) == Solver_finish_event, self.diary)
+
     def remove_events_when_mission_finished(self, mission: MissionSimple):
-        self.diary[:] = filterfalse(lambda ev: ev.mission is not None and ev.mission.mission_id == mission.mission_id, self.diary)
+        self.diary[:] = filterfalse(lambda ev: ev.mission is not None and ev.mission.mission_id == mission.mission_id,
+                                    self.diary)
 
     def clear_players_before_allocation(self):
         for t in self.tasks_list:
             for m in t.missions_list:
                 m.clear_players_before_allocation()
 
-
-    def generate_new_task_to_diary(self,number_of_tasks = 1):
+    def generate_new_task_to_diary(self, number_of_tasks=1):
         """
         The method generates new task from task generator, creates neighbour list for the task and add TaskArrivalEvent
         to the diary.
@@ -322,12 +355,12 @@ class Simulation:
         else:
             tasks = []
             for _ in range(number_of_tasks):
-                task: TaskSimple = self.tasks_generator.get_task(self.tnow,flag_time_zero = True)
+                task: TaskSimple = self.tasks_generator.get_task(self.tnow, flag_time_zero=True)
                 task.create_neighbours_list(players_list=self.players_list,
                                             f_is_player_can_be_allocated_to_mission=
                                             self.f_is_player_can_be_allocated_to_mission)
                 tasks.append(task)
-            event = NumberOfTasksArrivalEvent(tasks = tasks, time_=task.arrival_time)
+            event = NumberOfTasksArrivalEvent(tasks=tasks, time_=task.arrival_time)
             self.diary.append(event)
 
     def generate_player_arrives_to_mission_event(self, player):
@@ -353,3 +386,14 @@ class Simulation:
         mission_finish_simulation_time = self.tnow + duration
         self.diary.append(
             MissionFinishedEvent(time_=mission_finish_simulation_time, mission=mission, task=task))
+
+    def check_diary_during_solver(self, time):
+        self.diary = sorted(self.diary, key=lambda event_: event_.time)
+        for event in self.diary:
+            if event.time > time:
+                return False
+            else:
+                return True
+
+
+
