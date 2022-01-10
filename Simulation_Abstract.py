@@ -221,14 +221,16 @@ class CentralizedComputerUpdatePlayerEvent(SimulationEvent):
         SimulationEvent.__init__(self, time_=time_, player=player)
 
     def handle_event(self, simulation):
-        simulation.centralized_computer.update_player_simulation(self.player)
+        simulation_player = simulation.get_player_from_simulation_by_id(self.player.id_)
+        simulation_player.schedule = self.player.schedule
+        simulation.check_new_allocation_for_player(simulation_player)
 
 
 class Simulation:
     def __init__(self, name: str, players_list: list, solver, tasks_generator: TaskGenerator, end_time: float,
                  f_are_players_neighbours=are_neighbours, f_generate_message_delay=message_delay,
                  f_is_player_can_be_allocated_to_task=is_player_can_be_allocated_to_task,
-                 f_calculate_distance=calculate_distance, debug_mode=False, number_of_initial_tasks=1):
+                 f_calculate_distance=calculate_distance, debug_mode=False, number_of_initial_tasks=1, is_centralized = False):
         """
         :param name: The name of simulation
         :param players_list: The list of the players(players) that are participate
@@ -244,6 +246,7 @@ class Simulation:
         self.last_event = None
         self.name = name
         self.diary = []
+        self.is_centralized = is_centralized
         # players initialization
         self.players_list = players_list
         self.f_are_players_neighbours = f_are_players_neighbours
@@ -252,8 +255,8 @@ class Simulation:
         self.solver.add_players_list(players_list)
 
         # centrelazed solver initialization
-
-        self.centralized_computer = None  # TODO ben
+        if is_centralized:
+            self.centralized_computer = None  # TODO ben
         self.f_generate_message_delay = f_generate_message_delay
         # tasks initialization
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_task
@@ -308,8 +311,12 @@ class Simulation:
         # print(self.diary)
 
     def check_new_allocation(self):
-        for player in self.players_list:
-            self.check_new_allocation_for_player(player)
+        if not self.is_centralized:
+            for player in self.players_list:
+                self.check_new_allocation_for_player(player)
+        else:
+            for player in self.players_list:
+                self.generate_update_player_event(player)
 
     def check_new_allocation_for_player(self, player):
         if player.current_mission is None:  # The agent doesn't have a current mission
@@ -428,14 +435,16 @@ class Simulation:
             MissionFinishedEvent(time_=mission_finish_simulation_time, mission=mission, task=task))
 
     def generate_player_update_event(self, player):
-        x = self.f_generate_message_delay()
-        if x is not None:
-            self.diary.append(PlayerUpdateCentralizedComputerEvent(time_=self.tnow + x, player=player))
+        if self.is_centralized:
+            x = self.f_generate_message_delay()
+            if x is not None:
+                self.diary.append(PlayerUpdateCentralizedComputerEvent(time_=self.tnow + x, player=player))
 
     def generate_task_update_event(self, task):
-        x = self.f_generate_message_delay()
-        if x is not None:
-            self.diary.append(TaskUpdateCentralizedComputerEvent(time_=self.tnow + x, task=task))
+        if self.is_centralized:
+            x = self.f_generate_message_delay()
+            if x is not None:
+                self.diary.append(TaskUpdateCentralizedComputerEvent(time_=self.tnow + x, task=task))
 
     def check_diary_during_solver(self, time):
         self.diary = sorted(self.diary, key=lambda event_: event_.time)
@@ -444,3 +453,13 @@ class Simulation:
                 return False
             else:
                 return True
+
+    def get_player_from_simulation_by_id(self, player_id_):
+        for p in self.players_list:
+            if p.id_ == player_id_:
+                return p
+
+    def generate_update_player_event(self, player):
+        x = self.f_generate_message_delay()
+        if x is not None:
+            self.diary.append(CentralizedComputerUpdatePlayerEvent(time_=self.tnow + x, player=player))
