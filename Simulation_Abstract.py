@@ -6,7 +6,7 @@ is_debug = False
 NCLO_casting = (1 / 50000) * 0.1
 
 
-def message_delay():  # TODO Ben
+def message_delay():  # TODO add different seed for task generation and for delays
     return 5
 
 
@@ -82,7 +82,7 @@ class TaskArrivalEvent(SimulationEvent):
     def handle_event(self, simulation):
         find_and_allocate_responsible_player(task=self.task, players=simulation.players_list)
         simulation.tasks_list.append(self.task)
-        simulation.solver.add_task_to_solver(self.task)
+        simulation.solver.add_task_to_solver(self.task) # TODO add task to centralized computer
         simulation.remove_solver_finish_event()
         simulation.solve()
         simulation.generate_new_task_to_diary()
@@ -104,7 +104,7 @@ class NumberOfTasksArrivalEvent(SimulationEvent):
         self.tasks = tasks
 
     def handle_event(self, simulation):
-        for task in self.tasks:
+        for task in self.tasks: # TODO add task to centralized computer
             find_and_allocate_responsible_player(task=task, players=simulation.players_list)
             simulation.tasks_list.append(task)
             simulation.solver.add_task_to_solver(task)
