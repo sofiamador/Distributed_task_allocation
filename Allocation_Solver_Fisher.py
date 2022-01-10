@@ -1179,11 +1179,10 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
             self.mailer.join()
         return  self.mailer.time_mailer.clock
 
-def centralized_constant_clock():
-    return True
+
 
 class FisherCentralizedSolver(AllocationSolverCentralized):
-    def __init__(self,centralized_computer:CentralizedComputer,f_termination_condition = centralized_constant_clock,  f_global_measurements = {},
+    def __init__(self,centralized_computer:CentralizedComputer,f_termination_condition ,  f_global_measurements = {},
     future_utility_function = None, util_structure_level = 1,
     is_with_timestamp = True, ro = 0.9, simulation_rep = 0):
 
@@ -1261,10 +1260,11 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
         print()
         print()
 
-
+    def get_measurements(self):
+        return self.measurements
     def allocate(self):
 
-        while (True):
+        while ( not self.f_termination_condition(self.solver_counter)):
             self.create_measurements()
 
             for task_algo in self.tasks_algorithm:
@@ -1275,7 +1275,8 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
                 self.place_msgs_in_msg_box(task_msgs_creation)
                 self.solver_counter = self.solver_counter+ task_algo.atomic_counter
                 task_algo.atomic_counter = 0
-            self.print_x()
+            #self.print_x()
+            #print(self.solver_counter)
             self.create_measurements()
 
             for player_algo in self.players_algorithm:
@@ -1288,7 +1289,7 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
 
 
     def create_measurements(self):
-        current_clock =5  # TODO check if immutable
+        current_clock =self.solver_counter  # TODO check if immutable
 
 
         for measurement_name, measurement_function in self.f_global_measurements.items():

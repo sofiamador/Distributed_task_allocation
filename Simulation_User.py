@@ -12,7 +12,7 @@ from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
     MapSimple
 
-simulations_range = range(2,3)
+simulations_range = range(50)
 number_of_centers = 10
 map_length = 10
 map_width = 10
@@ -23,7 +23,7 @@ termination_time_constant = 10000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
 exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
 time_per_simulation = 10
-number_of_initial_tasks = 15
+number_of_initial_tasks = 10
 max_number_of_abilities = 1
 
 neighbor_radius_parameter = 3 # neighbor if distance<(map_size/neighbor_radius_parameter)

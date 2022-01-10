@@ -29,7 +29,7 @@ different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant =100000#100000
+termination_time_constant =100000
 map_width = None
 map_length = None
 data_jumps = None
@@ -39,6 +39,7 @@ util_structure_level = None
 simulation_rep = None
 process_debug = True
 max_number_of_missions = None
+
 def rand_id_str(rand):
     ans = ''.join(rand.choices(string.ascii_uppercase + string.digits, k=10))
     return ans
@@ -96,6 +97,8 @@ class SimulationStatic():
 
     def add_solver(self, solver: AllocationSolver):
         self.solver = solver
+        for task in self.tasks:
+            find_and_allocate_responsible_player(task=task, players=self.players)
 
         if fisher_solver_distribution_level == 3:
 
@@ -110,8 +113,7 @@ class SimulationStatic():
             #solver.centralized_computer.tasks_simulation=self.tasks
 
         else:
-            for task in self.tasks:
-                find_and_allocate_responsible_player(task=task, players=self.players)
+
 
             for player in self.players:
                 self.solver.add_player_to_solver(player)
@@ -207,6 +209,10 @@ class SimulationStatic():
                 ans += mission.max_players
         return ans
 
+def centralized_constant_clock(current_clock):
+    if current_clock < termination_time_constant:
+        return False
+    return True
 
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
                                                  termination_time_constant=termination_time_constant):
@@ -229,9 +235,9 @@ def get_data_prior_statistic(data_,market_number):
     for k in data_keys_t:
         data_keys.append(k)
 
-    mailer_keys = Mailer.get_data_keys()
-    for k in mailer_keys:
-        data_keys.append(k)
+    #mailer_keys = Mailer.get_data_keys()
+    #for k in mailer_keys:
+    #    data_keys.append(k)
 
     data_prior_statistic = {}
     flag=False
@@ -347,7 +353,7 @@ def create_data_communication(amount_of_lines):
     return ans
 
 
-def create_fisher_solver(simulation_rep,communication_protocol,ro=1, fisher_solver_distribution_level = None,util_structure_level = None):
+def create_fisher_solver(simulation_rep,map:MapSimple,communication_protocol,ro=0.9):
     if fisher_solver_distribution_level == 1:
 
         return FisherAsynchronousSolver_TasksTogether(
@@ -368,8 +374,9 @@ def create_fisher_solver(simulation_rep,communication_protocol,ro=1, fisher_solv
          ro=ro, util_structure_level =util_structure_level,simulation_rep = simulation_rep)
 
     if fisher_solver_distribution_level == 3:
-        centralized_computer = CentralizedComputer()
-        return FisherCentralizedSolver( centralized_computer=centralized_computer,f_termination_condition=f_termination_condition_constant_mailer_nclo,
+        centralized_computer = CentralizedComputer(location=map.get_the_center_of_the_map_location())
+
+        return FisherCentralizedSolver( centralized_computer=centralized_computer,f_termination_condition=centralized_constant_clock,
         f_global_measurements=get_data_fisher(),
         future_utility_function=calculate_rij_abstract,
         is_with_timestamp=None,
@@ -422,6 +429,8 @@ def create_type_solver(amount_of_lines1, type_solver):
             name_solver = "semi distributed"
         if type_solver == 2:
             name_solver = "full distributed"
+        if type_solver == 3:
+            name_solver = "centralized"
 
         for _ in range(amount_of_lines1):
             temp_list.append(name_solver)
@@ -454,7 +463,10 @@ def create_type_util(amount_of_lines, util_structure_level):
 def get_data_single_output_dict(data_,market_number = None,type_solver = None):
     ans_avg,ans_last = create_data_statistics(data_, market_number)
     amount_of_lines1 = len(ans_avg["NCLO"])
-    data_communication1 = create_data_communication(amount_of_lines1)
+    if fisher_solver_distribution_level!=3:
+        data_communication1 = create_data_communication(amount_of_lines1)
+    else:
+        data_communication1 ={}
     data_simulation1 = create_data_simulation(amount_of_lines1, players_required_ratio, tasks_per_center,
                                              number_of_centers, algo_name)
     data_market_number1 = create_data_market_number(amount_of_lines1,market_number)
@@ -464,7 +476,13 @@ def get_data_single_output_dict(data_,market_number = None,type_solver = None):
 
 
     amount_of_lines2 = get_num_reps(ans_last)
-    data_communication2 = create_data_communication(amount_of_lines2)
+
+    if fisher_solver_distribution_level != 3:
+        data_communication2 = create_data_communication(amount_of_lines2)
+    else:
+        data_communication2 = {}
+
+    #data_communication2 = create_data_communication(amount_of_lines2)
     data_simulation2 = create_data_simulation(amount_of_lines2, players_required_ratio, tasks_per_center,
                                               number_of_centers, algo_name)
     data_market_number2 = create_data_market_number(amount_of_lines2,market_number)
@@ -595,12 +613,17 @@ def additions_to_names(file_name1,file_name2, fisher_solver_distribution_level, 
         file_name1 = file_name1 + "_rnd_util"
         file_name2 = file_name2 + "_rnd_util"
 
-    if communication_protocol.is_with_timestamp:
-        file_name1 = file_name1 + "_TS.csv"
-        file_name2 = file_name2 + "_TS.csv"
+    if fisher_solver_distribution_level !=3:
+        if communication_protocol.is_with_timestamp:
+            file_name1 = file_name1 + "_TS.csv"
+            file_name2 = file_name2 + "_TS.csv"
+        else:
+            file_name1 = file_name1 + "_no_TS.csv"
+            file_name2 = file_name2 + "_no_TS.csv"
+
     else:
-        file_name1 = file_name1 + "_no_TS.csv"
-        file_name2 = file_name2 + "_no_TS.csv"
+        file_name1 = file_name1 + ".csv"
+        file_name2 = file_name2 + ".csv"
 
     return file_name1,file_name2
 
@@ -614,11 +637,11 @@ def run_different_markets(ro,communication_protocol=None):
         scenario = SimulationStatic(rep_number=i, solver=None, map_length=map_length, map_width=map_width,
                               players_required_ratio=players_required_ratio
                               , tasks_per_center=tasks_per_center,  number_of_centers=number_of_centers)
+        if communication_protocol is not None:
+            communication_protocol.set_seed(i)
 
-        communication_protocol.set_seed(i)
-
-        fisher_solver = create_fisher_solver(simulation_rep =i, communication_protocol=communication_protocol,ro=ro, fisher_solver_distribution_level = fisher_solver_distribution_level, util_structure_level = util_structure_level)
-
+        fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, map=scenario.map,
+                                             ro=ro,simulation_rep = simulation_rep)
         scenario.add_solver(fisher_solver)
         if fisher_solver_distribution_level == 3:
             fisher_solver.solve(tnow = 0,centralized_computer= fisher_solver.centralized_computer )
@@ -631,13 +654,27 @@ def run_different_markets(ro,communication_protocol=None):
 
     data_frame1 = pd.DataFrame.from_dict(data_single_output_dict1)
 
-    file_name1 = "AVG_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
-        players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
+    if fisher_solver_distribution_level!=3:
+        file_name1 = "AVG_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
+            players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
+
+    else:
+        file_name1 = "AVG_reps_central" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(current_ro) + "_ratio_" + str(
+            players_required_ratio)  + "_termination_" + str(
+            termination_time_constant)
 
     data_frame2 = pd.DataFrame.from_dict(data_single_output_dict2)
 
-    file_name2 = "Last_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(
-        current_ro) + "_ratio_" + str(players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
+    if fisher_solver_distribution_level!=3:
+
+        file_name2 = "Last_reps_" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(
+            current_ro) + "_ratio_" + str(players_required_ratio) + "_" + communication_protocol.name+ "_termination_"+str(termination_time_constant)
+
+    else:
+        file_name2 = "Last_reps_central" + str(simulation_reps) + "_" + algo_name + "_ro_" + str(
+            current_ro) + "_ratio_" + str(
+            players_required_ratio)  + "_termination_" + str(
+            termination_time_constant)
 
     file_name1,file_name2 = additions_to_names ( file_name1,file_name2,fisher_solver_distribution_level,communication_protocol)
 
@@ -659,7 +696,7 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
                                         players_required_ratio=players_required_ratio
                                         , tasks_per_center=tasks_per_center, number_of_centers=number_of_centers)
 
-            fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, ro=ro, fisher_solver_distribution_level =fisher_solver_distribution_level)
+            fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, map = scenario.map, ro=ro, fisher_solver_distribution_level =fisher_solver_distribution_level)
             scenario.add_solver(fisher_solver)
             fisher_solver.solve()
             data_[market_number] = fisher_solver.get_measurements()
@@ -676,7 +713,9 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
                 communication_protocol.set_seed(i)
 
-                fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, ro=ro)
+                fisher_solver = create_fisher_solver(communication_protocol=communication_protocol, map=scenario.map,
+                                                     ro=ro)
+
 
                 scenario.add_solver(fisher_solver)
                 fisher_solver.solve()
@@ -704,8 +743,8 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
-    fisher_solver_distribution_levels = [2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed, 3 =centralistic
-    util_structure_levels = [1,3]#[1,2,3] # 1-calculated rij, 2-random when importance determines, 3-random completely
+    fisher_solver_distribution_levels = [3]#[3,2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed, 3 =centralistic
+    util_structure_levels = [1]#[1,3]#[1,2,3] # 1-calculated rij, 2-random when importance determines, 3-random completely
 
     different_reps_market_bool = True
     same_protocol_reps_number = 100

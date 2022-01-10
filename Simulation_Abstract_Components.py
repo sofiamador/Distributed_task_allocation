@@ -616,6 +616,9 @@ class MapSimple:
         x2 = self.rand.random()
         return [self.width * x1, self.length * x2]
 
+
+    def get_the_center_of_the_map_location(self):
+        return [self.width/2,self.length/2]
     def get_center_location(self):
         return self.rand.choice(self.centers_location)
 
@@ -648,10 +651,10 @@ class MapHubs(MapSimple):
 
 class CentralizedComputer(Entity):
 
-    def __init__(self, id_, location,players_simulation: [PlayerSimple] = [], tasks_simulation: [TaskSimple] = []):
-        Entity.__init__(id_=id_, location=location)
-        self.players_simulation = players_simulation
-        self.tasks_simulation = tasks_simulation
+    def __init__(self,  location,id_="-999999999"):
+        Entity.__init__(self,id_=id_, location=location)
+        self.players_simulation = []
+        self.tasks_simulation = []
 
     def find_current_player_in_computer(self, player_simulation):
         for pp in self.players_simulation:

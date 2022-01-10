@@ -45,8 +45,10 @@ class SimpleTaskGenerator(TaskGenerator):
         required_abilities = self.random.sample(self.skill_range ,amount_of_missions)
         self.id_task_counter = self.id_task_counter + 1
         id_ = str(self.id_task_counter)
-        #location = self.map.generate_location_gauss_around_center()
-        location = self.map.generate_location()# #self.map.generate_location()
+        if isinstance(self.map,MapHubs):
+            location = self.map.generate_location_gauss_around_center()
+        else:
+            location = self.map.generate_location()# #self.map.generate_location()
         importance = (1 + math.floor(self.random.random() * self.max_importance)) * 1000
         if flag_time_zero:
             arrival_time = tnow
@@ -86,8 +88,15 @@ class SimplePlayerGenerator(PlayerGenerator):
 
         self.id_counter = self.id_counter - 1
         id_ = str(self.id_counter)
+
+        if isinstance(self.map,MapHubs):
+            location = self.map.generate_location_gauss_around_center()
+        else:
+            location = self.map.generate_location()# #self.map.generate_location()
+
+
         #location = self.map.generate_location_gauss_around_center()
-        location = self.map.generate_location()
+        #location = self.map.generate_location()
         speed = self.speed
         productivity = 1#self.calc_productivity()
         return PlayerSimple(id_=id_, current_location=location, speed=speed, productivity=productivity, abilities=[ability])
