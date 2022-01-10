@@ -172,11 +172,9 @@ class MissionFinishedEvent(SimulationEvent):
 
         self.mission.players_allocated_to_the_mission = []
         self.mission.players_handling_with_the_mission = []
-        # print("mission ended:", self.task.id_)
         self.task.mission_finished(self.mission)
         if self.task.is_done:
             simulation.handle_task_ended(self.task)
-            # print("task ended:", self.task.id_)
             simulation.solver.remove_task_from_solver(self.task)
         simulation.generate_task_update_event(task=self.task)
 
@@ -294,6 +292,7 @@ class Simulation:
         if self.check_diary_during_solver(time):
             self.diary.append(SolverFinishEvent(time_=time))
             return
+        # handle_new allocation
         self.remove_mission_finished_events()
         self.remove_player_arrive_to_mission_event_from_diary()
         self.clear_players_before_allocation()
@@ -341,10 +340,10 @@ class Simulation:
         player.current_mission = None
         player.current_task = None
         self.generate_mission_finished_event(mission, task)
+        self.generate_task_update_event(task=self.task)
 
     def handle_task_ended(self, task):
         self.finished_tasks_list.append(task)
-        # task.task_utiliy() #TODO sofi had a mistake
         self.tasks_list.remove(task)
 
     def remove_mission_finished_events(self):
@@ -419,11 +418,13 @@ class Simulation:
 
     def generate_player_update_event(self, player):
         x = self.f_generate_message_delay()
-        self.diary.append(PlayerUpdateEvent(time_=self.tnow + x, player=player))
+        if x is not None:
+            self.diary.append(PlayerUpdateEvent(time_=self.tnow + x, player=player))
 
     def generate_task_update_event(self, task):
         x = self.f_generate_message_delay()
-        self.diary.append(TaskUpdateEvent(time_=self.tnow + x, task=task))
+        if x is not None:
+            self.diary.append(TaskUpdateEvent(time_=self.tnow + x, task=task))
 
     def check_diary_during_solver(self, time):
         self.diary = sorted(self.diary, key=lambda event_: event_.time)

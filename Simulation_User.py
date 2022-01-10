@@ -5,7 +5,7 @@ import pandas as pd
 from Allocation_Solver_Abstract import TaskAlgorithm
 from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, \
     FisherAsynchronousSolver_TaskLatestArriveInit, FisherTaskASY
-from Communication_Protocols import CommunicationProtocolDefault
+from Communication_Protocols import CommunicationProtocolDefault, CommunicationProtocolExponentialDelayV1
 from Simulation_Abstract import Simulation
 from Entity_Generator import SimpleTaskGenerator, SimplePlayerGenerator
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
@@ -19,7 +19,7 @@ map_width = 10
 number_of_players = 50
 players_speed = 5
 solver_selection = 2  # 1 = all task init # 2= single latest task init
-termination_time_constant = 5000
+termination_time_constant = 10000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
 exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
 time_per_simulation = 10
@@ -175,7 +175,8 @@ for exp_lambda_parameter in exp_lambda_parameters:
         player_generator = SimplePlayerGenerator(max_number_of_abilities = max_number_of_abilities,map_=map_, seed=seed,speed=players_speed)
 
         players_list = create_players(player_generator)
-        communication_protocol = CommunicationProtocolDefault("Perfect Communication")
+        communication_protocol = CommunicationProtocolExponentialDelayV1(2)
+        communication_protocol.set_seed(simulation_number)
         solver = create_fisher_solver(communication_protocol)
         simulation_created = Simulation(name=str(simulation_number), players_list=players_list, solver=solver,
                                         tasks_generator=tasks_generator, end_time=time_per_simulation, debug_mode=True,
