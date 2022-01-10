@@ -665,21 +665,21 @@ class CentralizedComputer(Entity):
         else:
             print("if this is showen in dynamic simulation I forgot to add player as an event in simulation")
 
-        self.players_simulation.append(player_simulation)
+        self.players_simulation.append(copy.deepcopy(player_simulation))
 
     def find_current_task_in_computer(self, task_simulation):
         for tt in self.tasks_simulation:
             if tt.id_ == task_simulation.id_:
                 return tt
 
-    def update_task_simulation(self, task_simulation: TaskSimple): # TODO Ben check it
+    def update_task_simulation(self, task_simulation: TaskSimple):
         current_task = self.find_current_task_in_computer(task_simulation)
         if current_task is not None:
             self.tasks_simulation.remove(current_task)
         else:
             print("if this is showen in dynamic simulation I forgot to add task as an event in simulation")
 
-        self.tasks_simulation.append(task_simulation)
+        self.tasks_simulation.append(copy.deepcopy(task_simulation))
 
 
 class PlayerGenerator(ABC):

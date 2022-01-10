@@ -200,7 +200,7 @@ class SolverFinishEvent(SimulationEvent):
         simulation.check_new_allocation()
 
 
-class PlayerUpdateEvent(SimulationEvent):
+class PlayerUpdateCentralizedComputerEvent(SimulationEvent):
     def __init__(self, time_, player):
         SimulationEvent.__init__(self, time_=time_, player=player)
 
@@ -208,12 +208,20 @@ class PlayerUpdateEvent(SimulationEvent):
         simulation.centralized_computer.update_player_simulation(self.player)
 
 
-class TaskUpdateEvent(SimulationEvent):
+class TaskUpdateCentralizedComputerEvent(SimulationEvent):
     def __init__(self, time_, task):
         SimulationEvent.__init__(self, time_=time_, task=task)
 
     def handle_event(self, simulation):
         simulation.centralized_computer.update_task_simulation(self.task)
+
+
+class CentralizedComputerUpdatePlayerEvent(SimulationEvent):
+    def __init__(self, time_, player):
+        SimulationEvent.__init__(self, time_=time_, player=player)
+
+    def handle_event(self, simulation):
+        simulation.centralized_computer.update_player_simulation(self.player)
 
 
 class Simulation:
@@ -301,31 +309,34 @@ class Simulation:
 
     def check_new_allocation(self):
         for player in self.players_list:
-            if player.current_mission is None:  # The agent doesn't have a current mission
-                if len(player.schedule) == 0:  # The agent doesn't have a new allocation
-                    player.update_status(Status.IDLE, self.tnow)
-                else:  # The agent has a new allocation
-                    self.generate_player_arrives_to_mission_event(player=player)
+            self.check_new_allocation_for_player(player)
 
-            else:  # The player has a current allocation
-                if len(player.schedule) == 0:  # Player doesn't have a new allocation (only the old one)
+    def check_new_allocation_for_player(self, player):
+        if player.current_mission is None:  # The agent doesn't have a current mission
+            if len(player.schedule) == 0:  # The agent doesn't have a new allocation
+                player.update_status(Status.IDLE, self.tnow)
+            else:  # The agent has a new allocation
+                self.generate_player_arrives_to_mission_event(player=player)
+
+        else:  # The player has a current allocation
+            if len(player.schedule) == 0:  # Player doesn't have a new allocation (only the old one)
+                self.handle_abandonment_event(player=player, mission=player.current_mission,
+                                              task=player.current_task)
+                player.update_status(Status.IDLE, self.tnow)
+            else:  # The player has a new allocation (missions in schedule)
+                if player.schedule[0][1] == player.current_mission:  # The players remains in his current mission
+                    if player.status == Status.ON_MISSION:  # If the has already arrived to the mission
+                        player.current_mission.add_allocated_player(player)
+                        player.current_mission.add_handling_player(player, self.tnow)
+                        self.generate_mission_finished_event(mission=player.current_mission,
+                                                             task=player.current_task)
+                        player.schedule.pop(0)
+                    elif player.status == Status.TO_MISSION:
+                        self.generate_player_arrives_to_mission_event(player=player)
+                else:  # The player abandons his current event to a new allocation
                     self.handle_abandonment_event(player=player, mission=player.current_mission,
                                                   task=player.current_task)
-                    player.update_status(Status.IDLE, self.tnow)
-                else:  # The player has a new allocation (missions in schedule)
-                    if player.schedule[0][1] == player.current_mission:  # The players remains in his current mission
-                        if player.status == Status.ON_MISSION:  # If the has already arrived to the mission
-                            player.current_mission.add_allocated_player(player)
-                            player.current_mission.add_handling_player(player, self.tnow)
-                            self.generate_mission_finished_event(mission=player.current_mission,
-                                                                 task=player.current_task)
-                            player.schedule.pop(0)
-                        elif player.status == Status.TO_MISSION:
-                            self.generate_player_arrives_to_mission_event(player=player)
-                    else:  # The player abandons his current event to a new allocation
-                        self.handle_abandonment_event(player=player, mission=player.current_mission,
-                                                      task=player.current_task)
-                        self.generate_player_arrives_to_mission_event(player=player)
+                    self.generate_player_arrives_to_mission_event(player=player)
 
     def update_workload(self):
         for t in self.tasks_list:
@@ -419,12 +430,12 @@ class Simulation:
     def generate_player_update_event(self, player):
         x = self.f_generate_message_delay()
         if x is not None:
-            self.diary.append(PlayerUpdateEvent(time_=self.tnow + x, player=player))
+            self.diary.append(PlayerUpdateCentralizedComputerEvent(time_=self.tnow + x, player=player))
 
     def generate_task_update_event(self, task):
         x = self.f_generate_message_delay()
         if x is not None:
-            self.diary.append(TaskUpdateEvent(time_=self.tnow + x, task=task))
+            self.diary.append(TaskUpdateCentralizedComputerEvent(time_=self.tnow + x, task=task))
 
     def check_diary_during_solver(self, time):
         self.diary = sorted(self.diary, key=lambda event_: event_.time)
