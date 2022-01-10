@@ -209,7 +209,7 @@ class SimulationStatic():
                 ans += mission.max_players
         return ans
 
-def centralized_constant_clock(current_clock):
+def centralized_constant_clock(current_clock,agents_algorithm = None):
     if current_clock < termination_time_constant:
         return False
     return True

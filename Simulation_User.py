@@ -4,15 +4,15 @@ import pandas as pd
 
 from Allocation_Solver_Abstract import TaskAlgorithm
 from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, \
-    FisherAsynchronousSolver_TaskLatestArriveInit, FisherTaskASY
+    FisherAsynchronousSolver_TaskLatestArriveInit, FisherTaskASY, FisherCentralizedSolver
 from Communication_Protocols import CommunicationProtocolDefault, CommunicationProtocolExponentialDelayV1
 from Simulation_Abstract import Simulation
 from Entity_Generator import SimpleTaskGenerator, SimplePlayerGenerator
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
-    MapSimple
+    MapSimple, CentralizedComputer
 
-simulations_range = range(50)
+simulations_range = range(1)
 number_of_centers = 10
 map_length = 10
 map_width = 10
@@ -52,6 +52,7 @@ def determine_neighbor_by_map_radius(task:Entity, agent:Entity):
     radius_size = map_length/neighbor_radius_parameter
 
     ans = distance<radius_size
+    ans = True
     return ans
 
 def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
@@ -61,12 +62,16 @@ def f_termination_condition_constant_mailer_nclo(agents_algorithm, mailer,
     return True
 
 
+
+
 def get_have_at_list_one_task_that_converged(tasks):
     for task in tasks:
 
         if task.is_finish_phase_II:
             return True
     return False
+
+
 
 def get_tasks_that_were_out_of_the_market(tasks):
     ans = []
@@ -77,6 +82,26 @@ def get_tasks_that_were_out_of_the_market(tasks):
         ans.append(task)
     return ans
 
+
+def  f_termination_condition_all_tasks_converged_central(current_time,agents_algorithm):
+    # TODO take care of only 1 task in system
+    if current_time > termination_time_constant:
+        return True
+
+    tasks = []
+    players = []
+    for agent in agents_algorithm:
+        if isinstance(agent, FisherTaskASY):
+            tasks.append(agent)
+        else:
+            players.append(agent)
+
+    #
+    for task in tasks:
+        if not task.is_finish_phase_II and current_time < termination_time_constant:
+            return False
+
+    return True
 
 
 def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
@@ -109,8 +134,10 @@ def f_termination_condition_all_tasks_converged(agents_algorithm, mailer,
 
 
 
-def create_fisher_solver(communication_protocol, ro=0.9, fisher_solver_distribution_level=solver_selection,
-                         util_structure_level=util_structure_levels):
+def create_fisher_solver(communication_protocol,
+                         centralized_computer ,
+                         ro=0.9, fisher_solver_distribution_level=solver_selection,
+                         util_structure_level=util_structure_levels ):
     if fisher_solver_distribution_level == 1:
         return FisherAsynchronousSolver_TasksTogether(
             f_termination_condition=f_termination_condition_all_tasks_converged,
@@ -127,6 +154,14 @@ def create_fisher_solver(communication_protocol, ro=0.9, fisher_solver_distribut
             is_with_timestamp=communication_protocol.is_with_timestamp,
             ro=ro, util_structure_level=util_structure_level)
 
+    if fisher_solver_distribution_level == 3:
+
+
+        return FisherCentralizedSolver( centralized_computer=centralized_computer,
+                                        f_termination_condition=f_termination_condition_all_tasks_converged_central,
+        future_utility_function=calculate_rij_abstract,
+        is_with_timestamp=None,
+        ro=ro, util_structure_level =util_structure_level)
 
 # (self, util_structure_level,mailer=None, f_termination_condition=None, f_global_measurements=None,
 #                f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
@@ -175,12 +210,26 @@ for exp_lambda_parameter in exp_lambda_parameters:
         player_generator = SimplePlayerGenerator(max_number_of_abilities = max_number_of_abilities,map_=map_, seed=seed,speed=players_speed)
 
         players_list = create_players(player_generator)
-        communication_protocol = CommunicationProtocolExponentialDelayV1(2)
-        communication_protocol.set_seed(simulation_number)
-        solver = create_fisher_solver(communication_protocol)
+
+        communication_protocol_for_solver = CommunicationProtocolExponentialDelayV1(2)
+        communication_protocol_for_solver.set_seed(simulation_number)
+        centralized_computer = CentralizedComputer(map_.get_the_center_of_the_map_location())
+        solver = create_fisher_solver(communication_protocol_for_solver,centralized_computer =centralized_computer)
+
+        communication_protocol_for_simulator = CommunicationProtocolExponentialDelayV1(2)
+        communication_protocol_for_simulator.set_seed(simulation_number*17)
+
+        if solver_selection == 3:
+            is_centalized = True
+        else:
+            is_centalized = False
+
+
         simulation_created = Simulation(name=str(simulation_number), players_list=players_list, solver=solver,
                                         tasks_generator=tasks_generator, end_time=time_per_simulation, debug_mode=True,
-                                        f_is_player_can_be_allocated_to_task=determine_neighbor_by_map_radius,number_of_initial_tasks = number_of_initial_tasks)
+                                        f_is_player_can_be_allocated_to_task=determine_neighbor_by_map_radius,number_of_initial_tasks = number_of_initial_tasks
+                                        ,f_generate_message_delay = communication_protocol_for_simulator.get_communication_disturbance,is_centralized= is_centalized,
+                                        center_of_map= map_.get_the_center_of_the_map_location())
 
         add_simulation_to_extract_data(simulation_number,simulation_created.finished_tasks_list)
         if simulation_number % 5 ==0:

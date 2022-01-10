@@ -1,13 +1,13 @@
 from Simulation_Abstract_Components import TaskSimple, find_and_allocate_responsible_player, Status, TaskGenerator, \
-    calculate_distance, are_neighbours, is_player_can_be_allocated_to_task, PlayerSimple, MissionSimple
+    calculate_distance, are_neighbours, is_player_can_be_allocated_to_task, PlayerSimple, MissionSimple, \
+    CentralizedComputer
 from itertools import filterfalse
 
 is_debug = False
-NCLO_casting = (1 / 50000) * 0.1
+NCLO_casting = (1 / 5000) * 0.1
 
 
-def message_delay():  # TODO add different seed for task generation and for delays
-    return 5
+
 
 
 class SimulationEvent:
@@ -82,8 +82,10 @@ class TaskArrivalEvent(SimulationEvent):
     def handle_event(self, simulation):
         find_and_allocate_responsible_player(task=self.task, players=simulation.players_list)
         simulation.tasks_list.append(self.task)
-        simulation.solver.add_task_to_solver(self.task) # TODO add task to centralized computer
+        simulation.solver.add_task_to_solver(self.task)
         simulation.remove_solver_finish_event()
+        if simulation.is_centralized:
+            simulation.solver.centralized_computer.update_task_simulation(self.task)
         simulation.solve()
         simulation.generate_new_task_to_diary()
 
@@ -104,10 +106,12 @@ class NumberOfTasksArrivalEvent(SimulationEvent):
         self.tasks = tasks
 
     def handle_event(self, simulation):
-        for task in self.tasks: # TODO add task to centralized computer
+        for task in self.tasks:
             find_and_allocate_responsible_player(task=task, players=simulation.players_list)
             simulation.tasks_list.append(task)
             simulation.solver.add_task_to_solver(task)
+            if simulation.is_centralized:
+                simulation.solver.centralized_computer.update_task_simulation(task)
         simulation.solve()
         simulation.generate_new_task_to_diary()
 
@@ -133,7 +137,10 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
     def handle_event(self, simulation):
         self.player.update_status(Status.ON_MISSION, self.time)
         self.player.update_location(self.task.location, self.time)
-        self.player.schedule.pop(0)
+        if len( self.player.schedule)==0:
+            print("bug in line 141 simulation abstract")
+        else:
+            self.player.schedule.pop(0)
         self.mission.add_handling_player(self.player, self.time)
         simulation.generate_mission_finished_event(mission=self.mission, task=self.task)
         simulation.generate_player_update_event(player=self.player)
@@ -172,7 +179,10 @@ class MissionFinishedEvent(SimulationEvent):
 
         self.mission.players_allocated_to_the_mission = []
         self.mission.players_handling_with_the_mission = []
-        self.task.mission_finished(self.mission)
+        try:
+            self.task.mission_finished(self.mission)
+        except:
+            print("line 182 simulation abstract")
         if self.task.is_done:
             simulation.handle_task_ended(self.task)
             simulation.solver.remove_task_from_solver(self.task)
@@ -205,7 +215,7 @@ class PlayerUpdateCentralizedComputerEvent(SimulationEvent):
         SimulationEvent.__init__(self, time_=time_, player=player)
 
     def handle_event(self, simulation):
-        simulation.centralized_computer.update_player_simulation(self.player)
+        simulation.solver.centralized_computer.update_player_simulation(self.player)
 
 
 class TaskUpdateCentralizedComputerEvent(SimulationEvent):
@@ -213,7 +223,7 @@ class TaskUpdateCentralizedComputerEvent(SimulationEvent):
         SimulationEvent.__init__(self, time_=time_, task=task)
 
     def handle_event(self, simulation):
-        simulation.centralized_computer.update_task_simulation(self.task)
+        simulation.solver.centralized_computer.update_task_simulation(self.task)
 
 
 class CentralizedComputerUpdatePlayerEvent(SimulationEvent):
@@ -221,16 +231,17 @@ class CentralizedComputerUpdatePlayerEvent(SimulationEvent):
         SimulationEvent.__init__(self, time_=time_, player=player)
 
     def handle_event(self, simulation):
-        simulation_player = simulation.get_player_from_simulation_by_id(self.player.id_)
+        simulation_player = simulation.get_player_from_simulation_by_id_from_central_computer(self.player.id_)
         simulation_player.schedule = self.player.schedule
         simulation.check_new_allocation_for_player(simulation_player)
 
 
 class Simulation:
-    def __init__(self, name: str, players_list: list, solver, tasks_generator: TaskGenerator, end_time: float,
-                 f_are_players_neighbours=are_neighbours, f_generate_message_delay=message_delay,
+    def __init__(self, name: str, players_list: list, solver,f_generate_message_delay, tasks_generator: TaskGenerator, end_time: float,
+                 f_are_players_neighbours=are_neighbours,
                  f_is_player_can_be_allocated_to_task=is_player_can_be_allocated_to_task,
-                 f_calculate_distance=calculate_distance, debug_mode=False, number_of_initial_tasks=1, is_centralized = False):
+                 f_calculate_distance=calculate_distance, debug_mode=False, number_of_initial_tasks=1, is_centralized = False,
+                 center_of_map=None):
         """
         :param name: The name of simulation
         :param players_list: The list of the players(players) that are participate
@@ -252,11 +263,12 @@ class Simulation:
         self.f_are_players_neighbours = f_are_players_neighbours
         # solver initialization
         self.solver = solver
-        self.solver.add_players_list(players_list)
-
-        # centrelazed solver initialization
         if is_centralized:
-            self.centralized_computer = None  # TODO ben
+            self.solver.players_simulation = players_list
+            self.solver.centralized_computer.players_simulation = players_list
+        else:
+            self.solver.add_players_list(players_list)
+
         self.f_generate_message_delay = f_generate_message_delay
         # tasks initialization
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_task
@@ -358,7 +370,7 @@ class Simulation:
         player.current_mission = None
         player.current_task = None
         self.generate_mission_finished_event(mission, task)
-        self.generate_task_update_event(task=self.task)
+        self.generate_task_update_event(task=task)
 
     def handle_task_ended(self, task):
         self.finished_tasks_list.append(task)
@@ -436,15 +448,18 @@ class Simulation:
 
     def generate_player_update_event(self, player):
         if self.is_centralized:
-            x = self.f_generate_message_delay()
+            x = self.f_generate_message_delay(player,self.solver.centralized_computer)
             if x is not None:
-                self.diary.append(PlayerUpdateCentralizedComputerEvent(time_=self.tnow + x, player=player))
+                time_ = self.tnow + x * NCLO_casting
+
+                self.diary.append(PlayerUpdateCentralizedComputerEvent(time_=time_ + x, player=player))
 
     def generate_task_update_event(self, task):
         if self.is_centralized:
-            x = self.f_generate_message_delay()
+            x = self.f_generate_message_delay(task,self.solver.centralized_computer)
             if x is not None:
-                self.diary.append(TaskUpdateCentralizedComputerEvent(time_=self.tnow + x, task=task))
+                time_ = self.tnow + x * NCLO_casting
+                self.diary.append(TaskUpdateCentralizedComputerEvent(time_=time_, task=task))
 
     def check_diary_during_solver(self, time):
         self.diary = sorted(self.diary, key=lambda event_: event_.time)
@@ -454,12 +469,14 @@ class Simulation:
             else:
                 return True
 
-    def get_player_from_simulation_by_id(self, player_id_):
-        for p in self.players_list:
+    def get_player_from_simulation_by_id_from_central_computer(self, player_id_):
+        for p in self.solver.centralized_computer.players_simulation:
             if p.id_ == player_id_:
                 return p
 
     def generate_update_player_event(self, player):
-        x = self.f_generate_message_delay()
-        if x is not None:
-            self.diary.append(CentralizedComputerUpdatePlayerEvent(time_=self.tnow + x, player=player))
+        if self.is_centralized:
+            x = self.f_generate_message_delay(player,self.solver.centralized_computer)
+            if x is not None:
+                time_ = self.tnow + x * NCLO_casting
+                self.diary.append(CentralizedComputerUpdatePlayerEvent(time_=time_, player=player))

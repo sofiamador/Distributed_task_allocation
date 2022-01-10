@@ -1086,10 +1086,9 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
 class FisherAsynchronousSolver_TasksTogether(AllocationSolverTasksPlayersSemi):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
-                 is_with_timestamp=True, ro=0.9, simulation_rep=0):
+                 is_with_timestamp=True, ro=0.9):
         AllocationSolverTasksPlayersSemi.__init__(self, f_termination_condition, f_global_measurements,
                                                   f_communication_disturbance)
-        simulation_rep_received = simulation_rep
         self.util_structure_level = util_structure_level
         self.ro = ro
         self.future_utility_function = future_utility_function
@@ -1148,11 +1147,10 @@ class FisherAsynchronousSolver_TaskRandInit(AllocationSolverTasksPlayersFullRand
 class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayersFullLatestTaskInit):
     def __init__(self, util_structure_level, mailer=None, f_termination_condition=None, f_global_measurements={},
                  f_communication_disturbance=default_communication_disturbance, future_utility_function=None,
-                 is_with_timestamp=True, ro=0.9, simulation_rep=0):
+                 is_with_timestamp=True, ro=0.9 ):
         AllocationSolverTasksPlayersFullLatestTaskInit.__init__(self, mailer, f_termination_condition,
                                                                 f_global_measurements,
                                                                 f_communication_disturbance)
-        simulation_rep_received = simulation_rep
         self.util_structure_level = util_structure_level
         self.ro = ro
         self.future_utility_function = future_utility_function
@@ -1182,9 +1180,9 @@ class FisherAsynchronousSolver_TaskLatestArriveInit(AllocationSolverTasksPlayers
 
 
 class FisherCentralizedSolver(AllocationSolverCentralized):
-    def __init__(self,centralized_computer:CentralizedComputer,f_termination_condition ,  f_global_measurements = {},
+    def __init__(self,centralized_computer:CentralizedComputer,f_termination_condition , f_global_measurements = {},
     future_utility_function = None, util_structure_level = 1,
-    is_with_timestamp = True, ro = 0.9, simulation_rep = 0):
+    is_with_timestamp = True, ro = 0.9 ):
 
 
         AllocationSolverCentralized.__init__(self,centralized_computer,f_termination_condition)
@@ -1192,7 +1190,6 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
         self.util_structure_level =util_structure_level
         self.is_with_timestamp = is_with_timestamp
         self.ro = ro
-        self.simulation_rep =simulation_rep
         self.f_global_measurements =f_global_measurements
         self.measurements= {}
         for key in self.f_global_measurements.keys():
@@ -1208,6 +1205,9 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
 
         self.players_algorithm.append(player_algorithm)
         self.agents_algorithm.append(player_algorithm)
+        #self.centralized_computer.players_simulation.append(player)
+        #self.centralized_computer.
+        #self.centralized_computer.update_player_simulation(player_algorithm)
 
     def add_task_to_solver(self, task: TaskSimple):
 
@@ -1262,9 +1262,10 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
 
     def get_measurements(self):
         return self.measurements
+
     def allocate(self):
 
-        while ( not self.f_termination_condition(self.solver_counter)):
+        while ( not self.f_termination_condition(self.solver_counter,self.agents_algorithm)):
             self.create_measurements()
 
             for task_algo in self.tasks_algorithm:
@@ -1287,6 +1288,7 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
                 self.solver_counter = self.solver_counter + player_algo.atomic_counter
                 player_algo.atomic_counter = 0
 
+        return self.solver_counter
 
     def create_measurements(self):
         current_clock =self.solver_counter  # TODO check if immutable

@@ -1068,23 +1068,23 @@ class AllocationSolverCentralized(AllocationSolver):
 
         tasks = self.centralized_computer.tasks_simulation
         for tt in tasks:
-            task_copy = tt
+            task_copy = copy.copy(tt)
             self.tasks_simulation.append(task_copy)
             self.msgs_box[task_copy.id_] = []
             self.add_task_to_solver(task_copy)
 
         players = self.centralized_computer.players_simulation
         for pp in players:
-            player_copy = pp
-            self.players_simulation.append(player_copy)
+            player_copy = copy.copy(pp)
+            #self.players_simulation.append(player_copy)
             self.msgs_box[player_copy.id_] = []
 
             self.add_player_to_solver(player_copy)
 
 
-    def solve(self, tnow, centralized_computer=None) -> {}:
+    def solve(self, tnow) -> {}:
         self.tnow = tnow
-        self.centralized_computer = centralized_computer
+        #self.centralized_computer = centralized_computer
         self.reset_centralized_computer_info()
         self.initialize_centralistic_algorithm()
         return self.allocate()
