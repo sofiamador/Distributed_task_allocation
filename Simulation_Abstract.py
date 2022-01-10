@@ -312,9 +312,9 @@ class Simulation:
         self.update_locations_of_players()
         solver_duration_NCLO = self.solver.solve(self.tnow)
         time = self.tnow + solver_duration_NCLO * NCLO_casting
-        if self.check_diary_during_solver(time):
-            self.diary.append(SolverFinishEvent(time_=time))
-            return
+        #if self.check_diary_during_solver(time):
+        #    self.diary.append(SolverFinishEvent(time_=time))
+        #    return
         # handle_new allocation
         self.remove_mission_finished_events()
         self.remove_player_arrive_to_mission_event_from_diary()

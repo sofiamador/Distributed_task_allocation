@@ -14,7 +14,7 @@ from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, 
     MapSimple, CentralizedComputer
 is_with_message_loss = True
 is_perfect_communication = False
-simulations_range = range(1)
+simulations_range = range(50)
 number_of_centers = 10
 map_length = 10
 map_width = 10
@@ -248,6 +248,16 @@ for exp_lambda_parameter in exp_lambda_parameters:
         add_simulation_to_extract_data(simulation_number,simulation_created.finished_tasks_list)
         if simulation_number % 5 ==0:
             missions_data_frame = pd.DataFrame.from_dict(missions_information)
-            missions_data_frame.to_csv("distributed_rate_"+str(exp_lambda_parameter)+"reps_"+str(simulation_number)+".csv", sep=',')
+            if is_with_message_loss:
+                missions_data_frame.to_csv("solver_+"+str(solver_selection)+"_distributed_rate_"+str(exp_lambda_parameter)+"_message_loss_reps_"+str(simulation_number)+".csv", sep=',')
+            else:
+                missions_data_frame.to_csv("solver_+"+str(solver_selection)+"_distributed_rate_"+str(exp_lambda_parameter)+"_message_delay_"+str(simulation_number)+".csv", sep=',')
+
     missions_data_frame = pd.DataFrame.from_dict(missions_information)
-    missions_data_frame.to_csv("distributed_rate_" + str(exp_lambda_parameter) + "_reps_" + str(simulation_number) + ".csv", sep=',')
+    if is_with_message_loss:
+        missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_distributed_rate_" + str(
+            exp_lambda_parameter) + "_message_loss_reps_" + str(simulation_number) + ".csv", sep=',')
+    else:
+        missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_distributed_rate_" + str(
+            exp_lambda_parameter) + "_message_delay_" + str(simulation_number) + ".csv", sep=',')
+
