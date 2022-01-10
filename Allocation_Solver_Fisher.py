@@ -288,8 +288,10 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
                     if sum_of_bids == 0:
                         self.bids[task][mission] = 0
                     else:
+
                         r_ij_times_x_ij = self.r_i[task][mission].get_utility(ratio=x_ij)
                         self.bids[task][mission] = (r_ij_times_x_ij / sum_of_bids) * w_not_none
+
                 atomic_counter = atomic_counter + 1
         self.check_bids()
 
@@ -315,7 +317,9 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
                     sum_r_ijs_none_list.append(self.r_i[task][mission].get_utility(ratio=1))
                 else:
                     x_not_none += 1
+
                     r_ij = self.r_i[task][mission]
+
                     sum_of_bids_list.append(r_ij.get_utility(ratio=x_ij))
                 # self.atomic_counter = self.atomic_counter + 1
 
@@ -423,8 +427,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
             only_allocated_missions = self.get_only_allocated_missions()
             allocation_list = self.exam_switch(only_allocated_missions)
             self.update_schedule_for_simulation_player(allocation_list)
-        else:
-            pass
+
     def update_schedule_for_simulation_player(self, allocation_list):
         self.simulation_entity.schedule = []  # [(task,mission,time)]
         for allo in allocation_list:
@@ -534,6 +537,7 @@ class FisherPlayerASY_TSG_greedy_Schedual(FisherPlayerASY):
                     time_at_mission = allocation * (remaining_workload / productivity)
                     denominator = time_to_task + time_at_mission
                     bang_per_buck[task][mission] = numerator / denominator
+
         return bang_per_buck
 
 
@@ -1040,7 +1044,9 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
             allocations_dict = msg.information[2]
             player_id_sender = msg.sender
             for mission,time_arrive in allocations_dict.items():
+
                 self.player_greedy_arrive_dict[mission][player_id_sender] = time_arrive
+
         else:
             pass
 
@@ -1264,7 +1270,7 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
         return self.measurements
 
     def allocate(self):
-
+        self.solver_counter = 0
         while ( not self.f_termination_condition(self.solver_counter,self.agents_algorithm)):
             self.create_measurements()
 

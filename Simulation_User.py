@@ -13,14 +13,14 @@ from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
     MapSimple, CentralizedComputer
 is_with_message_loss = True
-is_perfect_communication = False
-simulations_range = range(50)
+is_perfect_communication = True
+simulations_range = range(1)
 number_of_centers = 10
 map_length = 10
 map_width = 10
 number_of_players = 50
 players_speed = 5
-solver_selection = 2  # 1 = all task init # 2= single latest task init
+solver_selection = 3  # 1 = all task init # 2= single latest task init
 termination_time_constant = 10000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
 exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
@@ -222,8 +222,8 @@ for exp_lambda_parameter in exp_lambda_parameters:
             communication_protocol_for_solver = CommunicationProtocolExponentialDelayV1(2)
 
         if is_perfect_communication:
-            communication_protocol_for_simulator = CommunicationProtocolDefault()
-            communication_protocol_for_solver =CommunicationProtocolDefault()
+            communication_protocol_for_simulator = CommunicationProtocolDefault("defult")
+            communication_protocol_for_solver =CommunicationProtocolDefault("defult")
 
 
         communication_protocol_for_solver.set_seed(simulation_number)

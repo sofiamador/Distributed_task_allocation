@@ -9,6 +9,7 @@ import numpy as np
 
 from typing import List
 
+
 global solver_debug
 
 
@@ -457,15 +458,19 @@ class MissionSimple:
         self.measurements.close_measurements()
 
     def add_allocated_player(self, player):
-        if player in self.players_allocated_to_the_mission:
-            raise Exception("Double allocation of the same player to one mission: player " + str(player.id_))
-        self.players_allocated_to_the_mission.append(player)
+        if player in self.players_allocated_to_the_mission :
+            print("Double allocation of the same player to one mission: player " + str(player.id_))
+            #raise Exception("Double allocation of the same player to one mission: player " + str(player.id_))
+        else:
+            self.players_allocated_to_the_mission.append(player)
 
     def add_handling_player(self, player, tnow):
         if player in self.players_handling_with_the_mission:
+            print("Double handling of the the same player to one mission" + str(self.mission_id))
             raise Exception("Double handling of the the same player to one mission" + str(self.mission_id))
-        self.players_handling_with_the_mission.append(player)
-        self.measurements.check_and_update_first_player_present(tnow)
+        else:
+            self.players_handling_with_the_mission.append(player)
+            self.measurements.check_and_update_first_player_present(tnow)
 
     def remove_allocated_player(self, player):
         if player not in self.players_allocated_to_the_mission:

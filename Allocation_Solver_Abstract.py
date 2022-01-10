@@ -1068,14 +1068,14 @@ class AllocationSolverCentralized(AllocationSolver):
 
         tasks = self.centralized_computer.tasks_simulation
         for tt in tasks:
-            task_copy = copy.copy(tt)
+            task_copy = tt#copy.copy(tt)
             self.tasks_simulation.append(task_copy)
             self.msgs_box[task_copy.id_] = []
             self.add_task_to_solver(task_copy)
 
         players = self.centralized_computer.players_simulation
         for pp in players:
-            player_copy = copy.copy(pp)
+            player_copy = pp##copy.copy(pp)
             #self.players_simulation.append(player_copy)
             self.msgs_box[player_copy.id_] = []
 
