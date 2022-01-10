@@ -162,9 +162,6 @@ class AbilitySimple:
         return self.ability_type
 
 
-
-
-
 class PlayerSimple(Entity):
     """
     Class that represents a basic player in the simulation
@@ -242,9 +239,10 @@ class PlayerSimple(Entity):
                         self.current_task.location[i] - self.location[i]) * ratio_of_the_time
             self.update_time(tnow)
 
+
 class MissionMeasurements:
-    def __init__(self,task_importance,mission_id,arrival_time_to_the_system,initial_workload,max_players):
-        self.task_importance =task_importance
+    def __init__(self, task_importance, mission_id, arrival_time_to_the_system, initial_workload, max_players):
+        self.task_importance = task_importance
         self.mission_id = mission_id
         self.max_players = max_players
         self.x0_simulation_time_mission_enter_system = copy.copy(arrival_time_to_the_system)
@@ -267,8 +265,8 @@ class MissionMeasurements:
         self.x11_time_per_quantity_time_in_system = self.create_dict_of_players_amounts()
         self.x12_workload_per_quantity_time_in_system = self.create_dict_of_players_amounts()
 
-        self.x13_time_per_quantity_time_first_player= self.create_dict_of_players_amounts()
-        self.x14_workload_per_quantity_time_first_player= self.create_dict_of_players_amounts()
+        self.x13_time_per_quantity_time_first_player = self.create_dict_of_players_amounts()
+        self.x14_workload_per_quantity_time_first_player = self.create_dict_of_players_amounts()
 
         self.x16_workload_utility = None
 
@@ -276,13 +274,12 @@ class MissionMeasurements:
         self.players_handling_with_the_mission_previous = []
         self.is_mission_done = True
 
-
     def get_mission_measurements_dict(self):
         ans = {}
         ans["Mission Id"] = self.mission_id
         ans["Task Importance"] = self.task_importance
         ans["Max Players"] = self.max_players
-        ans["Initial Workload"]=self.initial_workload
+        ans["Initial Workload"] = self.initial_workload
         ans["Arrival Delay"] = self.x2_delay
         ans["Abandonment Counter"] = self.x3_abandonment_counter
         ans["Total Abandonment Counter"] = self.x4_total_abandonment_counter
@@ -292,16 +289,14 @@ class MissionMeasurements:
         ans["Time Taken (First Arrival) Relative To Optimal"] = self.x10_ratio_time_taken_first_agent_arrive_and_opt
         ans["Utility"] = self.x16_workload_utility
         ans["Is Done"] = self.is_mission_done
-        return  ans
+        return ans
 
     def close_measurements(self):
 
         if self.x2_delay is None:
             self.x2_delay = "NaN"
 
-
-
-        if  self.x6_total_time_since_arrive_to_system is None:
+        if self.x6_total_time_since_arrive_to_system is None:
             self.x6_total_time_since_arrive_to_system = "NaN"
 
         if self.x7_total_time_since_first_agent_arrive is None:
@@ -316,10 +311,10 @@ class MissionMeasurements:
         self.calculate_mission_utility()
         self.is_mission_done = False
 
-    def change_abandonment_measurements(self,player):
+    def change_abandonment_measurements(self, player):
         flag = False
         if player in self.players_handling_with_the_mission_previous:
-            self.x3_abandonment_counter = self.x3_abandonment_counter+1
+            self.x3_abandonment_counter = self.x3_abandonment_counter + 1
             self.players_handling_with_the_mission_previous.remove(player)
             flag = True
         if flag and len(self.players_handling_with_the_mission_previous) == 0:
@@ -327,57 +322,59 @@ class MissionMeasurements:
 
     def create_dict_of_players_amounts(self):
         ans = {}
-        for i in range(self.max_players+1):
+        for i in range(self.max_players + 1):
             ans[i] = 0
         return ans
 
     def check_and_update_first_player_present(self, tnow):
         if self.x1_simulation_time_first_player_arrive is None:
             self.x1_simulation_time_first_player_arrive = copy.copy(tnow)
-            self.x2_delay = tnow-self.x0_simulation_time_mission_enter_system
+            self.x2_delay = tnow - self.x0_simulation_time_mission_enter_system
 
-    def update_in_allocated_and_handled_before_delete(self,players_allocated_to_the_mission,players_handling_with_the_mission):
+    def update_in_allocated_and_handled_before_delete(self, players_allocated_to_the_mission,
+                                                      players_handling_with_the_mission):
         for pp in players_allocated_to_the_mission:
             self.players_allocated_to_the_mission_previous.append(pp)
         for ppp in players_handling_with_the_mission:
             self.players_handling_with_the_mission_previous.append(ppp)
 
-    def update_mission_finished_workload(self,tnow):
+    def update_mission_finished_workload(self, tnow):
         self.x5_simulation_time_mission_end = copy.copy(tnow)
-        self.x6_total_time_since_arrive_to_system = copy.copy(tnow)-self.x0_simulation_time_mission_enter_system
-        self.x7_total_time_since_first_agent_arrive = copy.copy(tnow)-self.x1_simulation_time_first_player_arrive
-        self.x9_ratio_time_taken_arrive_to_system_and_opt = self.x8_optimal_time/self.x6_total_time_since_arrive_to_system
-        self.x10_ratio_time_taken_first_agent_arrive_and_opt = self.x8_optimal_time/self.x7_total_time_since_first_agent_arrive
+        self.x6_total_time_since_arrive_to_system = copy.copy(tnow) - self.x0_simulation_time_mission_enter_system
+        self.x7_total_time_since_first_agent_arrive = copy.copy(tnow) - self.x1_simulation_time_first_player_arrive
+        self.x9_ratio_time_taken_arrive_to_system_and_opt = self.x8_optimal_time / self.x6_total_time_since_arrive_to_system
+        self.x10_ratio_time_taken_first_agent_arrive_and_opt = self.x8_optimal_time / self.x7_total_time_since_first_agent_arrive
 
         self.calculate_mission_utility()
 
-
-
     def calculate_mission_utility(self):
-        utility_per_workload = self.task_importance/self.initial_workload
+        utility_per_workload = self.task_importance / self.initial_workload
 
         self.x16_workload_utility = 0
 
         for amount in self.x12_workload_per_quantity_time_in_system.keys():
             workload_in_system = self.x12_workload_per_quantity_time_in_system[amount]
-            self.x16_workload_utility= self.x16_workload_utility + utility_per_workload *workload_in_system * (amount / self.max_players)
+            self.x16_workload_utility = self.x16_workload_utility + utility_per_workload * workload_in_system * (
+                        amount / self.max_players)
 
-
-    def update_time_per_amount(self,current_amount_of_players,delta,productivity):
-        current_time_per_quantity =  self.x11_time_per_quantity_time_in_system[current_amount_of_players]
+    def update_time_per_amount(self, current_amount_of_players, delta, productivity):
+        current_time_per_quantity = self.x11_time_per_quantity_time_in_system[current_amount_of_players]
         current_workload_per_quantity = self.x12_workload_per_quantity_time_in_system[current_amount_of_players]
-        self.x11_time_per_quantity_time_in_system[current_amount_of_players] = current_time_per_quantity+delta
-        self.x12_workload_per_quantity_time_in_system[current_amount_of_players] = current_workload_per_quantity+ delta*productivity
+        self.x11_time_per_quantity_time_in_system[current_amount_of_players] = current_time_per_quantity + delta
+        self.x12_workload_per_quantity_time_in_system[
+            current_amount_of_players] = current_workload_per_quantity + delta * productivity
         if self.x1_simulation_time_first_player_arrive is not None:
-            self.x13_time_per_quantity_time_first_player[current_amount_of_players] = current_time_per_quantity+delta
-            self.x14_workload_per_quantity_time_first_player[current_amount_of_players] = current_workload_per_quantity + delta * productivity
+            self.x13_time_per_quantity_time_first_player[current_amount_of_players] = current_time_per_quantity + delta
+            self.x14_workload_per_quantity_time_first_player[
+                current_amount_of_players] = current_workload_per_quantity + delta * productivity
+
 
 class MissionSimple:
     """
     Class that represents a simple mission (as a part of the task)
     """
 
-    def __init__(self, mission_id, initial_workload, arrival_time_to_the_system,task_importance,
+    def __init__(self, mission_id, initial_workload, arrival_time_to_the_system, task_importance,
                  abilities=[AbilitySimple(ability_type=0)],
                  min_players=1, max_players=1):
         """
@@ -403,31 +400,28 @@ class MissionSimple:
         self.is_done = False
         self.arrival_time_to_the_system = arrival_time_to_the_system
         self.last_updated = arrival_time_to_the_system
-        self.measurements = MissionMeasurements(task_importance= self.task_importance, mission_id=self.mission_id,arrival_time_to_the_system=self.arrival_time_to_the_system,initial_workload=self.initial_workload,max_players=self.max_players)
+        self.measurements = MissionMeasurements(task_importance=self.task_importance, mission_id=self.mission_id,
+                                                arrival_time_to_the_system=self.arrival_time_to_the_system,
+                                                initial_workload=self.initial_workload, max_players=self.max_players)
         #####----------
 
         self.x0_simulation_time_mission_enter_system = self.arrival_time_to_the_system
-        self.x1_simulation_time_first_player_arrive = None # update when mission finish
+        self.x1_simulation_time_first_player_arrive = None  # update when mission finish
         self.x2_delay = None
 
-        self.x3_abandonment_counter = 0 #each decrease in players present
-        self.x4_total_abandonment_counter = 0 #decrease from 1 to 0
+        self.x3_abandonment_counter = 0  # each decrease in players present
+        self.x4_total_abandonment_counter = 0  # decrease from 1 to 0
 
-
-        self.x8_optimal_time = self.initial_workload/self.max_players
+        self.x8_optimal_time = self.initial_workload / self.max_players
         self.x9_ratio_time_taken_arrive_to_system_and_opt = None
         self.x10_ratio_time_taken_first_agent_arrive_and_opt = None
-
 
         self.x13_time_amount_of_agents_from_system = self.create_dict_of_players_amounts()
         self.x14_time_amount_of_agents_and_time_mission_finish_ratio_system = self.create_dict_of_players_amounts()
 
-
-
-
     def create_dict_of_players_amounts(self):
         ans = {}
-        for i in range(self.max_players+1):
+        for i in range(self.max_players + 1):
             ans[i] = None
         return ans
 
@@ -443,37 +437,35 @@ class MissionSimple:
         productivity = 0
         counter = 0
         for p in self.players_handling_with_the_mission:
-            counter = counter +1
-            if counter<=self.max_players:
+            counter = counter + 1
+            if counter <= self.max_players:
                 productivity += p.productivity
         self.remaining_workload -= delta * productivity
         current_amount_of_players = len(self.players_handling_with_the_mission)
         if counter <= self.max_players:
-            self.measurements.update_time_per_amount(current_amount_of_players,delta,productivity)
+            self.measurements.update_time_per_amount(current_amount_of_players, delta, productivity)
         else:
-            self.measurements.update_time_per_amount(self.max_players,delta,productivity)
-
+            self.measurements.update_time_per_amount(self.max_players, delta, productivity)
 
         if self.remaining_workload < -0.01:
             raise Exception("Negative workload to mission" + str(self.mission_id))
-        if len(self.players_handling_with_the_mission)>self.max_players :
+        if len(self.players_handling_with_the_mission) > self.max_players:
             pass
-            #raise Exception("Too many players allocated" + str(self.mission_id))
+            # raise Exception("Too many players allocated" + str(self.mission_id))
 
     def close_measurements(self):
         self.measurements.close_measurements()
+
     def add_allocated_player(self, player):
         if player in self.players_allocated_to_the_mission:
             raise Exception("Double allocation of the same player to one mission: player " + str(player.id_))
         self.players_allocated_to_the_mission.append(player)
 
-    def add_handling_player(self, player,tnow):
+    def add_handling_player(self, player, tnow):
         if player in self.players_handling_with_the_mission:
             raise Exception("Double handling of the the same player to one mission" + str(self.mission_id))
         self.players_handling_with_the_mission.append(player)
         self.measurements.check_and_update_first_player_present(tnow)
-
-
 
     def remove_allocated_player(self, player):
         if player not in self.players_allocated_to_the_mission:
@@ -488,14 +480,15 @@ class MissionSimple:
         self.remove_allocated_player(player)
 
     def clear_players_before_allocation(self):
-        self.measurements.update_in_allocated_and_handled_before_delete(self.players_allocated_to_the_mission,self.players_handling_with_the_mission)
-
+        self.measurements.update_in_allocated_and_handled_before_delete(self.players_allocated_to_the_mission,
+                                                                        self.players_handling_with_the_mission)
 
         self.players_allocated_to_the_mission.clear()
         self.players_handling_with_the_mission.clear()
 
-    def change_abandonment_measurements(self,player):
+    def change_abandonment_measurements(self, player):
         self.measurements.change_abandonment_measurements(player=player)
+
     def __hash__(self):
         return hash(self.mission_id)
 
@@ -532,7 +525,6 @@ class TaskSimple(Entity):
         self.arrival_time = arrival_time  # arrival time to system
         self.done_missions = []
         self.is_done = False
-
 
     def create_neighbours_list(self, players_list,
                                f_is_player_can_be_allocated_to_mission=is_player_can_be_allocated_to_task):
@@ -654,16 +646,19 @@ class MapHubs(MapSimple):
         return [rand_x, rand_y]
 
 
-class CentralizedComputer:
-    def __init__(self, players_simulation:[PlayerSimple]=[],tasks_simulation:[TaskSimple]=[]):
+class CentralizedComputer(Entity):
+
+    def __init__(self, id_, location,players_simulation: [PlayerSimple] = [], tasks_simulation: [TaskSimple] = []):
+        Entity.__init__(id_=id_, location=location)
         self.players_simulation = players_simulation
         self.tasks_simulation = tasks_simulation
 
-    def find_current_player_in_computer(self,player_simulation):
+    def find_current_player_in_computer(self, player_simulation):
         for pp in self.players_simulation:
-            if pp.id_==player_simulation.id_:
+            if pp.id_ == player_simulation.id_:
                 return pp
-    def update_player_simulation(self,player_simulation:PlayerSimple):
+
+    def update_player_simulation(self, player_simulation: PlayerSimple):
         current_player = self.find_current_player_in_computer(player_simulation)
         if current_player is not None:
             self.players_simulation.remove(current_player)
@@ -672,14 +667,12 @@ class CentralizedComputer:
 
         self.players_simulation.append(player_simulation)
 
-
-    def find_current_task_in_computer(self,task_simulation):
+    def find_current_task_in_computer(self, task_simulation):
         for tt in self.tasks_simulation:
-            if tt.id_==task_simulation.id_:
+            if tt.id_ == task_simulation.id_:
                 return tt
 
-
-    def update_task_simulation(self, task_simulation: PlayerSimple):
+    def update_task_simulation(self, task_simulation: TaskSimple): # TODO Ben check it
         current_task = self.find_current_task_in_computer(task_simulation)
         if current_task is not None:
             self.tasks_simulation.remove(current_task)

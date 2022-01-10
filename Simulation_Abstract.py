@@ -3,7 +3,11 @@ from Simulation_Abstract_Components import TaskSimple, find_and_allocate_respons
 from itertools import filterfalse
 
 is_debug = False
-NCLO_casting = (1/50000)*0.1
+NCLO_casting = (1 / 50000) * 0.1
+
+
+def message_delay():  # TODO Ben
+    return 5
 
 
 class SimulationEvent:
@@ -132,6 +136,8 @@ class PlayerArriveToEMissionEvent(SimulationEvent):
         self.player.schedule.pop(0)
         self.mission.add_handling_player(self.player, self.time)
         simulation.generate_mission_finished_event(mission=self.mission, task=self.task)
+        simulation.generate_player_update_event(player=self.player)
+        simulation.generate_task_update_event(task=self.task)
 
 
 class MissionFinishedEvent(SimulationEvent):
@@ -141,7 +147,7 @@ class MissionFinishedEvent(SimulationEvent):
 
     def __init__(self, time_, task, mission):
         """
-        :param time:the time of the event
+        :param time_:the time of the event
         :type: float
         :param player: The relevant player that arrives to the given mission on the given task.
         :type: PlayerSimple
@@ -162,6 +168,7 @@ class MissionFinishedEvent(SimulationEvent):
                 player.update_status(Status.IDLE, self.time)
                 player.current_mission = None
                 player.current_task = None
+                simulation.generate_player_update_event(player=player)
 
         self.mission.players_allocated_to_the_mission = []
         self.mission.players_handling_with_the_mission = []
@@ -171,9 +178,10 @@ class MissionFinishedEvent(SimulationEvent):
             simulation.handle_task_ended(self.task)
             # print("task ended:", self.task.id_)
             simulation.solver.remove_task_from_solver(self.task)
+        simulation.generate_task_update_event(task=self.task)
 
 
-class Solver_finish_event(SimulationEvent):
+class SolverFinishEvent(SimulationEvent):
     def __init__(self, time_):
         """
         :param time:the time of the event
@@ -194,10 +202,25 @@ class Solver_finish_event(SimulationEvent):
         simulation.check_new_allocation()
 
 
+class PlayerUpdateEvent(SimulationEvent):
+    def __init__(self, time_, player):
+        SimulationEvent.__init__(self, time_=time_, player=player)
+
+    def handle_event(self, simulation):
+        simulation.centralized_computer.update_player_simulation(self.player)
+
+
+class TaskUpdateEvent(SimulationEvent):
+    def __init__(self, time_, task):
+        SimulationEvent.__init__(self, time_=time_, task=task)
+
+    def handle_event(self, simulation):
+        simulation.centralized_computer.update_task_simulation(self.task)
+
 
 class Simulation:
     def __init__(self, name: str, players_list: list, solver, tasks_generator: TaskGenerator, end_time: float,
-                 f_are_players_neighbours=are_neighbours,
+                 f_are_players_neighbours=are_neighbours, f_generate_message_delay=message_delay,
                  f_is_player_can_be_allocated_to_task=is_player_can_be_allocated_to_task,
                  f_calculate_distance=calculate_distance, debug_mode=False, number_of_initial_tasks=1):
         """
@@ -217,9 +240,15 @@ class Simulation:
         self.diary = []
         # players initialization
         self.players_list = players_list
+        self.f_are_players_neighbours = f_are_players_neighbours
+        # solver initialization
         self.solver = solver
         self.solver.add_players_list(players_list)
-        self.f_are_players_neighbours = f_are_players_neighbours
+
+        # centrelazed solver initialization
+
+        self.centralized_computer = None  # TODO ben
+        self.f_generate_message_delay = f_generate_message_delay
         # tasks initialization
         self.f_is_player_can_be_allocated_to_mission = f_is_player_can_be_allocated_to_task
         self.tasks_generator = tasks_generator
@@ -263,7 +292,7 @@ class Simulation:
         solver_duration_NCLO = self.solver.solve(self.tnow)
         time = self.tnow + solver_duration_NCLO * NCLO_casting
         if self.check_diary_during_solver(time):
-            self.diary.append(Solver_finish_event(time_=time))
+            self.diary.append(SolverFinishEvent(time_=time))
             return
         self.remove_mission_finished_events()
         self.remove_player_arrive_to_mission_event_from_diary()
@@ -329,7 +358,7 @@ class Simulation:
         self.diary[:] = filterfalse(lambda ev: type(ev) == PlayerArriveToEMissionEvent, self.diary)
 
     def remove_solver_finish_event(self):
-        self.diary[:] = filterfalse(lambda ev: type(ev) == Solver_finish_event, self.diary)
+        self.diary[:] = filterfalse(lambda ev: type(ev) == SolverFinishEvent, self.diary)
 
     def remove_events_when_mission_finished(self, mission: MissionSimple):
         self.diary[:] = filterfalse(lambda ev: ev.mission is not None and ev.mission.mission_id == mission.mission_id,
@@ -371,6 +400,7 @@ class Simulation:
         player.current_mission = next_mission
         player.current_task = next_task
         travel_time = self.f_calculate_distance(player, next_task) / player.speed
+        self.generate_player_update_event(player=player)
         self.diary.append(
             PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
                                         player=player))
@@ -387,6 +417,14 @@ class Simulation:
         self.diary.append(
             MissionFinishedEvent(time_=mission_finish_simulation_time, mission=mission, task=task))
 
+    def generate_player_update_event(self, player):
+        x = self.f_generate_message_delay()
+        self.diary.append(PlayerUpdateEvent(time_=self.tnow + x, player=player))
+
+    def generate_task_update_event(self, task):
+        x = self.f_generate_message_delay()
+        self.diary.append(TaskUpdateEvent(time_=self.tnow + x, task=task))
+
     def check_diary_during_solver(self, time):
         self.diary = sorted(self.diary, key=lambda event_: event_.time)
         for event in self.diary:
@@ -394,6 +432,3 @@ class Simulation:
                 return False
             else:
                 return True
-
-
-
