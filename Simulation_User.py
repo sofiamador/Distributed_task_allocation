@@ -5,13 +5,15 @@ import pandas as pd
 from Allocation_Solver_Abstract import TaskAlgorithm
 from Allocation_Solver_Fisher import FisherAsynchronousSolver_TasksTogether, \
     FisherAsynchronousSolver_TaskLatestArriveInit, FisherTaskASY, FisherCentralizedSolver
-from Communication_Protocols import CommunicationProtocolDefault, CommunicationProtocolExponentialDelayV1
+from Communication_Protocols import CommunicationProtocolDefault, CommunicationProtocolExponentialDelayV1, \
+    CommunicationProtocolLossDecay
 from Simulation_Abstract import Simulation
 from Entity_Generator import SimpleTaskGenerator, SimplePlayerGenerator
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
     MapSimple, CentralizedComputer
-
+is_with_message_loss = True
+is_perfect_communication = False
 simulations_range = range(1)
 number_of_centers = 10
 map_length = 10
@@ -211,13 +213,25 @@ for exp_lambda_parameter in exp_lambda_parameters:
 
         players_list = create_players(player_generator)
 
-        communication_protocol_for_solver = CommunicationProtocolExponentialDelayV1(2)
+        if is_with_message_loss:
+            communication_protocol_for_simulator = CommunicationProtocolLossDecay(3)
+            communication_protocol_for_solver = CommunicationProtocolLossDecay(3)
+
+        else:
+            communication_protocol_for_simulator = CommunicationProtocolExponentialDelayV1(2)
+            communication_protocol_for_solver = CommunicationProtocolExponentialDelayV1(2)
+
+        if is_perfect_communication:
+            communication_protocol_for_simulator = CommunicationProtocolDefault()
+            communication_protocol_for_solver =CommunicationProtocolDefault()
+
+
         communication_protocol_for_solver.set_seed(simulation_number)
+        communication_protocol_for_simulator.set_seed(simulation_number*17)
+
         centralized_computer = CentralizedComputer(map_.get_the_center_of_the_map_location())
         solver = create_fisher_solver(communication_protocol_for_solver,centralized_computer =centralized_computer)
 
-        communication_protocol_for_simulator = CommunicationProtocolExponentialDelayV1(2)
-        communication_protocol_for_simulator.set_seed(simulation_number*17)
 
         if solver_selection == 3:
             is_centalized = True

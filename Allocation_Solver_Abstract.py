@@ -1586,7 +1586,8 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
             current_task = player_sim.current_task
             if current_task is not None:
                 current_task_updated = self.get_updated_entity_copy_of_current_task(current_task)
-                player_algorithm.update_log_with_task(current_task_updated)
+                if current_task_updated is not None:
+                    player_algorithm.update_log_with_task(current_task_updated)
 
     def get_updated_entity_copy_of_current_task(self, current_task:TaskSimple):
         for task_algo in self.tasks_algorithm:
