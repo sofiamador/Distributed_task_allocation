@@ -1040,13 +1040,15 @@ class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
 
     def update_more_information_index_2_and_above(self, player_id, msg):
         if is_with_scheduling:
-
+            if len(self.player_greedy_arrive_dict) == 0:
+                self.reset_mission_per_allocation_list()
             allocations_dict = msg.information[2]
             player_id_sender = msg.sender
             for mission,time_arrive in allocations_dict.items():
-
-                self.player_greedy_arrive_dict[mission][player_id_sender] = time_arrive
-
+                try:
+                    self.player_greedy_arrive_dict[mission][player_id_sender] = time_arrive
+                except:
+                    print("line 1050")
         else:
             pass
 
@@ -1239,8 +1241,14 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
                 algorithm_player.add_task_entity_to_log_centralistic(task)
 
 
+    def players_computer_schedule_clean(self):
+        for player in self.centralized_computer.players_simulation:
+            player.schedule = []
+
     def initialize_centralistic_algorithm(self):
         self.players_meet_tasks()
+
+        self.players_computer_schedule_clean()
         for player_algo in self.players_algorithm:
             player_algo.compute()
             msgs = player_algo.get_list_of_msgs_to_send()
@@ -1275,7 +1283,7 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
             self.create_measurements()
 
             for task_algo in self.tasks_algorithm:
-                self.extract_msgs_and_place_in_context(task_algo) #TODO
+                self.extract_msgs_and_place_in_context(task_algo)
                 task_algo.compute()
                 msgs = task_algo.get_list_of_msgs_to_send()
                 task_msgs_creation = self.get_task_msgs(msgs,task_algo.simulation_entity)

@@ -550,14 +550,13 @@ class TaskSimple(Entity):
         self.update_time(tnow)
 
     def mission_finished(self, mission):
-        # try:
+
         mission.is_done = True
         self.missions_list.remove(mission)
         self.done_missions.append(mission)
+
         if len(self.missions_list) == 0:
             self.is_done = True
-        # except:
-        #    print("from sim comp line 380")
 
 
 def amount_of_task_responsible(player):
@@ -685,7 +684,7 @@ class CentralizedComputer(Entity):
         if current_task is not None:
             self.tasks_simulation.remove(current_task)
 
-        self.tasks_simulation.append(copy.deepcopy(task_simulation))
+        self.tasks_simulation.append(copy.copy(task_simulation))
 
 
 class PlayerGenerator(ABC):

@@ -1069,6 +1069,8 @@ class AllocationSolverCentralized(AllocationSolver):
         tasks = self.centralized_computer.tasks_simulation
         for tt in tasks:
             task_copy = tt#copy.copy(tt)
+            if tt in self.tasks_simulation:
+                self.tasks_simulation.remove(tt)
             self.tasks_simulation.append(task_copy)
             self.msgs_box[task_copy.id_] = []
             self.add_task_to_solver(task_copy)

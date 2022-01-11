@@ -179,10 +179,10 @@ class MissionFinishedEvent(SimulationEvent):
 
         self.mission.players_allocated_to_the_mission = []
         self.mission.players_handling_with_the_mission = []
-        try:
-            self.task.mission_finished(self.mission)
-        except:
-            print("line 182 simulation abstract")
+        #try:
+        self.task.mission_finished(self.mission)
+        #except:
+        #    print("line 182 simulation abstract")
         if self.task.is_done:
             simulation.handle_task_ended(self.task)
             simulation.solver.remove_task_from_solver(self.task)
@@ -286,8 +286,8 @@ class Simulation:
         while True:
             self.diary = sorted(self.diary, key=lambda event: event.time)
             self.last_event = self.diary.pop(0)
-            if self.debug_mode and not isinstance(self.last_event,CentralizedComputerUpdatePlayerEvent):
-                print(self.last_event)
+            #if self.debug_mode and not isinstance(self.last_event,CentralizedComputerUpdatePlayerEvent):
+            print(self.last_event)
             if type(self.last_event) == EndSimulationEvent:
                 self.close_mission_measurements()
                 break
@@ -323,12 +323,12 @@ class Simulation:
         # print(self.diary)
 
     def check_new_allocation(self):
-        if not self.is_centralized:
-            for player in self.players_list:
-                self.check_new_allocation_for_player(player)
-        else:
-            for player in self.players_list:
-                self.generate_update_player_event(player)
+        #if not self.is_centralized:
+        for player in self.players_list:
+            self.check_new_allocation_for_player(player)
+        #else:
+            #for player in self.players_list:
+                #self.generate_update_player_event(player)
 
     def check_new_allocation_for_player(self, player):
         if player.current_mission is None:  # The agent doesn't have a current mission
@@ -421,18 +421,33 @@ class Simulation:
             event = NumberOfTasksArrivalEvent(tasks=tasks, time_=task.arrival_time)
             self.diary.append(event)
 
+    def get_simulation_task_by_id(self,task_id):
+        for task_sim in self.tasks_list:
+            if task_sim.id_ == task_id:
+                return task_sim
+
+    def get_mission_from_task_by_id(self,next_task,mission_id):
+        for mission in next_task.missions_list:
+            if mission.mission_id == mission_id:
+                return mission
+
     def generate_player_arrives_to_mission_event(self, player):
         player.update_status(Status.TO_MISSION, self.tnow)
-        next_task = player.schedule[0][0]
-        next_mission = player.schedule[0][1]
-        next_mission.add_allocated_player(player)
-        player.current_mission = next_mission
-        player.current_task = next_task
-        travel_time = self.f_calculate_distance(player, next_task) / player.speed
-        self.generate_player_update_event(player=player)
-        self.diary.append(
-            PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
-                                        player=player))
+        task_id = player.schedule[0][0].id_
+        next_task = self.get_simulation_task_by_id(task_id)
+        if next_task is not None:
+            mission_id = player.schedule[0][1].mission_id
+            next_mission = self.get_mission_from_task_by_id(next_task,mission_id)
+            next_mission.add_allocated_player(player)
+            player.current_mission = next_mission
+            player.current_task = next_task
+            travel_time = self.f_calculate_distance(player, next_task) / player.speed
+            self.generate_player_update_event(player=player)
+            self.diary.append(
+                PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
+                                            player=player))
+        else:
+            player.update_status(Status.IDLE, self.tnow)
 
     def generate_mission_finished_event(self, mission, task):
         self.remove_mission_finished_event(mission=mission)
