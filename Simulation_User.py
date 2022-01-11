@@ -257,7 +257,12 @@ for exp_lambda_parameter in exp_lambda_parameters:
     if is_with_message_loss:
         missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_players_"+str(number_of_players)+"_distributed_rate_" + str(
             exp_lambda_parameter) + "_message_loss_reps_" + str(simulation_number) + ".csv", sep=',')
-    else:
+    if not is_with_message_loss
+
         missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_players_"+str(number_of_players)+"distributed_rate_" + str(
             exp_lambda_parameter) + "_message_delay_" + str(simulation_number) + ".csv", sep=',')
 
+    if is_perfect_communication:
+
+        missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_players_"+str(number_of_players)+"distributed_rate_" + str(
+            exp_lambda_parameter) + "_perfect_communication_" + str(simulation_number) + ".csv", sep=',')

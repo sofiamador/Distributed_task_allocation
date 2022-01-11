@@ -286,8 +286,8 @@ class Simulation:
         while True:
             self.diary = sorted(self.diary, key=lambda event: event.time)
             self.last_event = self.diary.pop(0)
-            #if self.debug_mode and not isinstance(self.last_event,CentralizedComputerUpdatePlayerEvent):
-            print(self.last_event)
+            if self.debug_mode:
+                print(self.last_event)
             if type(self.last_event) == EndSimulationEvent:
                 self.close_mission_measurements()
                 break
