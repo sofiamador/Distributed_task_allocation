@@ -366,7 +366,7 @@ class Simulation:
             player.calculate_relative_location(self.tnow)
 
     def handle_abandonment_event(self, player: PlayerSimple, mission: MissionSimple, task: TaskSimple):
-        mission.change_abandonment_measurements(player)
+        mission.change_abandonment_measurements(player=player,current_mission=mission,current_task=task)
         player.current_mission = None
         player.current_task = None
         self.generate_mission_finished_event(mission, task)

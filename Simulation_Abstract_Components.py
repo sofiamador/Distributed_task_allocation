@@ -252,7 +252,7 @@ class MissionMeasurements:
 
         self.x3_abandonment_counter = 0  # each decrease in players present
         self.x4_total_abandonment_counter = 0  # decrease from 1 to 0
-
+        self.x20_abandonment_penalty = 0
         self.x5_simulation_time_mission_end = None
         self.x6_total_time_since_arrive_to_system = None
         self.x7_total_time_since_first_agent_arrive = None
@@ -290,6 +290,7 @@ class MissionMeasurements:
         ans["Time Taken (First Arrival) Relative To Optimal"] = self.x10_ratio_time_taken_first_agent_arrive_and_opt
         ans["Utility"] = self.x16_workload_utility
         ans["Is Done"] = self.is_mission_done
+        ans["Abandonment Penalty"]  = self.x20_abandonment_penalty
         return ans
 
     def close_measurements(self):
@@ -312,7 +313,13 @@ class MissionMeasurements:
         self.calculate_mission_utility()
         self.is_mission_done = False
 
-    def change_abandonment_measurements(self, player):
+    def change_abandonment_measurements(self, player,current_task,current_mission):
+
+        remaining_workload_ratio = current_mission.remaining_workload / current_mission.initial_workload
+        abandonment_parameter = \
+            remaining_workload_ratio * (current_task.importance / 3)
+        self.x20_abandonment_penalty=self.x20_abandonment_penalty+abandonment_parameter
+
         flag = False
         if player in self.players_handling_with_the_mission_previous:
             self.x3_abandonment_counter = self.x3_abandonment_counter + 1
@@ -359,11 +366,16 @@ class MissionMeasurements:
                         amount / self.max_players)
 
     def update_time_per_amount(self, current_amount_of_players, delta, productivity):
+
+
         current_time_per_quantity = self.x11_time_per_quantity_time_in_system[current_amount_of_players]
         current_workload_per_quantity = self.x12_workload_per_quantity_time_in_system[current_amount_of_players]
+
         self.x11_time_per_quantity_time_in_system[current_amount_of_players] = current_time_per_quantity + delta
         self.x12_workload_per_quantity_time_in_system[
             current_amount_of_players] = current_workload_per_quantity + delta * productivity
+
+
         if self.x1_simulation_time_first_player_arrive is not None:
             self.x13_time_per_quantity_time_first_player[current_amount_of_players] = current_time_per_quantity + delta
             self.x14_workload_per_quantity_time_first_player[
@@ -491,8 +503,8 @@ class MissionSimple:
         self.players_allocated_to_the_mission.clear()
         self.players_handling_with_the_mission.clear()
 
-    def change_abandonment_measurements(self, player):
-        self.measurements.change_abandonment_measurements(player=player)
+    def change_abandonment_measurements(self, player,current_task,current_mission):
+        self.measurements.change_abandonment_measurements(player=player,current_task = current_task,current_mission=current_mission)
 
     def __hash__(self):
         return hash(self.mission_id)

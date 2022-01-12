@@ -11,7 +11,7 @@ import numpy as np
 
 
 class SimpleTaskGenerator(TaskGenerator):
-    def __init__(self, max_number_of_missions ,map_: MapHubs, seed, factor_initial_workload=1.15, max_importance=10, exp_lambda_parameter=2):
+    def __init__(self, max_number_of_missions ,map_: MapHubs, seed, factor_initial_workload=1.4, max_importance=10, exp_lambda_parameter=2):
         """
 
         :param map_: object to initiate location
@@ -68,7 +68,7 @@ class SimpleTaskGenerator(TaskGenerator):
         mission_id = str(self.id_mission_counter)
         initial_workload = self.factor_initial_workload ** (task_importance/1000)
         arrival_time_to_the_system = arrival_time
-        max_players = min(max(self.rnd_numpy.poisson(lam=(task_importance/1500) / 2, size=1)[0], 2 ),4)
+        max_players = min(max(self.rnd_numpy.poisson(lam=(task_importance/1000), size=1)[0]+2, 2 ),10)
 
         return MissionSimple(task_importance = task_importance,mission_id= mission_id,
                              initial_workload= initial_workload, arrival_time_to_the_system= arrival_time_to_the_system, max_players=max_players,abilities=[created_ability])

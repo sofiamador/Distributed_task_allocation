@@ -362,7 +362,7 @@ def create_fisher_solver(simulation_rep,map:MapSimple,communication_protocol,ro=
         f_communication_disturbance=communication_protocol.get_communication_disturbance,
         future_utility_function=calculate_rij_abstract,
         is_with_timestamp=communication_protocol.is_with_timestamp,
-        ro=ro,util_structure_level = util_structure_level,simulation_rep=simulation_rep)
+        ro=ro,util_structure_level = util_structure_level)
 
     if fisher_solver_distribution_level == 2:
         return FisherAsynchronousSolver_TaskRandInit(
@@ -371,7 +371,7 @@ def create_fisher_solver(simulation_rep,map:MapSimple,communication_protocol,ro=
          f_communication_disturbance=communication_protocol.get_communication_disturbance,
          future_utility_function=calculate_rij_abstract,
          is_with_timestamp=communication_protocol.is_with_timestamp,
-         ro=ro, util_structure_level =util_structure_level,simulation_rep = simulation_rep)
+         ro=ro, util_structure_level =util_structure_level)
 
     if fisher_solver_distribution_level == 3:
         centralized_computer = CentralizedComputer(location=map.get_the_center_of_the_map_location())
@@ -380,7 +380,7 @@ def create_fisher_solver(simulation_rep,map:MapSimple,communication_protocol,ro=
         f_global_measurements=get_data_fisher(),
         future_utility_function=calculate_rij_abstract,
         is_with_timestamp=None,
-        ro=ro, util_structure_level =util_structure_level,simulation_rep = simulation_rep)
+        ro=ro, util_structure_level =util_structure_level)
 
 
 
