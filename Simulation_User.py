@@ -13,18 +13,17 @@ from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
     MapSimple, CentralizedComputer
 is_with_message_loss = True
-is_perfect_communication = False
 simulations_range = range(1)
 number_of_centers = 10
 map_length = 10
 map_width = 10
 number_of_players = 50
 players_speed = 5
-solver_selection = 2  # 1 = all task init # 2= single latest task init # 3 = central
+solver_selection = 3  # 1 = all task init # 2= single latest task init # 3 = central
 termination_time_constant = 10000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
-exp_lambda_parameters = [0.2]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
-time_per_simulation = 10
+exp_lambda_parameters = [0.4]#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
+time_per_simulation = 15
 number_of_initial_tasks = 10
 max_number_of_abilities = 1
 
@@ -218,12 +217,15 @@ for exp_lambda_parameter in exp_lambda_parameters:
             communication_protocol_for_solver = CommunicationProtocolLossDecay(3)
 
         else:
-            communication_protocol_for_simulator = CommunicationProtocolExponentialDelayV1(2)
-            communication_protocol_for_solver = CommunicationProtocolExponentialDelayV1(2)
-
-        if is_perfect_communication:
             communication_protocol_for_simulator = CommunicationProtocolDefault("defult")
             communication_protocol_for_solver =CommunicationProtocolDefault("defult")
+
+            #communication_protocol_for_simulator = CommunicationProtocolExponentialDelayV1(2)
+            #communication_protocol_for_solver = CommunicationProtocolExponentialDelayV1(2)
+
+        #if is_perfect_communication:
+        #    communication_protocol_for_simulator = CommunicationProtocolDefault("defult")
+        #    communication_protocol_for_solver =CommunicationProtocolDefault("defult")
 
 
         communication_protocol_for_solver.set_seed(simulation_number)
@@ -246,27 +248,23 @@ for exp_lambda_parameter in exp_lambda_parameters:
                                         center_of_map= map_.get_the_center_of_the_map_location())
 
         add_simulation_to_extract_data(simulation_number,simulation_created.finished_tasks_list)
-        if simulation_number % 5 ==0:
-            missions_data_frame = pd.DataFrame.from_dict(missions_information)
-            if is_with_message_loss:
-                missions_data_frame.to_csv("solver_+"+str(solver_selection)+"_players_"+str(number_of_players)+"_distributed_rate_"+str(exp_lambda_parameter)+"_message_loss_reps_"+str(simulation_number)+".csv", sep=',')
-            if not is_with_message_loss:
-                missions_data_frame.to_csv("solver_+"+str(solver_selection)+"_players_"+str(number_of_players)+"_distributed_rate_"+str(exp_lambda_parameter)+"_message_delay_"+str(simulation_number)+".csv", sep=',')
-            if is_perfect_communication:
-                missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_players_" + str(
-                    number_of_players) + "distributed_rate_" + str(
-                    exp_lambda_parameter) + "_perfect_communication_" + str(simulation_number) + ".csv", sep=',')
+        #if simulation_number % 5 ==0:
+        #    missions_data_frame = pd.DataFrame.from_dict(missions_information)
+        #    if is_with_message_loss:
+        #        missions_data_frame.to_csv("solver_+"+str(solver_selection)+"_players_"+str(number_of_players)+"_distributed_rate_"+str(exp_lambda_parameter)+"_message_loss_reps_"+str(simulation_number)+".csv", sep=',')
+        #    if not is_with_message_loss:
+        #        missions_data_frame.to_csv("solver_+"+str(solver_selection)+"_players_"+str(number_of_players)+"_distributed_rate_"+str(exp_lambda_parameter)+"_message_delay_"+str(simulation_number)+".csv", sep=',')
+        #    if is_perfect_communication:
+        #        missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_players_" + str(
+        #            number_of_players) + "distributed_rate_" + str(
+        #            exp_lambda_parameter) + "_perfect_communication_" + str(simulation_number) + ".csv", sep=',')
 
     missions_data_frame = pd.DataFrame.from_dict(missions_information)
 
     if is_with_message_loss:
         missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_players_"+str(number_of_players)+"_distributed_rate_" + str(
             exp_lambda_parameter) + "_message_loss_reps_" + str(simulation_number) + ".csv", sep=',')
-    if not is_with_message_loss:
-        missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_players_"+str(number_of_players)+"distributed_rate_" + str(
-            exp_lambda_parameter) + "_message_delay_" + str(simulation_number) + ".csv", sep=',')
-
-    if is_perfect_communication:
-
+    else:
         missions_data_frame.to_csv("solver_+" + str(solver_selection) + "_players_"+str(number_of_players)+"distributed_rate_" + str(
             exp_lambda_parameter) + "_perfect_communication_" + str(simulation_number) + ".csv", sep=',')
+
