@@ -912,7 +912,8 @@ class PlayerAlgorithm(AgentAlgorithmTaskPlayers):
 
     def add_task_entity_to_log(self, task_entity: TaskSimple):
         if task_entity.id_ not in self.neighbours_ids_list:
-            self.add_neighbour_id(task_entity.id_)
+            if  task_entity.id_ not in self.neighbours_ids_list:
+                self.add_neighbour_id(task_entity.id_)
         self.tasks_log.append(task_entity)
 
     def remove_task_from_log(self, task_entity: TaskSimple):
