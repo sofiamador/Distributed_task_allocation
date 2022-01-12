@@ -564,11 +564,10 @@ class TaskSimple(Entity):
     def mission_finished(self, mission):
 
         mission.is_done = True
-        try:
-            self.missions_list.remove(mission)
-            self.done_missions.append(mission)
-        except:
-            print("571 component")
+
+        self.missions_list.remove(mission)
+        self.done_missions.append(mission)
+
 
         if len(self.missions_list) == 0:
             self.is_done = True

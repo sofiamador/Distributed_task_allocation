@@ -6,7 +6,7 @@ from Simulation_Abstract_Components import TaskSimple, find_and_allocate_respons
 from itertools import filterfalse
 
 is_debug = False
-NCLO_casting = (1 / 500000) * 0.01
+NCLO_casting = (1 / 5000) * 0.1
 
 
 
