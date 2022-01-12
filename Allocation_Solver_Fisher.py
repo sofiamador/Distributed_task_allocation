@@ -854,8 +854,10 @@ class FisherTaskASY(TaskAlgorithm):
 
             if flag:
                 is_perfect_com = False
-                if self.simulation_entity.player_responsible.id_ == n_id:
-                    is_perfect_com = True
+                if self.simulation_entity.player_responsible is not None:
+
+                    if self.simulation_entity.player_responsible.id_ == n_id:
+                        is_perfect_com = True
                 msg = Msg(sender=self.simulation_entity.id_, receiver=n_id, information=information_to_send,
                           is_with_perfect_communication=is_perfect_com)
                 ans.append(msg)

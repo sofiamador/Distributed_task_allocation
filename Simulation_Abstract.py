@@ -4,7 +4,7 @@ from Simulation_Abstract_Components import TaskSimple, find_and_allocate_respons
 from itertools import filterfalse
 
 is_debug = False
-NCLO_casting = (1 / 5000) * 0.1
+NCLO_casting = (1 / 50000) * 0.01
 
 
 
@@ -312,9 +312,9 @@ class Simulation:
         self.update_locations_of_players()
         solver_duration_NCLO = self.solver.solve(self.tnow)
         time = self.tnow + solver_duration_NCLO * NCLO_casting
-        #if self.check_diary_during_solver(time):
-        #    self.diary.append(SolverFinishEvent(time_=time))
-        #    return
+        if self.check_diary_during_solver(time):
+            self.diary.append(SolverFinishEvent(time_=time))
+            return
         # handle_new allocation
         self.remove_mission_finished_events()
         self.remove_player_arrive_to_mission_event_from_diary()
@@ -443,6 +443,8 @@ class Simulation:
             player.current_task = next_task
             travel_time = self.f_calculate_distance(player, next_task) / player.speed
             self.generate_player_update_event(player=player)
+
+
             self.diary.append(
                 PlayerArriveToEMissionEvent(time_=self.tnow + travel_time, task=next_task, mission=next_mission,
                                             player=player))
