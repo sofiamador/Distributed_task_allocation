@@ -14,8 +14,8 @@ from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, 
     MapSimple, CentralizedComputer
 #is_with_message_loss = False
 loss_parameters = []
-delay_parameters = []
-is_perfect_communication = True
+delay_parameters = [2]
+is_perfect_communication = False
 
 
 simulations_range = range(1)
@@ -24,11 +24,11 @@ map_length = 10
 map_width = 10
 number_of_players = 50
 players_speed = 5
-solver_selection = 2 # 1 = all task init # 2= single latest task init # 3 = central
+solver_selection = 3 # 1 = all task init # 2= single latest task init # 3 = central
 termination_time_constant = 10000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
-exp_lambda_parameter = 0.5#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
-time_per_simulation = 5#15
+exp_lambda_parameter = 0.3#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
+time_per_simulation = 10#15
 number_of_initial_tasks = 10
 max_number_of_abilities = 1
 
