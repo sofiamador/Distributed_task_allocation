@@ -13,12 +13,12 @@ from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
     MapSimple, CentralizedComputer
 #is_with_message_loss = False
-loss_parameters = [1,2,3,4,5]
-delay_parameters = [1,2,3,4,5]
+loss_parameters = []
+delay_parameters = []
 is_perfect_communication = True
 
 
-simulations_range = range(50)
+simulations_range = range(1)
 number_of_centers = 10
 map_length = 10
 map_width = 10
@@ -27,7 +27,7 @@ players_speed = 5
 solver_selection = 2 # 1 = all task init # 2= single latest task init # 3 = central
 termination_time_constant = 10000
 util_structure_levels = 1  # 1-calculated rij, DONT touch was relevant only for static simulation
-exp_lambda_parameter = 0.4#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
+exp_lambda_parameter = 0.5#0.1,0.2,0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4,4.5,5
 time_per_simulation = 5#15
 number_of_initial_tasks = 10
 max_number_of_abilities = 1
@@ -235,6 +235,8 @@ def create_communication_protocols(loss_parameters,delay_parameters,is_perfect_c
 
 communication_protocols = create_communication_protocols(loss_parameters,delay_parameters,is_perfect_communication)
 
+if len(communication_protocols) >1:
+    raise Exception ("should select a single ")
 for communication_protocol in communication_protocols:
     communication_protocol_for_simulator = communication_protocol[0]
     communication_protocol_for_solver = communication_protocol[1]
@@ -274,7 +276,7 @@ for communication_protocol in communication_protocols:
 
     missions_data_frame = pd.DataFrame.from_dict(missions_information)
 
-    file_name = "solver_"+str(solver_selection)+"_A_"+str(solver_selection)+"_rate_" + str(
+    file_name = "solver_"+str(solver_selection)+"_A_"+str(number_of_players)+"_rate_" + str(
             exp_lambda_parameter)+"_"+com_name+".csv"
 
     missions_data_frame.to_csv(file_name, sep=',')

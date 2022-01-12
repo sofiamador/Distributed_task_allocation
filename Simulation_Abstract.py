@@ -311,6 +311,8 @@ class Simulation:
             print("SOLVER STARTS:", self.solver_counter)
         self.update_locations_of_players()
         solver_duration_NCLO = self.solver.solve(self.tnow)
+        if solver_duration_NCLO>=10000:
+            solver_duration_NCLO = 500
         time = self.tnow + solver_duration_NCLO * NCLO_casting
         if self.check_diary_during_solver(time):
             self.diary.append(SolverFinishEvent(time_=time))
