@@ -14,11 +14,11 @@ from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, 
     MapSimple, CentralizedComputer
 #is_with_message_loss = False
 loss_parameters = []#2,3,4,5,6
-delay_parameters = [4 ] #1,1.5,2,2.5,3,3.5,4
+delay_parameters = [ 3] #1,1.5,2,2.5,3,3.5,4
 is_perfect_communication = False
 
 
-simulations_range = range(50)
+simulations_range = range(1)
 number_of_centers = 10
 map_length = 10
 map_width = 10

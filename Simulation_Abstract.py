@@ -1,10 +1,12 @@
+import copy
+
 from Simulation_Abstract_Components import TaskSimple, find_and_allocate_responsible_player, Status, TaskGenerator, \
     calculate_distance, are_neighbours, is_player_can_be_allocated_to_task, PlayerSimple, MissionSimple, \
     CentralizedComputer
 from itertools import filterfalse
 
 is_debug = False
-NCLO_casting = (1 / 50000) * 0.01
+NCLO_casting = (1 / 500000) * 0.01
 
 
 
@@ -87,6 +89,24 @@ class TaskArrivalEvent(SimulationEvent):
         if simulation.is_centralized:
             simulation.solver.centralized_computer.update_task_simulation(self.task)
         simulation.solve()
+        if simulation.is_centralized:
+            for simulation_player in simulation.players_list:
+                for central_player in simulation.solver.centralized_computer.players_simulation:
+                    if simulation_player.id_ == central_player.id_:
+                        current_schedule = []
+                        for central_sch in central_player.schedule:
+
+                            for task in simulation.tasks_list:
+                                if task.id_ == central_sch[0].id_:
+                                    for mission in task.missions_list:
+                                        if mission.mission_id == central_sch[1].mission_id:
+                                            current_schedule.append((task, mission, central_sch[2]))
+                simulation_player.schedule = current_schedule
+
+
+
+
+
         simulation.generate_new_task_to_diary()
 
 
@@ -113,7 +133,22 @@ class NumberOfTasksArrivalEvent(SimulationEvent):
             if simulation.is_centralized:
                 simulation.solver.centralized_computer.update_task_simulation(task)
         simulation.solve()
+        if simulation.is_centralized:
+            for simulation_player in simulation.players_list:
+                for central_player in simulation.solver.centralized_computer.players_simulation:
+                    if simulation_player.id_ == central_player.id_:
+                        current_schedule = []
+                        for central_sch in central_player.schedule:
+
+                            for task in simulation.tasks_list:
+                                if task.id_ == central_sch[0].id_:
+                                    for mission in task.missions_list:
+                                        if mission.mission_id == central_sch[1].mission_id:
+                                            current_schedule.append ((task, mission, central_sch[2]))
+                simulation_player.schedule = current_schedule
+
         simulation.generate_new_task_to_diary()
+
 
 
 class PlayerArriveToEMissionEvent(SimulationEvent):
@@ -264,8 +299,9 @@ class Simulation:
         # solver initialization
         self.solver = solver
         if is_centralized:
-            self.solver.players_simulation = players_list
-            self.solver.centralized_computer.players_simulation = players_list
+            players_list_copy = copy.deepcopy(players_list)
+            self.solver.players_simulation = players_list_copy
+            self.solver.centralized_computer.players_simulation = players_list_copy
         else:
             self.solver.add_players_list(players_list)
 

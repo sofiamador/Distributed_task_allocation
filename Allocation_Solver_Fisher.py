@@ -1248,9 +1248,11 @@ class FisherCentralizedSolver(AllocationSolverCentralized):
             player.schedule = []
 
     def initialize_centralistic_algorithm(self):
+
+
         self.players_meet_tasks()
 
-        self.players_computer_schedule_clean()
+        #self.players_computer_schedule_clean()
         for player_algo in self.players_algorithm:
             player_algo.compute()
             msgs = player_algo.get_list_of_msgs_to_send()
