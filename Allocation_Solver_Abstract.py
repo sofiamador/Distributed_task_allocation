@@ -1582,17 +1582,21 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
 
     def update_log_of_players_current_task(self):
         """
-        the specified scenario suggests that players are aware of the current information of the tasks they are currently at
-        this method updates the relative information at the players log
+        since agents initiate they need to be aware of all tasks!
         :return:
         """
         for player_sim in self.players_simulation:
             player_algorithm = self.get_algorithm_agent_by_entity(player_sim)
-            current_task = player_sim.current_task
-            if current_task is not None:
-                current_task_updated = self.get_updated_entity_copy_of_current_task(current_task)
-                if current_task_updated is not None:
-                    player_algorithm.update_log_with_task(current_task_updated)
+            for task_sim in self.tasks_simulation:
+                player_algorithm.update_log_with_task(task_sim)
+
+        #for player_sim in self.players_simulation:
+         #   player_algorithm = self.get_algorithm_agent_by_entity(player_sim)
+          #  current_task = player_sim.current_task
+           # if current_task is not None:
+            #    current_task_updated = self.get_updated_entity_copy_of_current_task(current_task)
+             #   if current_task_updated is not None:
+              #      player_algorithm.update_log_with_task(current_task_updated)
 
     def get_updated_entity_copy_of_current_task(self, current_task:TaskSimple):
         for task_algo in self.tasks_algorithm:
@@ -1616,39 +1620,61 @@ class AllocationSolverTasksPlayersSemi(AllocationSolverDistributed):
             for player_sim_id in tasks_neighbours:
                 task_algorithm.add_neighbour_id(player_sim_id)
 
+
     def agents_initialize(self):
-        for task_algo in self.tasks_algorithm:
-            task_algo.initiate_algorithm()
+        for player_algo in self.players_algorithm:
+            player_algo.initiate_algorithm()
 
 
 def task_by_id(task_algo:TaskAlgorithm):
     return task_algo.simulation_entity.id_
 
-class AllocationSolverTasksPlayersFullRandTaskInit(AllocationSolverTasksPlayersSemi):
-    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
-                 f_communication_disturbance=default_communication_disturbance):
-        AllocationSolverTasksPlayersSemi.__init__(self, f_termination_condition, f_global_measurements,
-                                             f_communication_disturbance)
+#class AllocationSolverTasksPlayersFullRandTaskInit(AllocationSolverTasksPlayersSemi):
+#    def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
+#                 f_communication_disturbance=default_communication_disturbance):
+#        AllocationSolverTasksPlayersSemi.__init__(self, f_termination_condition, f_global_measurements,
+#                                             f_communication_disturbance)
 
-    def agents_initialize(self):
-        max_task = max(self.tasks_algorithm,key = task_by_id)
-        max_task.initiate_algorithm()
+#    def agents_initialize(self):
+#        max_task = max(self.tasks_algorithm,key = task_by_id)
+#        max_task.initiate_algorithm()
 
 
 def get_task_arrival_time(task_agent:TaskSimple):
     return task_agent.simulation_entity.arrival_time
+
+def get_task_min_id(task_agent:TaskSimple):
+    return task_agent.simulation_entity.id_
 
 class AllocationSolverTasksPlayersFullLatestTaskInit(AllocationSolverTasksPlayersSemi):
     def __init__(self, mailer=None, f_termination_condition=None, f_global_measurements=None,
                  f_communication_disturbance=default_communication_disturbance):
         AllocationSolverTasksPlayersSemi.__init__(self, f_termination_condition, f_global_measurements,
                                              f_communication_disturbance)
-
     def agents_initialize(self):
-        #task_entities = []
-        #for task_algo in self.tasks_algorithm:
-            #task_entities.append(task_algo.simulation_entity)
+        flag = False
+        for task in self.tasks_simulation:
+            if task.arrival_time>0:
+                flag =True
+                break
 
-        max_task = max(self.tasks_algorithm,key = get_task_arrival_time)
+        if flag:
+            max_task = max(self.tasks_algorithm,key = get_task_arrival_time)
+        else:
+            max_task = max(self.tasks_algorithm,key = get_task_min_id)
 
         max_task.initiate_algorithm()
+
+    def update_log_of_players_current_task(self):
+        """
+        the specified scenario suggests that players are aware of the current information of the tasks they are currently at
+        this method updates the relative information at the players log
+        :return:
+        """
+        for player_sim in self.players_simulation:
+            player_algorithm = self.get_algorithm_agent_by_entity(player_sim)
+            current_task = player_sim.current_task
+            if current_task is not None:
+                current_task_updated = self.get_updated_entity_copy_of_current_task(current_task)
+                if current_task_updated is not None:
+                    player_algorithm.update_log_with_task(current_task_updated)

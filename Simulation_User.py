@@ -12,6 +12,9 @@ from Entity_Generator import SimpleTaskGenerator, SimplePlayerGenerator
 from R_ij import calculate_rij_tsg, calculate_rij_abstract
 from Simulation_Abstract_Components import MapHubs, Entity, calculate_distance, calculate_distance_input_location, \
     MapSimple, CentralizedComputer
+
+
+
 #is_with_message_loss = False
 loss_parameters = []#2,3,4,5,6
 delay_parameters = [5] #1,1.5,2,2.5,3,3.5,4

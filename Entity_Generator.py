@@ -11,7 +11,7 @@ import numpy as np
 
 
 class SimpleTaskGenerator(TaskGenerator):
-    def __init__(self, max_number_of_missions ,map_: MapHubs, seed, factor_initial_workload=1.4, max_importance=10, exp_lambda_parameter=2):
+    def __init__(self, max_number_of_missions ,map_, seed, factor_initial_workload=1.4, max_importance=10):
         """
 
         :param map_: object to initiate location
@@ -21,13 +21,11 @@ class SimpleTaskGenerator(TaskGenerator):
         :param exp_lambda_parameter: used to get random gap between tasks exp(exp_lambda_parameter)
         """
         TaskGenerator.__init__(self, map_, seed)
-        self.beta = exp_lambda_parameter
         self.id_task_counter = 0
         self.id_mission_counter = 0
         self.max_importance = max_importance
         self.factor_initial_workload = factor_initial_workload
         self.skill_range =  []
-
         self.max_number_of_missions = max_number_of_missions
         for skill_number in range(max_number_of_missions):
             self.skill_range.append(skill_number)
@@ -49,7 +47,7 @@ class SimpleTaskGenerator(TaskGenerator):
             location = self.map.generate_location_gauss_around_center()
         else:
             location = self.map.generate_location()# #self.map.generate_location()
-        importance = (1 + math.floor(self.random.random() * self.max_importance)) * 1000
+        importance = (1 +self.random.random() * self.max_importance) * 1000
         if flag_time_zero:
             arrival_time = tnow
         else:
