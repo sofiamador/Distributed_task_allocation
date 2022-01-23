@@ -153,10 +153,12 @@ def communication(agent_obj_list, host_agent):
             break
     SendAlgoData("hello from:" + host_agent, to)
     sleep(1)
+    counter = 0
     while True:
         msg = GetAlgoData(host_agent)
-        if len(msg) == 0:
+        if len(msg) == 0 and counter < 5:
             sleep(1)
+            counter += 1
         else:
             print(host_agent, "got message", msg)
             break
@@ -165,7 +167,7 @@ def communication(agent_obj_list, host_agent):
     sleep(1)
     counter = 0
     while True:
-        msg = GetAlgoData()
+        msg = GetAlgoData(host_agent)
         if len(msg) == 0 and counter < 5:
             sleep(1)
             counter += 1
@@ -225,13 +227,13 @@ def create_list_of_tuples_allocations(new_obj_allocations):
 
 
 def calcAllocations(*args, **kwargs):
-    try:
-        return calcAllocationsInternal(*args, **kwargs)
+    # try:
+    return calcAllocationsInternal(*args, **kwargs)
     #
-    except Exception as e:
-        f = open("error.txt", "w")
-        f.write(str(e))
-        f.write(e.__doc__)
+    # except Exception as e:
+    #     f = open("error.txt", "w")
+    #     f.write(str(e))
+    #     f.write(e.__doc__)
 
 
 def print_allocations(event_obj_list):
