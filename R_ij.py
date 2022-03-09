@@ -30,17 +30,6 @@ def calculate_rij_abstract(player_entity :PlayerSimple, mission_entity:MissionSi
             remaining_workload_ratio * (current_task.importance/3)
 
     return max(importance_parameter*distance_parameter*productivity_parameter-abandonment_parameter,100)
-
-
-
-
-
-
-
-
-
-
-
 def calc_ratio_utility_for_current_mission(task_entity,mission_entity,player_entity:TSGPlayer):
     current_sar_size = task_entity.get_mission(
         1).get_number_of_agents_allocated_to_mission()  # TODO get number allocated not on mission

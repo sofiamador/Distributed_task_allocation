@@ -24,12 +24,12 @@ from Simulation_Abstract import  TaskArrivalEvent, find_and_allocate_responsible
 from Allocation_Solver_Abstract import AllocationSolver
 import string
 
-number_of_tasks = 15
+number_of_tasks = None
 different_reps_market_bool = None
 simulation_reps = None
 same_protocol_reps_number = None
 which_markets = None
-termination_time_constant =100000
+termination_time_constant =2000
 map_width = None
 map_length = None
 data_jumps = None
@@ -76,8 +76,9 @@ def get_task_importance(task: TaskSimple):
 
 class SimulationStatic():
     def __init__(self, rep_number, solver: AllocationSolver, map_length, map_width,players_required_ratio=0.5,
-                  tasks_per_center=3, number_of_centers=3):
+                  tasks_per_center=3, number_of_centers=3,players_absolute_number = 2):
         self.players_required_ratio = players_required_ratio
+        self.players_absolute_number=players_absolute_number
         self.rand = random.Random(rep_number * 17)
 
         self.seed_number = rep_number
@@ -124,7 +125,7 @@ class SimulationStatic():
     def create_tasks(self):
         total_number_of_tasks = number_of_tasks#self.tasks_per_center * len(self.map.centers_location)
         for _ in range(total_number_of_tasks):
-            task = self.task_generator.get_task(0)#SingleTaskGeneratorTSG(rand=self.rand, map_=self.map).random_task
+            task = self.task_generator.get_task(0,True)#SingleTaskGeneratorTSG(rand=self.rand, map_=self.map).random_task
             self.tasks.append(task)
 
 
@@ -165,7 +166,11 @@ class SimulationStatic():
 
     def create_players_given_ratio(self):
         number_players_required = self.get_number_of_tasks_required()
-        number_of_players = math.floor(self.players_required_ratio * number_players_required)
+        if self.players_absolute_number is not None:
+            number_of_players = players_absolute_number
+        else:
+            number_of_players = math.floor(self.players_required_ratio * number_players_required)
+
         for _ in range(number_of_players):
             self.players.append(self.players_generator.get_player())
         #self.tasks = sorted(self.tasks, key=get_task_importance, reverse=True)
@@ -533,7 +538,7 @@ def get_data_single_output_dict(data_,market_number = None,type_solver = None):
     return data_output1,data_output2
 
 
-def create_communication_protocols(is_with_timestamp,perfect_communication,alpha_for_delay,alpha_for_loss):
+def create_communication_protocols(is_with_timestamp,perfect_communication,alpha_for_delay,alpha_for_loss,ubs):
                                    #,ubs, constants_for_distances_pois, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises,constants_for_distances_exp,exps):
     ans = []
 
@@ -552,9 +557,9 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,alpha
     #     ans.append(CommunicationProtocolExp(name=name, is_with_timestamp=is_with_timestamp, lambda_=exp))
     #
     #
-    # for ub in ubs:
-    #     name = "U(0," + str(ub) + ")"
-    #     ans.append(CommunicationProtocolUniform(name=name, is_with_timestamp=is_with_timestamp, UB=ub))
+    for ub in ubs:
+        name = "U(0," + str(ub) + ")"
+        ans.append(CommunicationProtocolUniform(name=name, is_with_timestamp=is_with_timestamp, UB=ub))
     #
     #
     # for constant_ in constants_for_distances_pois:
@@ -574,7 +579,7 @@ def create_communication_protocols(is_with_timestamp,perfect_communication,alpha
     # for p_loss in p_losses:
     #     name = "p loss = " + str(p_loss)
     #     ans.append(CommunicationProtocolMessageLossConstant(name=name, is_with_timestamp=False, p_loss=p_loss))
-    #
+
     #
     # for distance_loss_ratio in distance_loss_ratios:
     #     name = "Distance Loss "+str(distance_loss_ratio)
@@ -636,7 +641,7 @@ def run_different_markets(ro,communication_protocol=None):
 
         scenario = SimulationStatic(rep_number=i, solver=None, map_length=map_length, map_width=map_width,
                               players_required_ratio=players_required_ratio
-                              , tasks_per_center=tasks_per_center,  number_of_centers=number_of_centers)
+                              , tasks_per_center=tasks_per_center,  number_of_centers=number_of_centers,players_absolute_number =players_absolute_number)
         if communication_protocol is not None:
             communication_protocol.set_seed(i)
 
@@ -644,7 +649,7 @@ def run_different_markets(ro,communication_protocol=None):
                                              ro=ro,simulation_rep = simulation_rep)
         scenario.add_solver(fisher_solver)
         if fisher_solver_distribution_level == 3:
-            fisher_solver.solve(tnow = 0,centralized_computer= fisher_solver.centralized_computer )
+            fisher_solver.solve(tnow = 0)
 
         else:
             fisher_solver.solve(tnow = 0)
@@ -743,29 +748,30 @@ def run_same_market_diff_communication_experiment(communication_protocol,ro):
 
 
 if __name__ == '__main__':
-    fisher_solver_distribution_levels = [3]#[3,2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed, 3 =centralistic
+    fisher_solver_distribution_levels = [2]#[3,2,1]#[1,2] # 1 = semi distributed, 2 = one task distributed, 3 =centralistic
     util_structure_levels = [1]#[1,3]#[1,2,3] # 1-calculated rij, 2-random when importance determines, 3-random completely
 
     different_reps_market_bool = True
     same_protocol_reps_number = 100
     which_markets = [0,1,2,3]
     simulation_reps = range(100)
-    players_required_ratios = [0.5]
-    tasks_per_center = 2
-    number_of_centers = 4
-    number_of_tasks =15
-    data_jumps = 100
-    map_width = 10
-    map_length = 10
+    players_absolute_numbers = [2]
+    players_required_ratios = []
+    tasks_per_center = 1
+    number_of_centers = 2
+    number_of_tasks =2
+    data_jumps = 1
+    map_width = 1
+    map_length = 1
     algo_name = "FMC_ASY"
     ros = [0.9]
     is_with_timestamp = True #False #False #True
     perfect_communication = False #True  #False
     max_number_of_missions = 1
-    alpha_for_delay = [2]#[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3]
+    alpha_for_delay = []#[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3]
     alpha_for_loss = []#[10,9,8,7,6,5,4,3,2,1]
-    #ubs = []#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
-    #p_losses = [0.1,0.2,0.3]  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
+    ubs = [50,100,150,200,250]#[250,500,750,1000]  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
+    #p_losses = []  # [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
     #p_loss_and_ubs = []  # [[0.25,1000]]
     #constants_for_distances_pois = []  # [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #constants_for_distances_and_loss = []  # [500, 1000, 5000]
@@ -774,7 +780,7 @@ if __name__ == '__main__':
 
     #constants_for_distances_exp = []# [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
     #exps=[]# [1000,2000,2500,3000]#[100,250,500, 750][4000,5000,7500,10000]
-    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,alpha_for_delay,alpha_for_loss)
+    communication_protocols = create_communication_protocols(is_with_timestamp,perfect_communication,alpha_for_delay,alpha_for_loss,ubs)
 
                                                              #ubs, constants_for_distances_pois, constants_for_distances_and_loss, p_losses,distance_loss_ratios,p_loss_and_ubs,poises,constants_for_distances_exp,exps)
 
@@ -785,17 +791,36 @@ if __name__ == '__main__':
         fisher_solver_distribution_level = fisher_solver
         for util_structure in util_structure_levels:
             util_structure_level = util_structure
-            for players_required_ratio in players_required_ratios:
-                for ro in ros:
-                    current_ro = ro
-                    if fisher_solver == 3:
-                        run_different_markets(ro)
-                    else:
-                        for communication_protocol in communication_protocols:
-                            if process_debug:
-                                print("players_required_ratios =", players_required_ratio, ";", "communication protocol =",
-                                      communication_protocol.name)
-                            run_different_markets( ro,communication_protocol = communication_protocol,)
+
+            if len(players_absolute_numbers) == 0:
+                players_absolute_number = None
+
+                for players_required_ratio in players_required_ratios:
+                    for ro in ros:
+                        current_ro = ro
+                        if fisher_solver == 3:
+                            run_different_markets(ro)
+                        else:
+                            for communication_protocol in communication_protocols:
+                                if process_debug:
+                                    print("players_required_ratios =", players_required_ratio, ";", "communication protocol =",
+                                          communication_protocol.name)
+                                run_different_markets( ro,communication_protocol = communication_protocol,)
+
+            else:
+                    for players_absolute_number in players_absolute_numbers:
+                        players_required_ratio = None
+                        for ro in ros:
+                            current_ro = ro
+                            if fisher_solver == 3:
+                                run_different_markets(ro)
+                            else:
+                                for communication_protocol in communication_protocols:
+                                    if process_debug:
+                                        print("players_absolute_number =", players_absolute_number, ";",
+                                              "communication protocol =",
+                                              communication_protocol.name)
+                                    run_different_markets(ro, communication_protocol=communication_protocol, )
                             #if different_reps_market_bool:
 
                             #else:

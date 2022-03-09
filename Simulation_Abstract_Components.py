@@ -684,7 +684,8 @@ class CentralizedComputer(Entity):
         if current_player is not None:
             self.players_simulation.remove(current_player)
         else:
-            print("if this is shown in dynamic simulation I forgot to add player as an event in simulation")
+            pass
+            #print("if this is shown in dynamic simulation I forgot to add player as an event in simulation")
 
         self.players_simulation.append(copy.copy(player_simulation))
 

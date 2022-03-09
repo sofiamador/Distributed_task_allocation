@@ -222,11 +222,13 @@ class FisherPlayerASY(PlayerAlgorithm, ABC):
 
     def set_information_prior_to_computation(self, msg):
         task_in_log = self.is_task_entity_new_in_log(msg.task_entity)
+        is_task_new = task_in_log is None
         if task_in_log is None:
             task_in_log = msg.task_entity
 
         self.set_single_task_in_x_i(task_in_log)
-        self.set_single_task_in_r_i(task_in_log)
+        if is_task_new:
+            self.set_single_task_in_r_i(task_in_log)
 
         task_id = msg.sender
         self.msgs_from_tasks[task_id] = msg
@@ -918,7 +920,8 @@ class FisherTaskASY(TaskAlgorithm):
             for player_id, allocation in dict.items():
                 if allocation != 0 and allocation is not None:
                     temp_ans[player_id] = allocation
-            ans[mission] = temp_ans
+            if len(temp_ans)!=0:
+                ans[mission] = temp_ans
 
         return ans
 
@@ -991,40 +994,40 @@ class FisherTaskASY(TaskAlgorithm):
 class FisherTaskASY_TSG_greedy_Schedual(FisherTaskASY,ABC):
     def __init__(self, agent_simulator: TaskSimple, t_now, is_with_timestamp, counter_of_converges=4, Threshold=0.001):
 
-        TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
-        if not isinstance(agent_simulator, TaskSimple):
-            raise Exception("wrong type of simulation entity")
-        self.Threshold = Threshold
-        self.counter_of_converges = counter_of_converges
-        self.counter_of_converges_dict = {}
-
-        self.is_finish_phase_II = False
-
-        self.potential_players_ids_list = []
-        self.reset_potential_players_ids_list()
-
-        self.bids = {}
-        self.missions_converged = {}
-
-        self.reset_bids()
-
-        self.x_jk = {}
-        self.x_jk_normal = {}
-
-        self.reset_x_jk()
-
-        self.msgs_from_players = {}
-        self.reset_msgs_from_players()
-
-        self.calculate_xjk_flag = False
-        self.price_t_minus = {}
-        self.price_current = {}
-        self.price_delta = {}
-        for mission in self.simulation_entity.missions_list:
-            self.price_t_minus[mission] = 9999999
-            self.price_current[mission] = 0
-            self.price_delta[mission] = 9999999
-            self.counter_of_converges_dict[mission] = self.counter_of_converges
+        # TaskAlgorithm.__init__(self, agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp)
+        # if not isinstance(agent_simulator, TaskSimple):
+        #     raise Exception("wrong type of simulation entity")
+        # self.Threshold = Threshold
+        # self.counter_of_converges = counter_of_converges
+        # self.counter_of_converges_dict = {}
+        #
+        # self.is_finish_phase_II = False
+        #
+        # self.potential_players_ids_list = []
+        # self.reset_potential_players_ids_list()
+        #
+        # self.bids = {}
+        # self.missions_converged = {}
+        #
+        # self.reset_bids()
+        #
+        # self.x_jk = {}
+        # self.x_jk_normal = {}
+        #
+        # self.reset_x_jk()
+        #
+        # self.msgs_from_players = {}
+        # self.reset_msgs_from_players()
+        #
+        # self.calculate_xjk_flag = False
+        # self.price_t_minus = {}
+        # self.price_current = {}
+        # self.price_delta = {}
+        # for mission in self.simulation_entity.missions_list:
+        #     self.price_t_minus[mission] = 9999999
+        #     self.price_current[mission] = 0
+        #     self.price_delta[mission] = 9999999
+        #     self.counter_of_converges_dict[mission] = self.counter_of_converges
         FisherTaskASY.__init__(self, agent_simulator=agent_simulator, t_now=t_now, is_with_timestamp=is_with_timestamp, counter_of_converges=2, Threshold=0.001)
         self.max_time_per_mission = {}
         self.player_greedy_arrive_dict = {}
