@@ -387,7 +387,7 @@ class MissionSimple:
     Class that represents a simple mission (as a part of the task)
     """
 
-    def __init__(self, mission_id, initial_workload, arrival_time_to_the_system, task_importance,
+    def __init__(self, mission_id, initial_workload, arrival_time_to_the_system, task_importance = 1,
                  abilities=[AbilitySimple(ability_type=0)],
                  min_players=1, max_players=1):
         """
